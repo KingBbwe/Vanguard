@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Shed - Stock Management System</title>
+    <meta name="theme-color" content="#1E40AF">
+    <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Shed Stock Management&quot;,&quot;short_name&quot;:&quot;ShedStock&quot;,&quot;start_url&quot;:&quot;/&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;theme_color&quot;:&quot;#1E40AF&quot;,&quot;background_color&quot;:&quot;#ffffff&quot;}">
+    <style>
+        :root {
+            --primary-blue: #1E40AF;
+            --hotel-color: #4F46E5;
+            --bar-color: #DC2626;
+            --restaurant-color: #059669;
+            --kitchen-color: #D97706;
+            --admin-color: #7C3AED;
+            --grounds-color: #16A34A;
+            --cultivation-color: #CA8A04;
+            --bg-primary: #F8FAFC;
+            --bg-secondary: #F1F5F9;
+            --text-primary: #1E293B;
+            --text-secondary: #64748B;
+            --border-color: #E2E8F0;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, var(--primary-blue), #3B82F6);
+            color: white;
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.875rem;
+        }
+
+        .sync-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10B981;
+            animate: pulse 2s infinite;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            max-width: 1440px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+            position: sticky;
+            top: 80px;
+        }
+
+        .department-nav {
+            margin-bottom: 2rem;
+        }
+
+        .nav-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .dept-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            border: 1px solid transparent;
+        }
+
+        .dept-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .dept-item.active {
+            background: var(--primary-blue);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .dept-icon {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        /* Login Screen */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-blue), #3B82F6);
+            padding: 1rem;
+        }
+
+        .login-card {
+            background: white;
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .pin-input {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .pin-digit {
+            width: 50px;
+            height: 50px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .pin-digit:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        }
+
+        .pin-digit.filled {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .key {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .key:hover {
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .key:active {
+            transform: translateY(0);
+        }
+
+        .key.clear {
+            background: #EF4444;
+            color: white;
+        }
+
+        .key.clear:hover {
+            background: #DC2626;
+        }
+
+        /* Dashboard */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+
+        .dashboard-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-metric {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            margin-bottom: 2rem;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-btn {
+            background: white;
+            border: 2px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary-blue);
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .action-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover .action-icon {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Recent Activity */
+        .activity-list {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-time {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Error and Success Messages */
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.error {
+            background: #FEF2F2;
+            color: #DC2626;
+            border: 1px solid #FECACA;
+        }
+
+        .message.success {
+            background: #F0FDF4;
+            color: #16A34A;
+            border: 1px solid #BBF7D0;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0;
+            }
+
+            .logo {
+                font-size: 1.25rem;
+            }
+
+            .user-info {
+                gap: 0.5rem;
+            }
+
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 1rem;
+            }
+
+            .content-area {
+                padding: 1rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .pin-input {
+                gap: 0.5rem;
+            }
+
+            .pin-digit {
+                width: 40px;
+                height: 40px;
+                font-size: 1.25rem;
+            }
+
+            .keypad {
+                gap: 0.75rem;
+            }
+
+            .login-card {
+                padding: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pin-digit {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Loading States */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Hidden by default */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="login-container">
+            <div class="login-card fade-in">
+                <div class="logo">
+                    <div class="logo-icon">🏨</div>
+                    <div>
+                        <div class="login-title">The Shed</div>
+                        <div class="login-subtitle">Boutique Hotel Stock Management</div>
+                    </div>
+                </div>
+                
+                <div id="loginMessage" class="message"></div>
+                
+                <div class="pin-input">
+                    <input type="password" class="pin-digit" maxlength="1" readonly>
+                    <input type="password" class="pin-digit" maxlength="1" readonly>
+                    <input type="password" class="pin-digit" maxlength="1" readonly>
+                    <input type="password" class="pin-digit" maxlength="1" readonly>
+                    <input type="password" class="pin-digit" maxlength="1" readonly>
+                </div>
+                
+                <div class="keypad">
+                    <button class="key" data-key="1">1</button>
+                    <button class="key" data-key="2">2</button>
+                    <button class="key" data-key="3">3</button>
+                    <button class="key" data-key="4">4</button>
+                    <button class="key" data-key="5">5</button>
+                    <button class="key" data-key="6">6</button>
+                    <button class="key" data-key="7">7</button>
+                    <button class="key" data-key="8">8</button>
+                    <button class="key" data-key="9">9</button>
+                    <button class="key" data-key="*">*</button>
+                    <button class="key" data-key="0">0</button>
+                    <button class="key" data-key="%">%</button>
+                </div>
+                
+                <button class="key clear" onclick="clearPin()">Clear PIN</button>
+            </div>
+        </div>
+
+        <!-- Main Application -->
+        <div id="mainApp" class="hidden">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-content">
+                    <div class="logo">
+                        <div class="logo-icon">🏨</div>
+                        <span>The Shed - Stock Management</span>
+                    </div>
+                    <div class="user-info">
+                        <div class="sync-status">
+                            <div class="sync-indicator"></div>
+                            <span id="syncStatus">Online</span>
+                        </div>
+                        <div id="currentUser"></div>
+                        <button class="logout-btn" onclick="logout()">Logout</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="main-content">
+                <!-- Sidebar -->
+                <nav class="sidebar">
+                    <div class="department-nav">
+                        <div class="nav-title">Departments</div>
+                        <div class="dept-item active" data-dept="dashboard">
+                            <div class="dept-icon" style="background: var(--primary-blue);"></div>
+                            <span>Dashboard</span>
+                        </div>
+                        <div class="dept-item" data-dept="hotel">
+                            <div class="dept-icon" style="background: var(--hotel-color);"></div>
+                            <span>Hotel Operations</span>
+                        </div>
+                        <div class="dept-item" data-dept="bar">
+                            <div class="dept-icon" style="background: var(--bar-color);"></div>
+                            <span>Bar Department</span>
+                        </div>
+                        <div class="dept-item" data-dept="restaurant">
+                            <div class="dept-icon" style="background: var(--restaurant-color);"></div>
+                            <span>Restaurant</span>
+                        </div>
+                        <div class="dept-item" data-dept="kitchen">
+                            <div class="dept-icon" style="background: var(--kitchen-color);"></div>
+                            <span>Kitchen</span>
+                        </div>
+                        <div class="dept-item" data-dept="admin">
+                            <div class="dept-icon" style="background: var(--admin-color);"></div>
+                            <span>Administration</span>
+                        </div>
+                        <div class="dept-item" data-dept="grounds">
+                            <div class="dept-icon" style="background: var(--grounds-color);"></div>
+                            <span>Grounds</span>
+                        </div>
+                        <div class="dept-item" data-dept="cultivation">
+                            <div class="dept-icon" style="background: var(--cultivation-color);"></div>
+                            <span>Cultivation</span>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Content Area -->
+                <main class="content-area">
+                    <div id="dashboardContent">
+                        <h1 style="margin-bottom: 2rem; font-size: 2rem; font-weight: 700;">Dashboard</h1>
+                        
+                        <div class="dashboard-grid">
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Total Items</div>
+                                </div>
+                                <div class="card-metric" id="totalItems">--</div>
+                                <div class="card-subtitle">Across all departments</div>
+                            </div>
+                            
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Low Stock Alerts</div>
+                                </div>
+                                <div class="card-metric" id="lowStockCount" style="color: #DC2626;">--</div>
+                                <div class="card-subtitle">Items need restocking</div>
+                            </div>
+                            
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Today's Movements</div>
+                                </div>
+                                <div class="card-metric" id="todayMovements">--</div>
+                                <div class="card-subtitle">Stock in/out operations</div>
+                            </div>
+                            
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">Active Users</div>
+                                </div>
+                                <div class="card-metric" id="activeUsers">15</div>
+                                <div class="card-subtitle">Staff members registered</div>
+                            </div>
+                        </div>
+
+                        <div class="quick-actions">
+                            <h2 style="margin-bottom: 1rem; font-size: 1.5rem; font-weight: 600;">Quick Actions</h2>
+                            <div class="actions-grid">
+                                <div class="action-btn" onclick="showStockIn()">
+                                    <div class="action-icon">📦</div>
+                                    <div>Stock In</div>
+                                </div>
+                                <div class="action-btn" onclick="showStockOut()">
+                                    <div class="action-icon">📤</div>
+                                    <div>Stock Out</div>
+                                </div>
+                                <div class="action-btn" onclick="showInventory()">
+                                    <div class="action-icon">📋</div>
+                                    <div>View Inventory</div>
+                                </div>
+                                <div class="action-btn" onclick="showReports()">
+                                    <div class="action-icon">📊</div>
+                                    <div>Reports</div>
+                                </div>
+                                <div class="action-btn" onclick="showAddItem()">
+                                    <div class="action-icon">➕</div>
+                                    <div>Add Item</div>
+                                </div>
+                                <div class="action-btn" onclick="showSettings()">
+                                    <div class="action-icon">⚙️</div>
+                                    <div>Settings</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="activity-list">
+                            <h2 style="margin-bottom: 1rem; font-size: 1.5rem; font-weight: 600;">Recent Activity</h2>
+                            <div id="recentActivity">
+                                <div class="activity-item">
+                                    <div class="activity-avatar">K</div>
+                                    <div class="activity-content">
+                                        <div class="activity-text">System initialized successfully</div>
+                                        <div class="activity-time">Just now</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let currentUser = null;
+        let currentPin = '';
+        let currentPinIndex = 0;
+        let isOffline = false;
+
+        // User Roles Constants
+        const USER_ROLES = {
+            ADMIN: 'admin',
+            PROCESSOR: 'processor',
+            VIEWER: 'viewer'
+        };
+
+        // Hardcoded Users (as specified)
+        const USERS = {
+            'Kelvin': { 
+                password: '0100*', 
+                role: USER_ROLES.ADMIN, 
+                displayName: 'Kelvin', 
+                department: 'all', 
+                functions: ['Data Lead', 'Legal Lead', 'Operations Lead', 'Research Lead', 'Quality Lead', 'Tech Team', 'Finance Manager', 'Strategy Lead', 'Operations Director', 'HoP'] 
+            },
+            'Franklin': { 
+                password: '1100%', 
+                role: USER_ROLES.ADMIN, 
+                displayName: 'Franklin', 
+                department: 'all', 
+                functions: ['Data Lead', 'Legal Lead', 'Operations Lead', 'Research Lead', 'Quality Lead', 'Tech Team', 'Finance Manager', 'Strategy Lead', 'Operations Director', 'HoP'] 
+            },
+            'Chisomo': { 
+                password: '2100%', 
+                role: USER_ROLES.ADMIN, 
+                displayName: 'Chisomo', 
+                department: 'admin', 
+                functions: ['Marketing Lead', 'Admin Lead', 'Events Lead', 'Membership Lead', 'Spa Manager', 'Experience Lead', 'Sales Lead', 'Procurement Lead', 'Training Lead', 'Social Media Lead', 'CRM Team', 'Membership Concierge'] 
+            },
+            'Victor': { 
+                password: '02000', 
+                role: USER_ROLES.ADMIN, 
+                displayName: 'Victor', 
+                department: 'admin', 
+                functions: ['Marketing Lead', 'Admin Lead', 'Events Lead', 'Membership Lead', 'Spa Manager', 'Experience Lead', 'Sales Lead', 'Procurement Lead', 'Training Lead', 'Social Media Lead', 'CRM Team', 'Membership Concierge'] 
+            },
+            'Boston': { 
+                password: '61006', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Boston', 
+                department: 'bar', 
+                secondaryDepartment: 'restaurant', 
+                functions: ['Logistics Lead'] 
+            },
+            'Magah': { 
+                password: '41004', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Magah', 
+                department: 'bar', 
+                secondaryDepartment: 'restaurant', 
+                functions: ['Logistics Lead'] 
+            },
+            'Phillip': { 
+                password: '51005', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Phillip', 
+                department: 'bar', 
+                secondaryDepartment: 'restaurant', 
+                isSupervisor: true, 
+                functions: ['Logistics Lead'] 
+            },
+            'Gift': { 
+                password: '71007', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Gift', 
+                department: 'restaurant', 
+                functions: [] 
+            },
+            'Rhodney': { 
+                password: '81008', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Rhodney', 
+                department: 'restaurant', 
+                isSupervisor: true, 
+                functions: [] 
+            },
+            'Mike': { 
+                password: '91009', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Mike', 
+                department: 'restaurant', 
+                functions: [] 
+            },
+            'Matias': { 
+                password: '11100', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Matias', 
+                department: 'hotel', 
+                functions: [] 
+            },
+            'Kennedy': { 
+                password: '22202', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Kennedy', 
+                department: 'hotel', 
+                functions: [] 
+            },
+            'Mphatso': { 
+                password: '33303', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Mphatso', 
+                department: 'restaurant', 
+                secondaryDepartment: 'hotel', 
+                functions: [] 
+            },
+            'Gaven': { 
+                password: '44404', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Gaven', 
+                department: 'grounds', 
+                secondaryDepartment: 'cultivation', 
+                functions: ['NA', 'AP'] 
+            },
+            'Maya': { 
+                password: '55505', 
+                role: USER_ROLES.PROCESSOR, 
+                displayName: 'Maya', 
+                department: 'grounds', 
+                secondaryDepartment: 'cultivation', 
+                functions: ['NA', 'AP'] 
+            }
+        };
+
+        // Department Configuration
+        const DEPARTMENTS = {
+            hotel: {
+                name: 'Hotel Operations',
+                color: '#4F46E5',
+                categories: ['Linens', 'Toiletries', 'Cleaning Supplies', 'Room Amenities', 'Maintenance'],
+                defaultUnits: ['pieces', 'bottles', 'packets']
+            },
+            bar: {
+                name: 'Bar Department',
+                color: '#DC2626',
+                categories: ['Spirits', 'Wines', 'Beers', 'Mixers', 'Garnishes', 'Glassware', 'Bar Equipment'],
+                defaultUnits: ['bottles', 'cases', 'liters', 'pieces']
+            },
+            restaurant: {
+                name: 'Restaurant',
+                color: '#059669',
+                categories: ['Beverages', 'Tableware', 'Linens', 'Service Equipment', 'Disposables'],
+                defaultUnits: ['pieces', 'sets', 'rolls', 'packets']
+            },
+            kitchen: {
+                name: 'Kitchen',
+                color: '#D97706',
+                categories: ['Fresh Produce', 'Meat & Seafood', 'Dairy', 'Dry Goods', 'Spices', 'Equipment', 'Packaging'],
+                defaultUnits: ['kg', 'liters', 'pieces', 'packets', 'cases']
+            },
+            admin: {
+                name: 'Administration',
+                color: '#7C3AED',
+                categories: ['Office Supplies', 'IT Equipment', 'Furniture', 'Documents', 'General'],
+                defaultUnits: ['pieces', 'boxes', 'reams', 'sets']
+            },
+            grounds: {
+                name: 'Grounds',
+                color: '#16A34A',
+                categories: ['Tools', 'Equipment', 'Supplies', 'Maintenance', 'Safety'],
+                defaultUnits: ['pieces', 'liters', 'kg', 'sets']
+            },
+            cultivation: {
+                name: 'Cultivation',
+                color: '#CA8A04',
+                categories: ['Seeds', 'Fertilizers', 'Tools', 'Equipment', 'Harvest Supplies'],
+                defaultUnits: ['packets', 'kg', 'liters', 'pieces']
+            }
+        };
+
+        // Database Manager (IndexedDB)
+        class DatabaseManager {
+            constructor() {
+                this.dbName = 'ShedStockDB';
+                this.version = 1;
+                this.db = null;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.version);
+                    
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve();
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        
+                        // Create object stores
+                        if (!db.objectStoreNames.contains('items')) {
+                            const itemStore = db.createObjectStore('items', { keyPath: 'id' });
+                            itemStore.createIndex('sku', 'sku', { unique: true });
+                            itemStore.createIndex('categoryId', 'categoryId');
+                            itemStore.createIndex('department', 'department');
+                        }
+                        
+                        if (!db.objectStoreNames.contains('stockLevels')) {
+                            const stockStore = db.createObjectStore('stockLevels', { keyPath: 'itemId' });
+                        }
+                        
+                        if (!db.objectStoreNames.contains('stockMovements')) {
+                            const movementStore = db.createObjectStore('stockMovements', { keyPath: 'id' });
+                            movementStore.createIndex('itemId', 'itemId');
+                            movementStore.createIndex('timestamp', 'timestamp');
+                        }
+                        
+                        if (!db.objectStoreNames.contains('categories')) {
+                            const categoryStore = db.createObjectStore('categories', { keyPath: 'id' });
+                            categoryStore.createIndex('departmentId', 'departmentId');
+                        }
+                        
+                        if (!db.objectStoreNames.contains('suppliers')) {
+                            db.createObjectStore('suppliers', { keyPath: 'id' });
+                        }
+                    };
+                });
+            }
+
+            async add(storeName, data) {
+                const transaction = this.db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                return store.add(data);
+            }
+
+            async get(storeName, key) {
+                const transaction = this.db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                return store.get(key);
+            }
+
+            async getAll(storeName) {
+                const transaction = this.db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                return store.getAll();
+            }
+
+            async update(storeName, data) {
+                const transaction = this.db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                return store.put(data);
+            }
+
+            async delete(storeName, key) {
+                const transaction = this.db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                return store.delete(key);
+            }
+        }
+
+        // Initialize Database
+        const dbManager = new DatabaseManager();
+
+        // Utility Functions
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-MW', {
+                style: 'currency',
+                currency: 'MWK'
+            }).format(amount);
+        }
+
+        function formatDate(date) {
+            return new Intl.DateTimeFormat('en-MW', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(new Date(date));
+        }
+
+        function showMessage(message, type = 'info') {
+            const messageEl = document.getElementById('loginMessage');
+            messageEl.textContent = message;
+            messageEl.className = `message ${type} show`;
+            
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, 5000);
+        }
+
+        // PIN Authentication
+        function handleKeyPress(key) {
+            if (currentPinIndex >= 5) return;
+            
+            const pinDigits = document.querySelectorAll('.pin-digit');
+            pinDigits[currentPinIndex].value = key;
+            pinDigits[currentPinIndex].classList.add('filled');
+            
+            currentPin += key;
+            currentPinIndex++;
+            
+            if (currentPinIndex === 5) {
+                setTimeout(() => validatePin(), 500);
+            }
+        }
+
+        function clearPin() {
+            currentPin = '';
+            currentPinIndex = 0;
+            const pinDigits = document.querySelectorAll('.pin-digit');
+            pinDigits.forEach(digit => {
+                digit.value = '';
+                digit.classList.remove('filled');
+            });
+            document.getElementById('loginMessage').classList.remove('show');
+        }
+
+        function validatePin() {
+            // Find user by PIN
+            const user = Object.entries(USERS).find(([name, userData]) => 
+                userData.password === currentPin
+            );
+            
+            if (user) {
+                currentUser = {
+                    name: user[0],
+                    ...user[1]
+                };
+                
+                showMainApp();
+                addActivity(`${currentUser.displayName} logged in`, currentUser.name);
+            } else {
+                showMessage('Invalid PIN. Please try again.', 'error');
+                clearPin();
+            }
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('currentUser').textContent = `Welcome, ${currentUser.displayName}`;
+            
+            // Initialize department navigation based on user permissions
+            initDepartmentNav();
+            loadDashboardData();
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                addActivity(`${currentUser.displayName} logged out`, currentUser.name);
+                currentUser = null;
+                clearPin();
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+            }
+        }
+
+        // Department Navigation
+        function initDepartmentNav() {
+            const deptItems = document.querySelectorAll('.dept-item');
+            
+            deptItems.forEach(item => {
+                const dept = item.dataset.dept;
+                
+                // Hide departments user doesn't have access to
+                if (currentUser.department !== 'all' && dept !== 'dashboard') {
+                    if (dept !== currentUser.department && dept !== currentUser.secondaryDepartment) {
+                        item.style.display = 'none';
+                        return;
+                    }
+                }
+                
+                item.addEventListener('click', () => {
+                    // Remove active class from all items
+                    deptItems.forEach(d => d.classList.remove('active'));
+                    item.classList.add('active');
+                    
+                    // Load department content
+                    loadDepartmentContent(dept);
+                });
+            });
+        }
+
+        function loadDepartmentContent(dept) {
+            const contentArea = document.querySelector('.content-area');
+            
+            if (dept === 'dashboard') {
+                contentArea.innerHTML = document.getElementById('dashboardContent').innerHTML;
+                loadDashboardData();
+            } else {
+                loadDepartmentView(dept);
+            }
+        }
+
+        function loadDepartmentView(dept) {
+            const deptConfig = DEPARTMENTS[dept];
+            const contentArea = document.querySelector('.content-area');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                        <div class="dept-icon" style="background: ${deptConfig.color}; width: 24px; height: 24px;"></div>
+                        <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">${deptConfig.name}</h1>
+                    </div>
+                    
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Total Items</div>
+                            </div>
+                            <div class="card-metric">--</div>
+                            <div class="card-subtitle">Items in ${deptConfig.name}</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Low Stock</div>
+                            </div>
+                            <div class="card-metric" style="color: #DC2626;">--</div>
+                            <div class="card-subtitle">Items need attention</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Categories</div>
+                            </div>
+                            <div class="card-metric">${deptConfig.categories.length}</div>
+                            <div class="card-subtitle">Item categories</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Today's Activity</div>
+                            </div>
+                            <div class="card-metric">--</div>
+                            <div class="card-subtitle">Stock movements</div>
+                        </div>
+                    </div>
+                    
+                    <div class="quick-actions">
+                        <h2 style="margin-bottom: 1rem; font-size: 1.5rem; font-weight: 600;">Department Actions</h2>
+                        <div class="actions-grid">
+                            <div class="action-btn" onclick="showDepartmentInventory('${dept}')">
+                                <div class="action-icon">📋</div>
+                                <div>View Inventory</div>
+                            </div>
+                            <div class="action-btn" onclick="showStockIn('${dept}')">
+                                <div class="action-icon">📦</div>
+                                <div>Stock In</div>
+                            </div>
+                            <div class="action-btn" onclick="showStockOut('${dept}')">
+                                <div class="action-icon">📤</div>
+                                <div>Stock Out</div>
+                            </div>
+                            <div class="action-btn" onclick="showAddItem('${dept}')">
+                                <div class="action-icon">➕</div>
+                                <div>Add Item</div>
+                            </div>
+                            <div class="action-btn" onclick="showDepartmentReports('${dept}')">
+                                <div class="action-icon">📊</div>
+                                <div>Reports</div>
+                            </div>
+                            <div class="action-btn" onclick="showTransferItems('${dept}')">
+                                <div class="action-icon">🔄</div>
+                                <div>Transfer Items</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-list">
+                        <h2 style="margin-bottom: 1rem; font-size: 1.5rem; font-weight: 600;">Recent ${deptConfig.name} Activity</h2>
+                        <div id="departmentActivity">
+                            <div class="activity-item">
+                                <div class="activity-avatar" style="background: ${deptConfig.color};">${dept.charAt(0).toUpperCase()}</div>
+                                <div class="activity-content">
+                                    <div class="activity-text">Department view loaded</div>
+                                    <div class="activity-time">Just now</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Dashboard Data Loading
+        async function loadDashboardData() {
+            try {
+                // Simulate loading data
+                document.getElementById('totalItems').textContent = '247';
+                document.getElementById('lowStockCount').textContent = '12';
+                document.getElementById('todayMovements').textContent = '34';
+                
+                // Update recent activity
+                loadRecentActivity();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        function loadRecentActivity() {
+            const activityContainer = document.getElementById('recentActivity');
+            if (!activityContainer) return;
+            
+            // This would normally load from database
+            const activities = [
+                {
+                    user: 'Kelvin',
+                    action: 'System initialized successfully',
+                    time: 'Just now',
+                    avatar: 'K'
+                }
+            ];
+            
+            activityContainer.innerHTML = activities.map(activity => `
+                <div class="activity-item">
+                    <div class="activity-avatar">${activity.avatar}</div>
+                    <div class="activity-content">
+                        <div class="activity-text">${activity.action}</div>
+                        <div class="activity-time">${activity.time}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addActivity(action, userId) {
+            const user = USERS[userId] || { displayName: userId };
+            const avatar = user.displayName.charAt(0).toUpperCase();
+            
+            console.log(`Activity: ${action} by ${user.displayName}`);
+            // In real implementation, this would save to database and update UI
+        }
+
+        // Quick Action Functions (Placeholders for now)
+        function showStockIn(dept = null) {
+            alert(`Stock In functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+        }
+
+        function showStockOut(dept = null) {
+            alert(`Stock Out functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+        }
+
+        function showInventory(dept = null) {
+            alert(`Inventory view will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+        }
+
+        function showReports(dept = null) {
+            alert(`Reports functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+        }
+
+        function showAddItem(dept = null) {
+            alert(`Add Item functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+        }
+
+        function showSettings() {
+            if (currentUser.role !== USER_ROLES.ADMIN) {
+                alert('You do not have permission to access settings.');
+                return;
+            }
+            alert('Settings will be implemented here');
+        }
+
+        function showDepartmentInventory(dept) {
+            showInventory(dept);
+        }
+
+        function showDepartmentReports(dept) {
+            showReports(dept);
+        }
+
+        function showTransferItems(dept) {
+            alert(`Transfer Items functionality will be implemented here for ${DEPARTMENTS[dept].name}`);
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize database
+            try {
+                await dbManager.init();
+                console.log('Database initialized successfully');
+            } catch (error) {
+                console.error('Database initialization failed:', error);
+            }
+            
+            // Setup keypad
+            document.querySelectorAll('.key[data-key]').forEach(key => {
+                key.addEventListener('click', () => {
+                    handleKeyPress(key.dataset.key);
+                });
+            });
+            
+            // Setup keyboard input for PIN
+            document.addEventListener('keydown', (e) => {
+                if (document.getElementById('loginScreen').classList.contains('hidden')) return;
+                
+                const key = e.key;
+                if (['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '%'].includes(key)) {
+                    handleKeyPress(key);
+                } else if (key === 'Backspace' || key === 'Delete') {
+                    clearPin();
+                }
+            });
+            
+            // Setup offline detection
+            window.addEventListener('online', () => {
+                isOffline = false;
+                document.getElementById('syncStatus').textContent = 'Online';
+                document.querySelector('.sync-indicator').style.background = '#10B981';
+            });
+            
+            window.addEventListener('offline', () => {
+                isOffline = true;
+                document.getElementById('syncStatus').textContent = 'Offline';
+                document.querySelector('.sync-indicator').style.background = '#EF4444';
+            });
+        });
+
+        // Service Worker Registration (for PWA functionality)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('data:application/javascript,console.log("Service Worker registered");')
+                    .then(registration => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
