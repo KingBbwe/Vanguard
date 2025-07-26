@@ -1290,25 +1290,1530 @@
             // In real implementation, this would save to database and update UI
         }
 
-        // Quick Action Functions (Placeholders for now)
+        // Sample Data for Testing
+        const SAMPLE_ITEMS = {
+            hotel: [
+                { id: 'hotel-001', name: 'Bath Towels', category: 'Linens', unit: 'pieces', currentStock: 45, minLevel: 20, maxLevel: 100, cost: 2500 },
+                { id: 'hotel-002', name: 'Shampoo Bottles', category: 'Toiletries', unit: 'bottles', currentStock: 8, minLevel: 15, maxLevel: 50, cost: 1200 },
+                { id: 'hotel-003', name: 'Toilet Paper', category: 'Room Amenities', unit: 'rolls', currentStock: 120, minLevel: 50, maxLevel: 200, cost: 800 }
+            ],
+            bar: [
+                { id: 'bar-001', name: 'Whiskey - Jameson', category: 'Spirits', unit: 'bottles', currentStock: 12, minLevel: 10, maxLevel: 30, cost: 15000 },
+                { id: 'bar-002', name: 'Wine Glasses', category: 'Glassware', unit: 'pieces', currentStock: 25, minLevel: 20, maxLevel: 60, cost: 2500 },
+                { id: 'bar-003', name: 'Coca Cola', category: 'Mixers', unit: 'bottles', currentStock: 5, minLevel: 24, maxLevel: 72, cost: 350 }
+            ],
+            restaurant: [
+                { id: 'rest-001', name: 'Dinner Plates', category: 'Tableware', unit: 'pieces', currentStock: 40, minLevel: 30, maxLevel: 80, cost: 3500 },
+                { id: 'rest-002', name: 'Table Cloths', category: 'Linens', unit: 'pieces', currentStock: 15, minLevel: 12, maxLevel: 30, cost: 4500 },
+                { id: 'rest-003', name: 'Napkins', category: 'Disposables', unit: 'packets', currentStock: 8, minLevel: 20, maxLevel: 50, cost: 1500 }
+            ]
+        };
+
+        // Initialize sample data on first load
+        async function initializeSampleData() {
+            try {
+                const existingItems = await dbManager.getAll('items');
+                if (existingItems.length === 0) {
+                    // Add sample items to database
+                    for (const [dept, items] of Object.entries(SAMPLE_ITEMS)) {
+                        for (const item of items) {
+                            const fullItem = {
+                                ...item,
+                                sku: item.id,
+                                department: dept,
+                                description: `${item.name} for ${DEPARTMENTS[dept].name}`,
+                                supplierId: null,
+                                expiryTracking: false,
+                                imageUrl: null,
+                                barcode: null,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString()
+                            };
+                            
+                            await dbManager.add('items', fullItem);
+                            
+                            // Add stock level
+                            await dbManager.add('stockLevels', {
+                                itemId: item.id,
+                                currentQuantity: item.currentStock,
+                                reservedQuantity: 0,
+                                lastCounted: new Date().toISOString(),
+                                lastMovement: new Date().toISOString()
+                            });
+                        }
+                    }
+                    console.log('Sample data initialized');
+                }
+            } catch (error) {
+                console.error('Error initializing sample data:', error);
+            }
+        }
+
+        // Stock In Operations
         function showStockIn(dept = null) {
-            alert(`Stock In functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+            const contentArea = document.querySelector('.content-area');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                        <button onclick="loadDashboardData(); loadDepartmentContent('dashboard')" style="background: none; border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 6px; cursor: pointer;">←</button>
+                        <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">Stock In - Receive Items</h1>
+                    </div>
+                    
+                    <div id="stockInMessage" class="message"></div>
+                    
+                    <div class="dashboard-card" style="max-width: 800px; margin-bottom: 2rem;">
+                        <div class="card-header">
+                            <div class="card-title">Receive Stock</div>
+                        </div>
+                        
+                        <div style="display: grid; gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Department</label>
+                                    <select id="stockInDept" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                        ${Object.entries(DEPARTMENTS).map(([key, dept]) => {
+                                            // Only show departments user has access to
+                                            if (currentUser.department !== 'all' && key !== currentUser.department && key !== currentUser.secondaryDepartment) {
+                                                return '';
+                                            }
+                                            return `<option value="${key}" ${dept === key ? 'selected' : ''}>${dept.name}</option>`;
+                                        }).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Reference Number</label>
+                                    <input type="text" id="referenceNumber" placeholder="PO-2024-001" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Select Item</label>
+                                <select id="stockInItem" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" onchange="loadItemDetails()">
+                                    <option value="">Select an item...</option>
+                                </select>
+                            </div>
+                            
+                            <div id="itemDetails" style="display: none; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <strong>Current Stock:</strong>
+                                        <div id="currentStock">--</div>
+                                    </div>
+                                    <div>
+                                        <strong>Min Level:</strong>
+                                        <div id="minLevel">--</div>
+                                    </div>
+                                    <div>
+                                        <strong>Unit:</strong>
+                                        <div id="itemUnit">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Quantity Received</label>
+                                    <input type="number" id="stockInQuantity" min="0.01" step="0.01" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Unit Cost</label>
+                                    <input type="number" id="unitCost" min="0" step="0.01" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Total Cost</label>
+                                    <input type="text" id="totalCost" readonly style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary);">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Supplier (Optional)</label>
+                                <input type="text" id="supplierName" placeholder="Supplier name" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Notes</label>
+                                <textarea id="stockInNotes" rows="3" placeholder="Additional notes about this stock receipt..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; resize: vertical;"></textarea>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                <button onclick="loadDashboardData(); loadDepartmentContent('dashboard')" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 6px; cursor: pointer;">Cancel</button>
+                                <button onclick="processStockIn()" style="padding: 0.75rem 1.5rem; border: none; background: var(--primary-blue); color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Receive Stock</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Initialize department and load items
+            if (dept) {
+                document.getElementById('stockInDept').value = dept;
+            }
+            loadStockInItems();
+            
+            // Setup calculation listeners
+            document.getElementById('stockInQuantity').addEventListener('input', calculateTotal);
+            document.getElementById('unitCost').addEventListener('input', calculateTotal);
         }
 
+        async function loadStockInItems() {
+            const deptSelect = document.getElementById('stockInDept');
+            const itemSelect = document.getElementById('stockInItem');
+            const selectedDept = deptSelect.value;
+            
+            if (!selectedDept) return;
+            
+            try {
+                const allItems = await dbManager.getAll('items');
+                const deptItems = allItems.filter(item => item.department === selectedDept);
+                
+                itemSelect.innerHTML = '<option value="">Select an item...</option>' +
+                    deptItems.map(item => `<option value="${item.id}">${item.name} (${item.sku})</option>`).join('');
+                    
+            } catch (error) {
+                console.error('Error loading items:', error);
+            }
+        }
+
+        async function loadItemDetails() {
+            const itemSelect = document.getElementById('stockInItem');
+            const itemDetailsDiv = document.getElementById('itemDetails');
+            const selectedItemId = itemSelect.value;
+            
+            if (!selectedItemId) {
+                itemDetailsDiv.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const item = await dbManager.get('items', selectedItemId);
+                const stockLevel = await dbManager.get('stockLevels', selectedItemId);
+                
+                if (item && stockLevel) {
+                    document.getElementById('currentStock').textContent = `${stockLevel.currentQuantity} ${item.unit}`;
+                    document.getElementById('minLevel').textContent = `${item.minLevel} ${item.unit}`;
+                    document.getElementById('itemUnit').textContent = item.unit;
+                    document.getElementById('unitCost').value = item.cost || '';
+                    
+                    itemDetailsDiv.style.display = 'block';
+                    calculateTotal();
+                }
+            } catch (error) {
+                console.error('Error loading item details:', error);
+            }
+        }
+
+        function calculateTotal() {
+            const quantity = parseFloat(document.getElementById('stockInQuantity').value) || 0;
+            const unitCost = parseFloat(document.getElementById('unitCost').value) || 0;
+            const total = quantity * unitCost;
+            
+            document.getElementById('totalCost').value = total > 0 ? formatCurrency(total) : '';
+        }
+
+        async function processStockIn() {
+            const itemId = document.getElementById('stockInItem').value;
+            const quantity = parseFloat(document.getElementById('stockInQuantity').value);
+            const unitCost = parseFloat(document.getElementById('unitCost').value) || 0;
+            const reference = document.getElementById('referenceNumber').value;
+            const supplier = document.getElementById('supplierName').value;
+            const notes = document.getElementById('stockInNotes').value;
+            
+            // Validation
+            if (!itemId) {
+                showStockMessage('Please select an item', 'error');
+                return;
+            }
+            
+            if (!quantity || quantity <= 0) {
+                showStockMessage('Please enter a valid quantity', 'error');
+                return;
+            }
+            
+            try {
+                // Get current stock level
+                const currentStock = await dbManager.get('stockLevels', itemId);
+                const item = await dbManager.get('items', itemId);
+                
+                if (!currentStock || !item) {
+                    showStockMessage('Item not found', 'error');
+                    return;
+                }
+                
+                // Update stock level
+                const newQuantity = currentStock.currentQuantity + quantity;
+                await dbManager.update('stockLevels', {
+                    ...currentStock,
+                    currentQuantity: newQuantity,
+                    lastMovement: new Date().toISOString()
+                });
+                
+                // Record stock movement
+                const movement = {
+                    id: generateUUID(),
+                    itemId: itemId,
+                    movementType: 'in',
+                    quantity: quantity,
+                    unitCost: unitCost,
+                    totalCost: quantity * unitCost,
+                    reason: 'Stock Receipt',
+                    referenceNumber: reference,
+                    supplierId: supplier ? generateUUID() : null,
+                    initiatedBy: currentUser.name,
+                    approvedBy: currentUser.name,
+                    staffMember: null,
+                    notes: notes,
+                    timestamp: new Date().toISOString(),
+                    syncStatus: 'pending'
+                };
+                
+                await dbManager.add('stockMovements', movement);
+                
+                // Add activity
+                addActivity(`Stock In: ${quantity} ${item.unit} of ${item.name}`, currentUser.name);
+                
+                showStockMessage(`Successfully received ${quantity} ${item.unit} of ${item.name}`, 'success');
+                
+                // Clear form
+                setTimeout(() => {
+                    document.getElementById('stockInQuantity').value = '';
+                    document.getElementById('unitCost').value = '';
+                    document.getElementById('totalCost').value = '';
+                    document.getElementById('referenceNumber').value = '';
+                    document.getElementById('supplierName').value = '';
+                    document.getElementById('stockInNotes').value = '';
+                    loadItemDetails(); // Refresh current stock display
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error processing stock in:', error);
+                showStockMessage('Error processing stock receipt', 'error');
+            }
+        }
+
+        // Stock Out Operations
         function showStockOut(dept = null) {
-            alert(`Stock Out functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+            const contentArea = document.querySelector('.content-area');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                        <button onclick="loadDashboardData(); loadDepartmentContent('dashboard')" style="background: none; border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 6px; cursor: pointer;">←</button>
+                        <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">Stock Out - Issue Items</h1>
+                    </div>
+                    
+                    <div id="stockOutMessage" class="message"></div>
+                    
+                    <div class="dashboard-card" style="max-width: 800px; margin-bottom: 2rem;">
+                        <div class="card-header" style="background: #FEF2F2; margin: -1.5rem -1.5rem 1.5rem -1.5rem; padding: 1rem 1.5rem; border-radius: 12px 12px 0 0;">
+                            <div class="card-title" style="color: #DC2626;">⚠️ Admin Authorization Required</div>
+                            <div style="font-size: 0.875rem; color: #DC2626; margin-top: 0.25rem;">This operation requires admin verification</div>
+                        </div>
+                        
+                        <div style="display: grid; gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Department</label>
+                                    <select id="stockOutDept" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" onchange="loadStockOutItems()">
+                                        ${Object.entries(DEPARTMENTS).map(([key, dept]) => {
+                                            if (currentUser.department !== 'all' && key !== currentUser.department && key !== currentUser.secondaryDepartment) {
+                                                return '';
+                                            }
+                                            return `<option value="${key}" ${dept === key ? 'selected' : ''}>${dept.name}</option>`;
+                                        }).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Reason</label>
+                                    <select id="stockOutReason" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                        <option value="consumption">Regular Consumption</option>
+                                        <option value="waste">Waste/Damaged</option>
+                                        <option value="transfer">Department Transfer</option>
+                                        <option value="maintenance">Maintenance Use</option>
+                                        <option value="guest_service">Guest Service</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Select Item</label>
+                                <select id="stockOutItem" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" onchange="loadStockOutItemDetails()">
+                                    <option value="">Select an item...</option>
+                                </select>
+                            </div>
+                            
+                            <div id="stockOutItemDetails" style="display: none; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                    <div>
+                                        <strong>Available Stock:</strong>
+                                        <div id="availableStock">--</div>
+                                    </div>
+                                    <div>
+                                        <strong>Min Level:</strong>
+                                        <div id="stockOutMinLevel">--</div>
+                                    </div>
+                                    <div>
+                                        <strong>Unit:</strong>
+                                        <div id="stockOutItemUnit">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Quantity to Issue</label>
+                                <input type="number" id="stockOutQuantity" min="0.01" step="0.01" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" onchange="validateStockOutQuantity()">
+                                <div id="quantityWarning" style="color: #DC2626; font-size: 0.875rem; margin-top: 0.5rem; display: none;"></div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Select Staff Member</label>
+                                <div id="staffGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                                    ${Object.entries(USERS).filter(([name, user]) => user.role === USER_ROLES.PROCESSOR).map(([name, user]) => `
+                                        <div class="staff-card" data-staff="${name}" onclick="selectStaff('${name}')" style="
+                                            border: 2px solid var(--border-color);
+                                            border-radius: 8px;
+                                            padding: 1rem;
+                                            text-align: center;
+                                            cursor: pointer;
+                                            transition: all 0.2s;
+                                            background: white;
+                                        ">
+                                            <div style="
+                                                width: 50px;
+                                                height: 50px;
+                                                border-radius: 50%;
+                                                background: var(--primary-blue);
+                                                display: flex;
+                                                align-items: center;
+                                                justify-content: center;
+                                                color: white;
+                                                font-weight: 600;
+                                                margin: 0 auto 0.5rem;
+                                            ">${user.displayName.charAt(0)}</div>
+                                            <div style="font-weight: 600; font-size: 0.875rem;">${user.displayName}</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-secondary);">${DEPARTMENTS[user.department]?.name || user.department}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <input type="hidden" id="selectedStaff">
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Notes</label>
+                                <textarea id="stockOutNotes" rows="3" placeholder="Additional notes about this stock issue..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; resize: vertical;"></textarea>
+                            </div>
+                            
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 1rem;">
+                                <div style="background: #FEF2F2; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                                    <div style="font-weight: 600; color: #DC2626; margin-bottom: 0.5rem;">Staff PIN Verification Required</div>
+                                    <div style="font-size: 0.875rem; color: #DC2626;">Selected staff member must enter their PIN to confirm receipt</div>
+                                </div>
+                                
+                                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                    <button onclick="loadDashboardData(); loadDepartmentContent('dashboard')" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 6px; cursor: pointer;">Cancel</button>
+                                    <button onclick="showStaffVerification()" id="issueStockBtn" disabled style="padding: 0.75rem 1.5rem; border: none; background: #DC2626; color: white; border-radius: 6px; cursor: pointer; font-weight: 600; opacity: 0.5;">Issue Stock</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (dept) {
+                document.getElementById('stockOutDept').value = dept;
+            }
+            loadStockOutItems();
         }
 
+        async function loadStockOutItems() {
+            const deptSelect = document.getElementById('stockOutDept');
+            const itemSelect = document.getElementById('stockOutItem');
+            const selectedDept = deptSelect.value;
+            
+            if (!selectedDept) return;
+            
+            try {
+                const allItems = await dbManager.getAll('items');
+                const deptItems = allItems.filter(item => item.department === selectedDept);
+                
+                itemSelect.innerHTML = '<option value="">Select an item...</option>' +
+                    deptItems.map(item => `<option value="${item.id}">${item.name} (${item.sku})</option>`).join('');
+                    
+            } catch (error) {
+                console.error('Error loading items:', error);
+            }
+        }
+
+        async function loadStockOutItemDetails() {
+            const itemSelect = document.getElementById('stockOutItem');
+            const itemDetailsDiv = document.getElementById('stockOutItemDetails');
+            const selectedItemId = itemSelect.value;
+            
+            if (!selectedItemId) {
+                itemDetailsDiv.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const item = await dbManager.get('items', selectedItemId);
+                const stockLevel = await dbManager.get('stockLevels', selectedItemId);
+                
+                if (item && stockLevel) {
+                    document.getElementById('availableStock').textContent = `${stockLevel.currentQuantity} ${item.unit}`;
+                    document.getElementById('stockOutMinLevel').textContent = `${item.minLevel} ${item.unit}`;
+                    document.getElementById('stockOutItemUnit').textContent = item.unit;
+                    
+                    itemDetailsDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading item details:', error);
+            }
+        }
+
+        function validateStockOutQuantity() {
+            const quantity = parseFloat(document.getElementById('stockOutQuantity').value) || 0;
+            const availableStockText = document.getElementById('availableStock').textContent;
+            const availableStock = parseFloat(availableStockText.split(' ')[0]) || 0;
+            const warningDiv = document.getElementById('quantityWarning');
+            
+            if (quantity > availableStock) {
+                warningDiv.textContent = `⚠️ Quantity exceeds available stock (${availableStock})`;
+                warningDiv.style.display = 'block';
+            } else if (quantity <= 0) {
+                warningDiv.textContent = '⚠️ Please enter a valid quantity';
+                warningDiv.style.display = 'block';
+            } else {
+                warningDiv.style.display = 'none';
+            }
+            
+            updateIssueButton();
+        }
+
+        function selectStaff(staffName) {
+            // Remove selection from all staff cards
+            document.querySelectorAll('.staff-card').forEach(card => {
+                card.style.borderColor = 'var(--border-color)';
+                card.style.background = 'white';
+            });
+            
+            // Select clicked staff
+            const staffCard = document.querySelector(`[data-staff="${staffName}"]`);
+            staffCard.style.borderColor = 'var(--primary-blue)';
+            staffCard.style.background = 'var(--bg-secondary)';
+            
+            document.getElementById('selectedStaff').value = staffName;
+            updateIssueButton();
+        }
+
+        function updateIssueButton() {
+            const quantity = document.getElementById('stockOutQuantity').value;
+            const selectedStaff = document.getElementById('selectedStaff').value;
+            const selectedItem = document.getElementById('stockOutItem').value;
+            const issueBtn = document.getElementById('issueStockBtn');
+            
+            if (quantity && selectedStaff && selectedItem && quantity > 0) {
+                issueBtn.disabled = false;
+                issueBtn.style.opacity = '1';
+            } else {
+                issueBtn.disabled = true;
+                issueBtn.style.opacity = '0.5';
+            }
+        }
+
+        function showStaffVerification() {
+            const selectedStaff = document.getElementById('selectedStaff').value;
+            const staffUser = USERS[selectedStaff];
+            
+            if (!staffUser) {
+                showStockOutMessage('Please select a staff member', 'error');
+                return;
+            }
+            
+            // Create PIN verification modal
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                ">
+                    <div style="
+                        background: white;
+                        padding: 2rem;
+                        border-radius: 12px;
+                        max-width: 400px;
+                        width: 90%;
+                        text-align: center;
+                    ">
+                        <h3 style="margin-bottom: 1rem;">Staff Verification</h3>
+                        <p style="margin-bottom: 2rem; color: var(--text-secondary);">
+                            ${staffUser.displayName}, please enter your PIN to confirm receipt of items
+                        </p>
+                        
+                        <div id="verificationMessage" class="message"></div>
+                        
+                        <div class="pin-input" style="margin-bottom: 2rem;">
+                            <input type="password" class="pin-digit verification-pin" maxlength="1" readonly>
+                            <input type="password" class="pin-digit verification-pin" maxlength="1" readonly>
+                            <input type="password" class="pin-digit verification-pin" maxlength="1" readonly>
+                            <input type="password" class="pin-digit verification-pin" maxlength="1" readonly>
+                            <input type="password" class="pin-digit verification-pin" maxlength="1" readonly>
+                        </div>
+                        
+                        <div class="keypad" style="margin-bottom: 2rem;">
+                            <button class="key verification-key" data-key="1">1</button>
+                            <button class="key verification-key" data-key="2">2</button>
+                            <button class="key verification-key" data-key="3">3</button>
+                            <button class="key verification-key" data-key="4">4</button>
+                            <button class="key verification-key" data-key="5">5</button>
+                            <button class="key verification-key" data-key="6">6</button>
+                            <button class="key verification-key" data-key="7">7</button>
+                            <button class="key verification-key" data-key="8">8</button>
+                            <button class="key verification-key" data-key="9">9</button>
+                            <button class="key verification-key" data-key="*">*</button>
+                            <button class="key verification-key" data-key="0">0</button>
+                            <button class="key verification-key" data-key="%">%</button>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; justify-content: center;">
+                            <button onclick="clearVerificationPin()" class="key clear">Clear</button>
+                            <button onclick="closeVerificationModal()" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 6px; cursor: pointer;">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Setup verification keypad
+            let verificationPin = '';
+            let verificationIndex = 0;
+            
+            modal.querySelectorAll('.verification-key').forEach(key => {
+                key.addEventListener('click', () => {
+                    if (verificationIndex >= 5) return;
+                    
+                    const pinDigits = modal.querySelectorAll('.verification-pin');
+                    pinDigits[verificationIndex].value = key.dataset.key;
+                    pinDigits[verificationIndex].classList.add('filled');
+                    
+                    verificationPin += key.dataset.key;
+                    verificationIndex++;
+                    
+                    if (verificationIndex === 5) {
+                        setTimeout(() => validateStaffPin(verificationPin, selectedStaff, modal), 500);
+                    }
+                });
+            });
+            
+            window.clearVerificationPin = () => {
+                verificationPin = '';
+                verificationIndex = 0;
+                const pinDigits = modal.querySelectorAll('.verification-pin');
+                pinDigits.forEach(digit => {
+                    digit.value = '';
+                    digit.classList.remove('filled');
+                });
+                modal.querySelector('#verificationMessage').classList.remove('show');
+            };
+            
+            window.closeVerificationModal = () => {
+                document.body.removeChild(modal);
+                delete window.clearVerificationPin;
+                delete window.closeVerificationModal;
+            };
+        }
+
+        async function validateStaffPin(pin, staffName, modal) {
+            const staffUser = USERS[staffName];
+            const messageEl = modal.querySelector('#verificationMessage');
+            
+            if (staffUser.password === pin) {
+                messageEl.textContent = 'PIN verified successfully!';
+                messageEl.className = 'message success show';
+                
+                setTimeout(async () => {
+                    await processStockOut(staffName);
+                    document.body.removeChild(modal);
+                    delete window.clearVerificationPin;
+                    delete window.closeVerificationModal;
+                }, 1500);
+            } else {
+                messageEl.textContent = 'Invalid PIN. Please try again.';
+                messageEl.className = 'message error show';
+                window.clearVerificationPin();
+            }
+        }
+
+        async function processStockOut(staffName) {
+            const itemId = document.getElementById('stockOutItem').value;
+            const quantity = parseFloat(document.getElementById('stockOutQuantity').value);
+            const reason = document.getElementById('stockOutReason').value;
+            const notes = document.getElementById('stockOutNotes').value;
+            
+            try {
+                // Get current stock level
+                const currentStock = await dbManager.get('stockLevels', itemId);
+                const item = await dbManager.get('items', itemId);
+                
+                if (!currentStock || !item) {
+                    showStockOutMessage('Item not found', 'error');
+                    return;
+                }
+                
+                if (quantity > currentStock.currentQuantity) {
+                    showStockOutMessage('Insufficient stock available', 'error');
+                    return;
+                }
+                
+                // Update stock level
+                const newQuantity = currentStock.currentQuantity - quantity;
+                await dbManager.update('stockLevels', {
+                    ...currentStock,
+                    currentQuantity: newQuantity,
+                    lastMovement: new Date().toISOString()
+                });
+                
+                // Record stock movement
+                const movement = {
+                    id: generateUUID(),
+                    itemId: itemId,
+                    movementType: 'out',
+                    quantity: quantity,
+                    unitCost: item.cost || 0,
+                    totalCost: quantity * (item.cost || 0),
+                    reason: reason,
+                    referenceNumber: null,
+                    supplierId: null,
+                    initiatedBy: currentUser.name,
+                    approvedBy: currentUser.name,
+                    staffMember: staffName,
+                    notes: notes,
+                    timestamp: new Date().toISOString(),
+                    syncStatus: 'pending'
+                };
+                
+                await dbManager.add('stockMovements', movement);
+                
+                // Add activity
+                addActivity(`Stock Out: ${quantity} ${item.unit} of ${item.name} issued to ${USERS[staffName].displayName}`, currentUser.name);
+                
+                showStockOutMessage(`Successfully issued ${quantity} ${item.unit} of ${item.name} to ${USERS[staffName].displayName}`, 'success');
+                
+                // Check for low stock alert
+                if (newQuantity <= item.minLevel) {
+                    showStockOutMessage(`⚠️ Low stock alert: ${item.name} is now at ${newQuantity} ${item.unit} (Min: ${item.minLevel})`, 'error');
+                }
+                
+                // Clear form
+                setTimeout(() => {
+                    document.getElementById('stockOutQuantity').value = '';
+                    document.getElementById('stockOutNotes').value = '';
+                    document.getElementById('selectedStaff').value = '';
+                    document.querySelectorAll('.staff-card').forEach(card => {
+                        card.style.borderColor = 'var(--border-color)';
+                        card.style.background = 'white';
+                    });
+                    loadStockOutItemDetails(); // Refresh available stock display
+                    updateIssueButton();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error processing stock out:', error);
+                showStockOutMessage('Error processing stock issue', 'error');
+            }
+        }
+
+        // Inventory Management
         function showInventory(dept = null) {
-            alert(`Inventory view will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+            const contentArea = document.querySelector('.content-area');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in">
+                    <div style="display: flex; align-items: center; justify-content: between; gap: 1rem; margin-bottom: 2rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <button onclick="loadDashboardData(); loadDepartmentContent('dashboard')" style="background: none; border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 6px; cursor: pointer;">←</button>
+                            <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">Inventory Management</h1>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem;">
+                            <button onclick="showAddItem()" style="padding: 0.5rem 1rem; border: none; background: var(--primary-blue); color: white; border-radius: 6px; cursor: pointer; font-size: 0.875rem;">+ Add Item</button>
+                            <button onclick="exportInventory()" style="padding: 0.5rem 1rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 6px; cursor: pointer; font-size: 0.875rem;">📥 Export</button>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card" style="margin-bottom: 2rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Department</label>
+                                <select id="inventoryDept" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" onchange="loadInventoryData()">
+                                    <option value="">All Departments</option>
+                                    ${Object.entries(DEPARTMENTS).map(([key, dept]) => {
+                                        if (currentUser.department !== 'all' && key !== currentUser.department && key !== currentUser.secondaryDepartment) {
+                                            return '';
+                                        }
+                                        return `<option value="${key}" ${dept === key ? 'selected' : ''}>${dept.name}</option>`;
+                                    }).join('')}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Category</label>
+                                <select id="inventoryCategory" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" onchange="loadInventoryData()">
+                                    <option value="">All Categories</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Search</label>
+                                <input type="text" id="inventorySearch" placeholder="Search items..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" oninput="loadInventoryData()">
+                            </div>
+                            
+                            <div>
+                                <button onclick="loadInventoryData()" style="padding: 0.75rem 1rem; border: none; background: var(--primary-blue); color: white; border-radius: 6px; cursor: pointer;">🔍</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header" style="margin-bottom: 1.5rem;">
+                            <div class="card-title">Inventory Items</div>
+                            <div id="inventoryCount" style="font-size: 0.875rem; color: var(--text-secondary);"></div>
+                        </div>
+                        
+                        <div style="overflow-x: auto;">
+                            <table id="inventoryTable" style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color);">
+                                        <th style="text-align: left; padding: 1rem 1rem 1rem 0; font-weight: 600; color: var(--text-primary);">Item</th>
+                                        <th style="text-align: left; padding: 1rem; font-weight: 600; color: var(--text-primary);">SKU</th>
+                                        <th style="text-align: left; padding: 1rem; font-weight: 600; color: var(--text-primary);">Department</th>
+                                        <th style="text-align: left; padding: 1rem; font-weight: 600; color: var(--text-primary);">Category</th>
+                                        <th style="text-align: center; padding: 1rem; font-weight: 600; color: var(--text-primary);">Current Stock</th>
+                                        <th style="text-align: center; padding: 1rem; font-weight: 600; color: var(--text-primary);">Min Level</th>
+                                        <th style="text-align: center; padding: 1rem; font-weight: 600; color: var(--text-primary);">Status</th>
+                                        <th style="text-align: center; padding: 1rem; font-weight: 600; color: var(--text-primary);">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryTableBody">
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                            <div class="loading"></div>
+                                            Loading inventory...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (dept) {
+                document.getElementById('inventoryDept').value = dept;
+                updateCategoryFilter(dept);
+            }
+            
+            loadInventoryData();
         }
 
-        function showReports(dept = null) {
-            alert(`Reports functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+        function updateCategoryFilter(dept) {
+            const categorySelect = document.getElementById('inventoryCategory');
+            if (!dept) {
+                categorySelect.innerHTML = '<option value="">All Categories</option>';
+                return;
+            }
+            
+            const deptConfig = DEPARTMENTS[dept];
+            if (deptConfig) {
+                categorySelect.innerHTML = '<option value="">All Categories</option>' +
+                    deptConfig.categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            }
         }
 
+        async function loadInventoryData() {
+            const dept = document.getElementById('inventoryDept')?.value;
+            const category = document.getElementById('inventoryCategory')?.value;
+            const search = document.getElementById('inventorySearch')?.value.toLowerCase();
+            const tableBody = document.getElementById('inventoryTableBody');
+            const countDiv = document.getElementById('inventoryCount');
+            
+            if (!tableBody) return;
+            
+            try {
+                const allItems = await dbManager.getAll('items');
+                const allStockLevels = await dbManager.getAll('stockLevels');
+                
+                // Create a map of stock levels for quick lookup
+                const stockMap = {};
+                allStockLevels.forEach(stock => {
+                    stockMap[stock.itemId] = stock;
+                });
+                
+                // Filter items
+                let filteredItems = allItems.filter(item => {
+                    // Department filter
+                    if (dept && item.department !== dept) return false;
+                    
+                    // User access filter
+                    if (currentUser.department !== 'all') {
+                        if (item.department !== currentUser.department && item.department !== currentUser.secondaryDepartment) {
+                            return false;
+                        }
+                    }
+                    
+                    // Category filter
+                    if (category && item.category !== category) return false;
+                    
+                    // Search filter
+                    if (search && !item.name.toLowerCase().includes(search) && !item.sku.toLowerCase().includes(search)) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                countDiv.textContent = `Showing ${filteredItems.length} items`;
+                
+                if (filteredItems.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                                No items found matching your criteria
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                // Update category filter if department changed
+                if (dept) {
+                    updateCategoryFilter(dept);
+                }
+                
+                // Render table rows
+                tableBody.innerHTML = filteredItems.map(item => {
+                    const stock = stockMap[item.id] || { currentQuantity: 0 };
+                    const isLowStock = stock.currentQuantity <= item.minLevel;
+                    const isOutOfStock = stock.currentQuantity === 0;
+                    
+                    let statusBadge, statusText;
+                    if (isOutOfStock) {
+                        statusBadge = 'background: #FEE2E2; color: #DC2626;';
+                        statusText = 'Out of Stock';
+                    } else if (isLowStock) {
+                        statusBadge = 'background: #FEF3C7; color: #D97706;';
+                        statusText = 'Low Stock';
+                    } else {
+                        statusBadge = 'background: #D1FAE5; color: #059669;';
+                        statusText = 'In Stock';
+                    }
+                    
+                    return `
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 1rem 1rem 1rem 0;">
+                                <div style="font-weight: 600;">${item.name}</div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">${item.description || 'No description'}</div>
+                            </td>
+                            <td style="padding: 1rem; font-family: monospace;">${item.sku}</td>
+                            <td style="padding: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div style="width: 12px; height: 12px; border-radius: 50%; background: ${DEPARTMENTS[item.department]?.color || '#64748B'};"></div>
+                                    ${DEPARTMENTS[item.department]?.name || item.department}
+                                </div>
+                            </td>
+                            <td style="padding: 1rem;">${item.category}</td>
+                            <td style="padding: 1rem; text-align: center; font-weight: 600;">
+                                ${stock.currentQuantity} ${item.unit}
+                            </td>
+                            <td style="padding: 1rem; text-align: center; color: var(--text-secondary);">
+                                ${item.minLevel} ${item.unit}
+                            </td>
+                            <td style="padding: 1rem; text-align: center;">
+                                <span style="padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; ${statusBadge}">
+                                    ${statusText}
+                                </span>
+                            </td>
+                            <td style="padding: 1rem; text-align: center;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                    <button onclick="showItemDetails('${item.id}')" style="padding: 0.25rem 0.5rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 4px; cursor: pointer; font-size: 0.75rem;">View</button>
+                                    <button onclick="showEditItem('${item.id}')" style="padding: 0.25rem 0.5rem; border: 1px solid var(--primary-blue); background: var(--primary-blue); color: white; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">Edit</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading inventory data:', error);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #DC2626;">
+                            Error loading inventory data
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Helper function to show messages in different contexts
+        function showStockMessage(message, type) {
+            const messageEl = document.getElementById('stockInMessage') || document.getElementById('stockOutMessage');
+            if (messageEl) {
+                messageEl.textContent = message;
+                messageEl.className = `message ${type} show`;
+                
+                setTimeout(() => {
+                    messageEl.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        function showStockOutMessage(message, type) {
+            const messageEl = document.getElementById('stockOutMessage');
+            if (messageEl) {
+                messageEl.textContent = message;
+                messageEl.className = `message ${type} show`;
+                
+                setTimeout(() => {
+                    messageEl.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        // Add Item functionality
         function showAddItem(dept = null) {
-            alert(`Add Item functionality will be implemented here${dept ? ' for ' + DEPARTMENTS[dept].name : ''}`);
+            const contentArea = document.querySelector('.content-area');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                        <button onclick="showInventory()" style="background: none; border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 6px; cursor: pointer;">←</button>
+                        <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">Add New Item</h1>
+                    </div>
+                    
+                    <div id="addItemMessage" class="message"></div>
+                    
+                    <div class="dashboard-card" style="max-width: 800px;">
+                        <div class="card-header">
+                            <div class="card-title">Item Information</div>
+                        </div>
+                        
+                        <div style="display: grid; gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Item Name *</label>
+                                    <input type="text" id="itemName" placeholder="e.g., Bath Towels" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">SKU *</label>
+                                    <input type="text" id="itemSku" placeholder="e.g., HOTEL-001" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Description</label>
+                                <textarea id="itemDescription" rows="3" placeholder="Detailed description of the item..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; resize: vertical;"></textarea>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Department *</label>
+                                    <select id="itemDepartment" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;" onchange="updateItemCategories()">
+                                        ${Object.entries(DEPARTMENTS).map(([key, deptInfo]) => {
+                                            if (currentUser.department !== 'all' && key !== currentUser.department && key !== currentUser.secondaryDepartment) {
+                                                return '';
+                                            }
+                                            return `<option value="${key}" ${key === dept ? 'selected' : ''}>${deptInfo.name}</option>`;
+                                        }).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Category *</label>
+                                    <select id="itemCategory" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                        <option value="">Select category...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Unit *</label>
+                                    <select id="itemUnit" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                        <option value="pieces">Pieces</option>
+                                        <option value="bottles">Bottles</option>
+                                        <option value="packets">Packets</option>
+                                        <option value="kg">Kilograms</option>
+                                        <option value="liters">Liters</option>
+                                        <option value="cases">Cases</option>
+                                        <option value="sets">Sets</option>
+                                        <option value="rolls">Rolls</option>
+                                        <option value="boxes">Boxes</option>
+                                        <option value="reams">Reams</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Cost per Unit</label>
+                                    <input type="number" id="itemCost" min="0" step="0.01" placeholder="0.00" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Barcode</label>
+                                    <input type="text" id="itemBarcode" placeholder="Optional" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Initial Stock</label>
+                                    <input type="number" id="initialStock" min="0" step="0.01" value="0" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Minimum Level *</label>
+                                    <input type="number" id="minLevel" min="0" step="0.01" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                                
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Maximum Level</label>
+                                    <input type="number" id="maxLevel" min="0" step="0.01" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                <button onclick="showInventory()" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 6px; cursor: pointer;">Cancel</button>
+                                <button onclick="saveNewItem()" style="padding: 0.75rem 1.5rem; border: none; background: var(--primary-blue); color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Save Item</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Initialize categories for selected department
+            updateItemCategories();
+        }
+
+        function updateItemCategories() {
+            const deptSelect = document.getElementById('itemDepartment');
+            const categorySelect = document.getElementById('itemCategory');
+            
+            if (!deptSelect || !categorySelect) return;
+            
+            const selectedDept = deptSelect.value;
+            const deptConfig = DEPARTMENTS[selectedDept];
+            
+            if (deptConfig) {
+                categorySelect.innerHTML = '<option value="">Select category...</option>' +
+                    deptConfig.categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            }
+        }
+
+        async function saveNewItem() {
+            const name = document.getElementById('itemName').value.trim();
+            const sku = document.getElementById('itemSku').value.trim();
+            const description = document.getElementById('itemDescription').value.trim();
+            const department = document.getElementById('itemDepartment').value;
+            const category = document.getElementById('itemCategory').value;
+            const unit = document.getElementById('itemUnit').value;
+            const cost = parseFloat(document.getElementById('itemCost').value) || 0;
+            const barcode = document.getElementById('itemBarcode').value.trim();
+            const initialStock = parseFloat(document.getElementById('initialStock').value) || 0;
+            const minLevel = parseFloat(document.getElementById('minLevel').value) || 0;
+            const maxLevel = parseFloat(document.getElementById('maxLevel').value) || 100;
+            
+            // Validation
+            if (!name) {
+                showAddItemMessage('Please enter an item name', 'error');
+                return;
+            }
+            
+            if (!sku) {
+                showAddItemMessage('Please enter a SKU', 'error');
+                return;
+            }
+            
+            if (!department || !category) {
+                showAddItemMessage('Please select department and category', 'error');
+                return;
+            }
+            
+            if (minLevel < 0) {
+                showAddItemMessage('Minimum level cannot be negative', 'error');
+                return;
+            }
+            
+            try {
+                // Check if SKU already exists
+                const existingItems = await dbManager.getAll('items');
+                if (existingItems.some(item => item.sku.toLowerCase() === sku.toLowerCase())) {
+                    showAddItemMessage('SKU already exists. Please use a unique SKU.', 'error');
+                    return;
+                }
+                
+                const itemId = generateUUID();
+                const now = new Date().toISOString();
+                
+                // Create new item
+                const newItem = {
+                    id: itemId,
+                    sku: sku,
+                    name: name,
+                    description: description,
+                    department: department,
+                    category: category,
+                    unit: unit,
+                    cost: cost,
+                    minLevel: minLevel,
+                    maxLevel: maxLevel,
+                    supplierId: null,
+                    expiryTracking: false,
+                    imageUrl: null,
+                    barcode: barcode || null,
+                    createdAt: now,
+                    updatedAt: now
+                };
+                
+                await dbManager.add('items', newItem);
+                
+                // Create initial stock level
+                const stockLevel = {
+                    itemId: itemId,
+                    currentQuantity: initialStock,
+                    reservedQuantity: 0,
+                    lastCounted: now,
+                    lastMovement: now
+                };
+                
+                await dbManager.add('stockLevels', stockLevel);
+                
+                // Record initial stock movement if there's initial stock
+                if (initialStock > 0) {
+                    const movement = {
+                        id: generateUUID(),
+                        itemId: itemId,
+                        movementType: 'in',
+                        quantity: initialStock,
+                        unitCost: cost,
+                        totalCost: initialStock * cost,
+                        reason: 'Initial Stock',
+                        referenceNumber: null,
+                        supplierId: null,
+                        initiatedBy: currentUser.name,
+                        approvedBy: currentUser.name,
+                        staffMember: null,
+                        notes: 'Initial stock entry when item was created',
+                        timestamp: now,
+                        syncStatus: 'pending'
+                    };
+                    
+                    await dbManager.add('stockMovements', movement);
+                }
+                
+                addActivity(`New item added: ${name} (${sku})`, currentUser.name);
+                showAddItemMessage(`Item "${name}" has been successfully added to inventory`, 'success');
+                
+                // Clear form and redirect after delay
+                setTimeout(() => {
+                    showInventory(department);
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error saving new item:', error);
+                showAddItemMessage('Error saving item. Please try again.', 'error');
+            }
+        }
+
+        function showAddItemMessage(message, type) {
+            const messageEl = document.getElementById('addItemMessage');
+            if (messageEl) {
+                messageEl.textContent = message;
+                messageEl.className = `message ${type} show`;
+                
+                setTimeout(() => {
+                    messageEl.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        // Item Details and Edit functions
+        async function showItemDetails(itemId) {
+            try {
+                const item = await dbManager.get('items', itemId);
+                const stockLevel = await dbManager.get('stockLevels', itemId);
+                
+                if (!item) {
+                    alert('Item not found');
+                    return;
+                }
+                
+                const contentArea = document.querySelector('.content-area');
+                contentArea.innerHTML = `
+                    <div class="fade-in">
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                            <button onclick="showInventory()" style="background: none; border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 6px; cursor: pointer;">←</button>
+                            <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">Item Details</h1>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 300px; gap: 2rem;">
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <div class="card-title">${item.name}</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">SKU: ${item.sku}</div>
+                                </div>
+                                
+                                <div style="display: grid; gap: 1.5rem;">
+                                    <div>
+                                        <strong>Description:</strong>
+                                        <div style="margin-top: 0.5rem; color: var(--text-secondary);">${item.description || 'No description available'}</div>
+                                    </div>
+                                    
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                        <div>
+                                            <strong>Department:</strong>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+                                                <div style="width: 12px; height: 12px; border-radius: 50%; background: ${DEPARTMENTS[item.department]?.color || '#64748B'};"></div>
+                                                ${DEPARTMENTS[item.department]?.name || item.department}
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <strong>Category:</strong>
+                                            <div style="margin-top: 0.5rem; color: var(--text-secondary);">${item.category}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                        <div>
+                                            <strong>Unit:</strong>
+                                            <div style="margin-top: 0.5rem; color: var(--text-secondary);">${item.unit}</div>
+                                        </div>
+                                        
+                                        <div>
+                                            <strong>Cost per Unit:</strong>
+                                            <div style="margin-top: 0.5rem; color: var(--text-secondary);">${formatCurrency(item.cost || 0)}</div>
+                                        </div>
+                                        
+                                        <div>
+                                            <strong>Barcode:</strong>
+                                            <div style="margin-top: 0.5rem; color: var(--text-secondary); font-family: monospace;">${item.barcode || 'N/A'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                                        <div>
+                                            <strong>Current Stock:</strong>
+                                            <div style="margin-top: 0.5rem; font-size: 1.5rem; font-weight: 600; color: var(--primary-blue);">
+                                                ${stockLevel?.currentQuantity || 0} ${item.unit}
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <strong>Minimum Level:</strong>
+                                            <div style="margin-top: 0.5rem; color: var(--text-secondary);">${item.minLevel} ${item.unit}</div>
+                                        </div>
+                                        
+                                        <div>
+                                            <strong>Maximum Level:</strong>
+                                            <div style="margin-top: 0.5rem; color: var(--text-secondary);">${item.maxLevel} ${item.unit}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                        <button onclick="showEditItem('${itemId}')" style="padding: 0.75rem 1.5rem; border: 1px solid var(--primary-blue); background: var(--primary-blue); color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">Edit Item</button>
+                                        <button onclick="showStockIn('${item.department}')" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 6px; cursor: pointer;">Stock In</button>
+                                        <button onclick="showStockOut('${item.department}')" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: white; color: var(--text-primary); border-radius: 6px; cursor: pointer;">Stock Out</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <div class="dashboard-card" style="margin-bottom: 1rem;">
+                                    <div class="card-header">
+                                        <div class="card-title">Stock Status</div>
+                                    </div>
+                                    
+                                    <div style="text-align: center;">
+                                        ${stockLevel && stockLevel.currentQuantity <= item.minLevel ? 
+                                            '<div style="padding: 1rem; background: #FEF2F2; border-radius: 8px; color: #DC2626; font-weight: 600;">⚠️ Low Stock Alert</div>' :
+                                            '<div style="padding: 1rem; background: #F0FDF4; border-radius: 8px; color: #059669; font-weight: 600;">✅ Stock OK</div>'
+                                        }
+                                    </div>
+                                </div>
+                                
+                                <div class="dashboard-card">
+                                    <div class="card-header">
+                                        <div class="card-title">Recent Activity</div>
+                                    </div>
+                                    
+                                    <div id="itemRecentActivity">
+                                        <div style="padding: 1rem; text-align: center; color: var(--text-secondary);">
+                                            Loading activity...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Load recent activity for this item
+                loadItemRecentActivity(itemId);
+                
+            } catch (error) {
+                console.error('Error loading item details:', error);
+                alert('Error loading item details');
+            }
+        }
+
+        async function loadItemRecentActivity(itemId) {
+            try {
+                const movements = await dbManager.getAll('stockMovements');
+                const itemMovements = movements
+                    .filter(movement => movement.itemId === itemId)
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    .slice(0, 10); // Show last 10 activities
+                
+                const activityContainer = document.getElementById('itemRecentActivity');
+                
+                if (itemMovements.length === 0) {
+                    activityContainer.innerHTML = `
+                        <div style="padding: 1rem; text-align: center; color: var(--text-secondary);">
+                            No recent activity
+                        </div>
+                    `;
+                    return;
+                }
+                
+                activityContainer.innerHTML = itemMovements.map(movement => {
+                    const user = USERS[movement.initiatedBy];
+                    const avatar = user ? user.displayName.charAt(0) : movement.initiatedBy.charAt(0);
+                    const isStockIn = movement.movementType === 'in';
+                    const iconColor = isStockIn ? '#059669' : '#DC2626';
+                    const icon = isStockIn ? '📦' : '📤';
+                    
+                    return `
+                        <div style="display: flex; gap: 0.75rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                            <div style="
+                                width: 32px;
+                                height: 32px;
+                                border-radius: 50%;
+                                background: ${iconColor};
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: white;
+                                font-size: 0.75rem;
+                                flex-shrink: 0;
+                            ">${icon}</div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="font-size: 0.875rem; font-weight: 600;">
+                                    ${movement.movementType === 'in' ? 'Stock In' : 'Stock Out'}
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                                    ${movement.quantity} ${movement.unit || 'units'} • ${formatDate(movement.timestamp)}
+                                </div>
+                                ${movement.staffMember ? `<div style="font-size: 0.75rem; color: var(--text-secondary);">To: ${USERS[movement.staffMember]?.displayName || movement.staffMember}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading item activity:', error);
+                document.getElementById('itemRecentActivity').innerHTML = `
+                    <div style="padding: 1rem; text-align: center; color: #DC2626;">
+                        Error loading activity
+                    </div>
+                `;
+            }
+        }
+
+        function showEditItem(itemId) {
+            alert(`Edit item functionality will be implemented here for item: ${itemId}`);
+        }
+
+        function exportInventory() {
+            alert('Export functionality will be implemented here');
+        }
+
+        // Reports functionality placeholder
+        function showReports(dept = null) {
+            const contentArea = document.querySelector('.content-area');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                        <button onclick="loadDashboardData(); loadDepartmentContent('dashboard')" style="background: none; border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 6px; cursor: pointer;">←</button>
+                        <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">Reports & Analytics</h1>
+                    </div>
+                    
+                    <div class="dashboard-grid" style="margin-bottom: 2rem;">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Daily Stock Report</div>
+                            </div>
+                            <div class="card-metric">Coming Soon</div>
+                            <div class="card-subtitle">Daily stock movements and levels</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Low Stock Report</div>
+                            </div>
+                            <div class="card-metric">Coming Soon</div>
+                            <div class="card-subtitle">Items below minimum levels</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Cost Analysis</div>
+                            </div>
+                            <div class="card-metric">Coming Soon</div>
+                            <div class="card-subtitle">Spending analysis by department</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Usage Trends</div>
+                            </div>
+                            <div class="card-metric">Coming Soon</div>
+                            <div class="card-subtitle">Consumption patterns over time</div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <div class="card-title">Report Generation</div>
+                        </div>
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <p>Advanced reporting features are being developed and will include:</p>
+                            <ul style="text-align: left; max-width: 400px; margin: 1rem auto;">
+                                <li>Real-time inventory reports</li>
+                                <li>Staff activity tracking</li>
+                                <li>Department performance analytics</li>
+                                <li>Cost center analysis</li>
+                                <li>Waste tracking reports</li>
+                                <li>Supplier performance metrics</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function showSettings() {
@@ -1316,7 +2821,68 @@
                 alert('You do not have permission to access settings.');
                 return;
             }
-            alert('Settings will be implemented here');
+            
+            const contentArea = document.querySelector('.content-area');
+            
+            contentArea.innerHTML = `
+                <div class="fade-in">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                        <button onclick="loadDashboardData(); loadDepartmentContent('dashboard')" style="background: none; border: 1px solid var(--border-color); padding: 0.5rem; border-radius: 6px; cursor: pointer;">←</button>
+                        <h1 style="font-size: 2rem; font-weight: 700; margin: 0;">System Settings</h1>
+                    </div>
+                    
+                    <div class="dashboard-grid" style="margin-bottom: 2rem;">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">User Management</div>
+                            </div>
+                            <div class="card-metric">15</div>
+                            <div class="card-subtitle">Active users in system</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Data Sync</div>
+                            </div>
+                            <div class="card-metric">Online</div>
+                            <div class="card-subtitle">Cloud synchronization status</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">System Health</div>
+                            </div>
+                            <div class="card-metric">Good</div>
+                            <div class="card-subtitle">All systems operational</div>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <div class="card-title">Data Backup</div>
+                            </div>
+                            <div class="card-metric">Auto</div>
+                            <div class="card-subtitle">Last backup: Today</div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <div class="card-title">Administrative Functions</div>
+                        </div>
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <p>Advanced administrative features are being developed and will include:</p>
+                            <ul style="text-align: left; max-width: 400px; margin: 1rem auto;">
+                                <li>User role management</li>
+                                <li>Department configuration</li>
+                                <li>System backup and restore</li>
+                                <li>Data import/export tools</li>
+                                <li>Notification settings</li>
+                                <li>Audit log management</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         function showDepartmentInventory(dept) {
@@ -1329,6 +2895,45 @@
 
         function showTransferItems(dept) {
             alert(`Transfer Items functionality will be implemented here for ${DEPARTMENTS[dept].name}`);
+        }
+
+        // Update dashboard data loading with sample data
+        async function loadDashboardData() {
+            try {
+                // Initialize sample data on first load
+                await initializeSampleData();
+                
+                // Load actual data
+                const allItems = await dbManager.getAll('items');
+                const allStockLevels = await dbManager.getAll('stockLevels');
+                const allMovements = await dbManager.getAll('stockMovements');
+                
+                // Calculate metrics
+                const totalItems = allItems.length;
+                const lowStockItems = allItems.filter(item => {
+                    const stock = allStockLevels.find(s => s.itemId === item.id);
+                    return stock && stock.currentQuantity <= item.minLevel;
+                }).length;
+                
+                const today = new Date().toDateString();
+                const todayMovements = allMovements.filter(movement => 
+                    new Date(movement.timestamp).toDateString() === today
+                ).length;
+                
+                // Update dashboard
+                document.getElementById('totalItems').textContent = totalItems;
+                document.getElementById('lowStockCount').textContent = lowStockItems;
+                document.getElementById('todayMovements').textContent = todayMovements;
+                
+                // Update recent activity
+                loadRecentActivity();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                // Set default values if there's an error
+                document.getElementById('totalItems').textContent = '0';
+                document.getElementById('lowStockCount').textContent = '0';
+                document.getElementById('todayMovements').textContent = '0';
+            }
         }
 
         // Event Listeners
