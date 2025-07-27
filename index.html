@@ -875,7 +875,7 @@
               <div class="card-header">
                 <div class="card-title">Active Users</div>
               </div>
-              <div class="card-metric" id="activeUsers">15</div>
+              <div class="card-metric" id="activeUsers">0</div>
               <div class="card-subtitle">Staff members registered</div>
             </div>
             
@@ -969,25 +969,6 @@
     VIEWER: 'viewer'
   };
   
-  // Initial users data
-  const initialUsers = {
-    'Kelvin': {password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all'},
-    'Franklin': {password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all'},
-    'Chisomo': {password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin'},
-    'Victor': {password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin'},
-    'Boston': {password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', secondaryDepartment: 'restaurant'},
-    'Magah': {password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', secondaryDepartment: 'restaurant'},
-    'Phillip': {password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', secondaryDepartment: 'restaurant', isSupervisor: true},
-    'Gift': {password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant'},
-    'Rhodney': {password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true},
-    'Mike': {password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant'},
-    'Matias': {password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel'},
-    'Kennedy': {password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel'},
-    'Mphatso': {password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', secondaryDepartment: 'hotel'},
-    'Gaven': {password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', secondaryDepartment: 'cultivation'},
-    'Maya': {password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', secondaryDepartment: 'cultivation'}
-  };
-  
   // Department configuration
   const DEPARTMENT_CONFIG = {
     hotel: {name: 'Hotel Operations', color: 'var(--hotel-color)', categories: ['Linens', 'Toiletries', 'Cleaning Supplies', 'Room Amenities', 'Maintenance']},
@@ -999,13 +980,17 @@
     cultivation: {name: 'Cultivation', color: 'var(--cultivation-color)', categories: ['Seeds', 'Soil', 'Nutrients']}
   };
   
+  // Telegram configuration
+  const TELEGRAM_BOT_TOKEN = '7960256341:AAFw_BPZRibbnBLaSYD9Lf3id5Fw3352wDC';
+  const TELEGRAM_CHAT_ID = '1212406500';
+  
   // ========================
   // INDEXEDDB PERSISTENCE
   // ========================
   // Initialize IndexedDB
   function initIndexedDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('VanguardStockDB', 1);
+      const request = indexedDB.open('VanguardStockDB', 2);
       
       request.onerror = (event) => {
         console.error('Database error:', event.target.error);
@@ -1033,74 +1018,95 @@
   
   // Save state to IndexedDB
   async function saveStateToDB() {
-    const db = await initIndexedDB();
-    const transaction = db.transaction(['state'], 'readwrite');
-    const store = transaction.objectStore('state');
-    store.put(state, 'appState');
-    
-    return new Promise((resolve) => {
-      transaction.oncomplete = () => resolve();
-    });
+    try {
+      const db = await initIndexedDB();
+      const transaction = db.transaction(['state'], 'readwrite');
+      const store = transaction.objectStore('state');
+      store.put(state, 'appState');
+      
+      return new Promise((resolve) => {
+        transaction.oncomplete = () => resolve();
+      });
+    } catch (error) {
+      console.error('Error saving state to DB:', error);
+    }
   }
   
   // Load state from IndexedDB
   async function loadStateFromDB() {
-    const db = await initIndexedDB();
-    const transaction = db.transaction(['state'], 'readonly');
-    const store = transaction.objectStore('state');
-    const request = store.get('appState');
-    
-    return new Promise((resolve) => {
-      request.onsuccess = (event) => {
-        if (event.target.result) {
-          state = event.target.result;
-        } else {
-          // Initialize with default data if no state exists
-          state.users = {...initialUsers};
-          initializeDefaultData();
-        }
-        resolve();
-      };
-    });
+    try {
+      const db = await initIndexedDB();
+      const transaction = db.transaction(['state'], 'readonly');
+      const store = transaction.objectStore('state');
+      const request = store.get('appState');
+      
+      return new Promise((resolve) => {
+        request.onsuccess = (event) => {
+          if (event.target.result) {
+            state = event.target.result;
+            console.log('State loaded from IndexedDB');
+          } else {
+            console.log('No saved state, initializing new state');
+            initializeDefaultData();
+          }
+          resolve();
+        };
+      });
+    } catch (error) {
+      console.error('Error loading state from DB:', error);
+      initializeDefaultData();
+    }
   }
   
   // Add to offline queue
   async function addToOfflineQueue(operation) {
-    const db = await initIndexedDB();
-    const transaction = db.transaction(['offlineQueue'], 'readwrite');
-    const store = transaction.objectStore('offlineQueue');
-    store.add(operation);
-    
-    offlineQueue.push(operation);
-    
-    // Update sync status
-    updateSyncStatus();
+    try {
+      const db = await initIndexedDB();
+      const transaction = db.transaction(['offlineQueue'], 'readwrite');
+      const store = transaction.objectStore('offlineQueue');
+      store.add(operation);
+      
+      offlineQueue.push(operation);
+      updateSyncStatus();
+    } catch (error) {
+      console.error('Error adding to offline queue:', error);
+    }
   }
   
   // Load offline queue from DB
   async function loadOfflineQueue() {
-    const db = await initIndexedDB();
-    const transaction = db.transaction(['offlineQueue'], 'readonly');
-    const store = transaction.objectStore('offlineQueue');
-    const request = store.getAll();
-    
-    return new Promise((resolve) => {
-      request.onsuccess = (event) => {
-        offlineQueue = event.target.result || [];
-        resolve();
-      };
-    });
+    try {
+      const db = await initIndexedDB();
+      const transaction = db.transaction(['offlineQueue'], 'readonly');
+      const store = transaction.objectStore('offlineQueue');
+      const request = store.getAll();
+      
+      return new Promise((resolve) => {
+        request.onsuccess = (event) => {
+          offlineQueue = event.target.result || [];
+          console.log(`Loaded ${offlineQueue.length} offline operations`);
+          resolve();
+        };
+      });
+    } catch (error) {
+      console.error('Error loading offline queue:', error);
+      offlineQueue = [];
+    }
   }
   
   // Clear offline queue after sync
   async function clearOfflineQueue() {
-    const db = await initIndexedDB();
-    const transaction = db.transaction(['offlineQueue'], 'readwrite');
-    const store = transaction.objectStore('offlineQueue');
-    store.clear();
-    
-    offlineQueue = [];
-    updateSyncStatus();
+    try {
+      const db = await initIndexedDB();
+      const transaction = db.transaction(['offlineQueue'], 'readwrite');
+      const store = transaction.objectStore('offlineQueue');
+      store.clear();
+      
+      offlineQueue = [];
+      updateSyncStatus();
+    } catch (error) {
+      console.error('Error clearing offline queue:', error);
+    }
   }
   
   // ========================
@@ -1109,8 +1115,9 @@
   // Sync data with Supabase
   async function syncData() {
     const syncIndicator = document.getElementById('syncIndicator');
+    const syncStatus = document.getElementById('syncStatus');
     syncIndicator.classList.add('syncing');
-    document.getElementById('syncStatus').textContent = 'Syncing...';
+    syncStatus.textContent = 'Syncing...';
     
     try {
       // Push offline changes to Supabase
@@ -1127,10 +1134,10 @@
       renderActivityFeed();
       
       // Show success message
-      showMessage('Data synchronized successfully!', 'success');
+      showAppMessage('Data synchronized successfully!', 'success');
     } catch (error) {
       console.error('Sync failed:', error);
-      showMessage(`Sync failed: ${error.message}`, 'error');
+      showAppMessage(`Sync failed: ${error.message}`, 'error');
     } finally {
       syncIndicator.classList.remove('syncing');
       updateSyncStatus();
@@ -1141,14 +1148,17 @@
   async function processOfflineQueue() {
     if (offlineQueue.length === 0) return;
     
+    console.log(`Processing ${offlineQueue.length} offline operations`);
+    
     // Process each operation in order
     for (const operation of offlineQueue) {
       try {
+        console.log('Processing operation:', operation.type);
         switch (operation.type) {
           case 'ADD_ITEM':
             await supabase.from('items').insert(operation.data);
             await supabase.from('stock_levels').insert({
-              itemId: operation.data.id,
+              item_id: operation.data.id,
               quantity: operation.initialQuantity
             });
             break;
@@ -1157,7 +1167,7 @@
             break;
           case 'DELETE_ITEM':
             await supabase.from('items').delete().eq('id', operation.id);
-            await supabase.from('stock_levels').delete().eq('itemId', operation.id);
+            await supabase.from('stock_levels').delete().eq('item_id', operation.id);
             break;
           case 'ADD_USER':
             await supabase.from('users').insert(operation.data);
@@ -1174,7 +1184,7 @@
             const { data: stockData, error: stockError } = await supabase
               .from('stock_levels')
               .select('quantity')
-              .eq('itemId', operation.data.itemId)
+              .eq('item_id', operation.data.item_id)
               .single();
             
             if (stockData) {
@@ -1184,23 +1194,27 @@
               await supabase
                 .from('stock_levels')
                 .update({ quantity: newQuantity })
-                .eq('itemId', operation.data.itemId);
+                .eq('item_id', operation.data.item_id);
             }
             break;
         }
+        console.log('Operation processed successfully:', operation.type);
       } catch (error) {
         console.error('Error processing operation:', operation, error);
-        throw new Error('Failed to process offline changes');
+        throw new Error(`Failed to process ${operation.type} operation`);
       }
     }
     
     // Clear offline queue
     await clearOfflineQueue();
+    console.log('All offline operations processed successfully');
   }
   
   // Pull data from Supabase
   async function pullFromSupabase() {
     try {
+      console.log('Pulling data from Supabase');
+      
       // Fetch items
       const { data: items, error: itemsError } = await supabase.from('items').select('*');
       if (itemsError) throw itemsError;
@@ -1229,16 +1243,17 @@
       
       state.stockLevels = {};
       stockLevels.forEach(level => {
-        state.stockLevels[level.itemId] = level;
+        state.stockLevels[level.item_id] = level;
       });
       
-      state.stockMovements = movements;
+      state.stockMovements = movements || [];
       
       state.users = {};
       users.forEach(user => {
         state.users[user.username] = user;
       });
       
+      console.log('Data pulled successfully from Supabase');
     } catch (error) {
       console.error('Error fetching data from Supabase:', error);
       throw new Error('Failed to fetch latest data');
@@ -1270,6 +1285,9 @@
   // ========================
   // Initialize default data structure
   function initializeDefaultData() {
+    console.log('Initializing default data structure');
+    
+    // Initialize departments and categories
     Object.keys(DEPARTMENT_CONFIG).forEach(deptKey => {
       const deptId = `dept_${deptKey}`;
       state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[deptKey].name };
@@ -1279,11 +1297,32 @@
         state.categories[catId] = { id: catId, departmentId: deptId, name: catName };
       });
     });
+    
+    // Initialize users
+    state.users = {
+      'Kelvin': {username: 'Kelvin', password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all'},
+      'Franklin': {username: 'Franklin', password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all'},
+      'Chisomo': {username: 'Chisomo', password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin'},
+      'Victor': {username: 'Victor', password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin'},
+      'Boston': {username: 'Boston', password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', secondaryDepartment: 'restaurant'},
+      'Magah': {username: 'Magah', password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', secondaryDepartment: 'restaurant'},
+      'Phillip': {username: 'Phillip', password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', secondaryDepartment: 'restaurant', isSupervisor: true},
+      'Gift': {username: 'Gift', password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant'},
+      'Rhodney': {username: 'Rhodney', password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true},
+      'Mike': {username: 'Mike', password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant'},
+      'Matias': {username: 'Matias', password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel'},
+      'Kennedy': {username: 'Kennedy', password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel'},
+      'Mphatso': {username: 'Mphatso', password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', secondaryDepartment: 'hotel'},
+      'Gaven': {username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', secondaryDepartment: 'cultivation'},
+      'Maya': {username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', secondaryDepartment: 'cultivation'}
+    };
+    
+    console.log('Default data initialized');
   }
   
   // Generate unique IDs
   function generateId() {
-    return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   }
   
   // Add new item
@@ -1301,7 +1340,7 @@
     };
     
     state.stockLevels[itemId] = {
-      itemId: itemId,
+      item_id: itemId,
       quantity: parseFloat(itemData.initialQuantity) || 0
     };
     
@@ -1353,7 +1392,7 @@
     delete state.stockLevels[itemId];
     
     // Remove related movements
-    state.stockMovements = state.stockMovements.filter(m => m.itemId !== itemId);
+    state.stockMovements = state.stockMovements.filter(m => m.item_id !== itemId);
     
     // Add to offline queue
     addToOfflineQueue({
@@ -1372,10 +1411,13 @@
     const currentStock = state.stockLevels[itemId];
     const item = state.items[itemId];
     
-    if (!currentStock || !item) return false;
+    if (!currentStock || !item) {
+      showAppMessage('Item not found!', 'error');
+      return false;
+    }
     
     if (currentStock.quantity + quantity < 0) {
-      showMessage('Error: Cannot have negative stock.', 'error');
+      showAppMessage('Error: Cannot have negative stock.', 'error');
       return false;
     }
     
@@ -1389,12 +1431,12 @@
     addToOfflineQueue({
       type: 'STOCK_MOVEMENT',
       data: {
-        itemId: itemId,
+        item_id: itemId,
         type: movementType,
         quantity: Math.abs(quantity),
         reason: reason,
         user: currentUser ? currentUser.displayName : 'System',
-        staffMember: staffMember,
+        staff_member: staffMember,
         timestamp: new Date().toISOString()
       }
     });
@@ -1403,6 +1445,15 @@
     updateDashboardMetrics();
     renderActivityFeed();
     
+    // Send Telegram notification for stock out
+    if (movementType === 'out') {
+      const staffUser = staffMember ? state.users[staffMember] : null;
+      const staffName = staffUser ? staffUser.displayName : staffMember || 'Unknown';
+      
+      const message = `STOCK ISSUED\n\nItem: ${item.name}\nQuantity: ${Math.abs(quantity)} ${item.unit}\nIssued to: ${staffName}\nReason: ${reason}`;
+      sendTelegramMessage(message);
+    }
+    
     return true;
   }
   
@@ -1410,12 +1461,12 @@
   function logMovement(itemId, type, quantity, reason, staffMember = null) {
     state.stockMovements.unshift({
       id: generateId(),
-      itemId: itemId,
+      item_id: itemId,
       type: type,
       quantity: quantity,
       reason: reason,
       user: currentUser ? currentUser.displayName : 'System',
-      staffMember: staffMember,
+      staff_member: staffMember,
       timestamp: new Date().toISOString()
     });
     
@@ -1429,7 +1480,7 @@
     const username = userData.username;
     
     if (state.users[username]) {
-      showMessage('User already exists!', 'error');
+      showAppMessage('User already exists!', 'error');
       return false;
     }
     
@@ -1483,7 +1534,7 @@
     if (!state.users[username]) return false;
     
     if (username === currentUser.username) {
-      showMessage('You cannot delete your own account!', 'error');
+      showAppMessage('You cannot delete your own account!', 'error');
       return false;
     }
     
@@ -1497,6 +1548,35 @@
     
     saveStateToDB();
     return true;
+  }
+  
+  // Send Telegram message
+  async function sendTelegramMessage(message) {
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+      console.warn('Telegram bot token or chat ID not configured.');
+      return;
+    }
+    
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: 'Markdown'
+        })
+      });
+      
+      const data = await response.json();
+      if (!data.ok) {
+        console.error('Telegram API Error:', data.description);
+      }
+    } catch (error) {
+      console.error('Failed to send Telegram message:', error);
+    }
   }
   
   // ========================
@@ -1516,9 +1596,12 @@
       return movDate.toDateString() === today.toDateString();
     }).length;
     
+    const activeUsers = Object.keys(state.users).length;
+    
     document.getElementById('totalItems').textContent = totalItems;
     document.getElementById('lowStockCount').textContent = lowStockCount;
     document.getElementById('todayMovements').textContent = todayMovements;
+    document.getElementById('activeUsers').textContent = activeUsers;
   }
   
   // Render activity feed
@@ -1532,7 +1615,7 @@
     }
     
     state.stockMovements.slice(0, 5).forEach(m => {
-      const item = state.items[m.itemId];
+      const item = state.items[m.item_id];
       if (!item) return;
       
       let iconClass = 'fa-arrows-up-down';
@@ -1543,7 +1626,7 @@
         text = `${m.user} stocked in ${m.quantity} ${item.unit} of ${item.name}.`;
       } else if (m.type === 'out') {
         iconClass = 'fa-arrow-up';
-        const staffName = m.staffMember ? state.users[m.staffMember]?.displayName || m.staffMember : 'N/A';
+        const staffName = m.staff_member ? state.users[m.staff_member]?.displayName || m.staff_member : 'N/A';
         text = `${m.user} issued ${m.quantity} ${item.unit} of ${item.name} to ${staffName}.`;
       } else {
         text = `${m.user} added new item: ${item.name}.`;
@@ -1602,6 +1685,8 @@
     switchView('dashboardContent');
     document.querySelectorAll('.dept-item').forEach(item => item.classList.remove('active'));
     document.querySelector('.dept-item[data-dept="dashboard"]').classList.add('active');
+    updateDashboardMetrics();
+    renderActivityFeed();
   }
   
   // Show add item form
@@ -1837,7 +1922,10 @@
   
   // Show user management (only for Franklin)
   function showUserManagement() {
-    if (currentUser?.displayName !== 'Franklin') return;
+    if (currentUser?.displayName !== 'Franklin') {
+      showAppMessage('You do not have permission to access user management', 'error');
+      return;
+    }
     
     let tableRows = "";
     Object.values(state.users).forEach(user => {
@@ -1923,6 +2011,7 @@
             <div class="form-group">
               <label for="department">Primary Department</label>
               <select id="department" required>
+                <option value="all">All Departments</option>
                 ${Object.values(state.departments).map(dept => 
                   `<option value="${dept.id}">${dept.name}</option>`
                 ).join('')}
@@ -2007,6 +2096,7 @@
             <div class="form-group">
               <label for="editDepartment">Primary Department</label>
               <select id="editDepartment" required>
+                <option value="all">All Departments</option>
                 ${Object.values(state.departments).map(dept => 
                   `<option value="${dept.id}" ${dept.id === user.department ? 'selected' : ''}>${dept.name}</option>`
                 ).join('')}
@@ -2086,6 +2176,248 @@
     if (deleteUser(username)) {
       showUserManagement();
     }
+  }
+  
+  // Show stock in form
+  function showStockIn() {
+    const itemOptions = Object.values(state.items).map(item => 
+      `<option value="${item.id}">${item.name}</option>`
+    ).join('');
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Stock In</div>
+          <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <form id="stockInForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="stockInItem">Item</label>
+              <select id="stockInItem" required>${itemOptions}</select>
+            </div>
+            <div class="form-group">
+              <label for="stockInQuantity">Quantity to Add</label>
+              <input type="number" id="stockInQuantity" required min="0.01" step="any">
+            </div>
+            <div class="form-group">
+              <label for="stockInReason">Reason</label>
+              <input type="text" id="stockInReason" value="Supplier delivery" required>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Stock</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+    
+    document.getElementById('stockInForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const itemId = document.getElementById('stockInItem').value;
+      const quantity = parseFloat(document.getElementById('stockInQuantity').value);
+      const reason = document.getElementById('stockInReason').value;
+      
+      if (itemId && quantity > 0) {
+        adjustStock(itemId, quantity, reason);
+        showDashboard();
+      } else {
+        showAppMessage('Please enter a valid quantity', 'error');
+      }
+    });
+  }
+  
+  // Show stock out form
+  function showStockOut() {
+    const itemOptions = Object.values(state.items).map(item => 
+      `<option value="${item.id}">${item.name} (Avail: ${state.stockLevels[item.id]?.quantity || 0})</option>`
+    ).join('');
+    
+    const staffOptions = Object.entries(state.users).map(([key, user]) => 
+      `<option value="${key}">${user.displayName}</option>`
+    ).join('');
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Stock Out</div>
+          <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <form id="stockOutForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="stockOutItem">Item</label>
+              <select id="stockOutItem" required>${itemOptions}</select>
+            </div>
+            <div class="form-group">
+              <label for="stockOutQuantity">Quantity to Remove</label>
+              <input type="number" id="stockOutQuantity" required min="0.01" step="any">
+            </div>
+            <div class="form-group">
+              <label for="stockOutStaff">Issued To</label>
+              <select id="stockOutStaff" required>${staffOptions}</select>
+            </div>
+            <div class="form-group">
+              <label for="stockOutReason">Reason</label>
+              <input type="text" id="stockOutReason" value="Department usage" required>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Remove Stock</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+    
+    document.getElementById('stockOutForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const itemId = document.getElementById('stockOutItem').value;
+      const quantity = parseFloat(document.getElementById('stockOutQuantity').value);
+      const reason = document.getElementById('stockOutReason').value;
+      const staffMember = document.getElementById('stockOutStaff').value;
+      
+      if (itemId && quantity > 0) {
+        if (adjustStock(itemId, -quantity, reason, staffMember)) {
+          showDashboard();
+        }
+      } else {
+        showAppMessage('Please enter a valid quantity', 'error');
+      }
+    });
+  }
+  
+  // Show reports
+  function showReports() {
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Reports & Analytics</div>
+          <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Overall Stock Status</div>
+            </div>
+            <div class="chart-container">
+              <canvas id="stockStatusChart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Stock Value by Department</div>
+            </div>
+            <div class="chart-container">
+              <canvas id="departmentValueChart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Last 7 Days Movements</div>
+            </div>
+            <div class="chart-container">
+              <canvas id="movementsChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+    renderReports();
+  }
+  
+  // Render reports
+  function renderReports() {
+    renderStockStatusChart();
+    renderDepartmentValueChart();
+    renderMovementsChart();
+  }
+  
+  // Render stock status chart
+  function renderStockStatusChart() {
+    const ctx = document.getElementById('stockStatusChart').getContext('2d');
+    let inStock = 0, lowStock = 0, outOfStock = 0;
+
+    Object.values(state.items).forEach(item => {
+      const stock = state.stockLevels[item.id];
+      if (!stock || stock.quantity <= 0) {
+        outOfStock++;
+      } else if (stock.quantity <= item.minStockLevel) {
+        lowStock++;
+      } else {
+        inStock++;
+      }
+    });
+
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['In Stock', 'Low Stock', 'Out of Stock'],
+        datasets: [{
+          data: [inStock, lowStock, outOfStock],
+          backgroundColor: ['var(--success)', 'var(--warning)', 'var(--accent)']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: 'var(--text-primary)'
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // Show settings
+  function showSettings() {
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Settings</div>
+          <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <div class="actions-grid">
+          <div class="action-btn" onclick="testTelegram()">
+            <div class="action-icon"><i class="fab fa-telegram"></i></div>
+            <div>Test Telegram</div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+  }
+  
+  // Test Telegram integration
+  function testTelegram() {
+    const message = 'Vanguard Stock Management Test\n\nThis is a test message from the application. Telegram integration is working correctly.';
+    sendTelegramMessage(message);
+    showAppMessage('Test message sent to Telegram!', 'success');
+  }
+  
+  // Show application message
+  function showAppMessage(text, type) {
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${type} show`;
+    messageElement.textContent = text;
+    
+    const contentArea = document.querySelector('.content-area');
+    contentArea.prepend(messageElement);
+    
+    setTimeout(() => {
+      messageElement.remove();
+    }, 5000);
   }
   
   // ========================
