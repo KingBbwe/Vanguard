@@ -1,1476 +1,2239 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vanguard - Stock Management System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* General Styles from supashedsm8v1.html, merged and prioritized */
-        :root {
-            --primary: #1a2a3a; /* Darker blue-gray */
-            --secondary: #3498db; /* Bright blue */
-            --accent: #e74c3c; /* Red */
-            --success: #27ae60; /* Green */
-            --warning: #f39c12; /* Orange */
-            --light: #ecf0f1; /* Light gray */
-            --dark: #2c3e50; /* Dark blue-gray */
-            --gray: #95a5a6; /* Medium gray */
-            --purple: #9b59b6;
-            --surface: #252f3d; /* Dark surface */
-            --surface-light: #2a3a4a; /* Lighter surface */
-            --text-primary: #e0e0ff; /* Light text */
-            --text-secondary: #a0a0b0; /* Secondary text */
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-            --radius: 10px;
-            --transition: all 0.3s ease;
-
-            /* Department Specific Colors */
-            --hotel-color: #4F46E5;
-            --bar-color: #DC2626;
-            --restaurant-color: #059669;
-            --kitchen-color: #D97706;
-            --admin-color: #7C3AED;
-            --grounds-color: #16A34A;
-            --cultivation-color: #CA8A04;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, var(--primary), #1e3040);
-            color: var(--text-primary);
-            line-height: 1.6;
-            min-height: 100vh;
-        }
-
-        .app-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Login Screen Styles */
-        .login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        .login-card {
-            background: var(--surface);
-            padding: 2rem 3rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            width: 100%;
-            max-width: 420px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            animation: fadeIn 0.5s ease;
-        }
-
-        .login-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .login-logo i {
-            font-size: 2.5rem;
-            color: var(--secondary);
-            background: rgba(52, 152, 219, 0.15);
-            padding: 15px;
-            border-radius: 50%;
-        }
-
-        .login-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-            color: white;
-        }
-
-        .login-subtitle {
-            color: var(--gray);
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-        }
-
-        .pin-input {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-
-        .pin-digit {
-            width: 50px;
-            height: 60px;
-            border: 2px solid var(--surface-light);
-            border-radius: var(--radius);
-            text-align: center;
-            font-size: 2rem;
-            font-weight: 600;
-            transition: all 0.2s;
-            background: var(--primary);
-            color: var(--text-primary);
-            -webkit-text-security: disc;
-        }
-
-        .pin-digit:focus {
-            outline: none;
-            border-color: var(--secondary);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-        }
-
-        .pin-digit.filled {
-            border-color: var(--success);
-        }
-        
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .key {
-            background: var(--surface-light);
-            border: 1px solid transparent;
-            padding: 1.25rem;
-            border-radius: var(--radius);
-            font-size: 1.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            color: var(--text-primary);
-        }
-
-        .key:hover {
-            background: var(--secondary);
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
-
-        .key:active {
-            transform: translateY(0);
-        }
-
-        .clear-btn {
-            width: 100%;
-            padding: 1rem;
-            border-radius: var(--radius);
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            background: var(--accent);
-            color: white;
-            font-size: 1.1rem;
-        }
-        .clear-btn:hover {
-             background: #c0392b;
-        }
-
-        /* Main Application Styles */
-        #mainApp {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        
-        .header {
-            background: var(--surface);
-            color: white;
-            padding: 1rem 1.5rem;
-            box-shadow: var(--shadow);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .logo i {
-            color: var(--secondary);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 6px;
-            background: var(--surface-light);
-            font-size: 0.875rem;
-        }
-
-        .sync-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            animation: pulse 2s infinite;
-        }
-
-        .logout-btn {
-            background: var(--surface-light);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .logout-btn:hover {
-            background: var(--accent);
-        }
-
-        .main-content {
-            flex: 1;
-            display: flex;
-            max-width: 1600px;
-            margin: 0 auto;
-            width: 100%;
-            padding: 1.5rem;
-            gap: 1.5rem;
-        }
-
-        .sidebar {
-            width: 280px;
-            background: var(--surface);
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            height: fit-content;
-            position: sticky;
-            top: 100px;
-        }
-
-        .nav-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 1rem;
-            padding-left: 1rem;
-        }
-
-        .dept-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: var(--transition);
-            margin-bottom: 0.5rem;
-            border: 1px solid transparent;
-            color: var(--text-primary);
-        }
-
-        .dept-item:hover {
-            background: var(--surface-light);
-        }
-
-        .dept-item.active {
-            background: var(--secondary);
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .dept-item.active .dept-icon {
-            color: white;
-        }
-
-        .dept-icon {
-            width: 20px;
-            text-align: center;
-        }
-
-        .content-area {
-            flex: 1;
-            overflow-y: auto;
-        }
-        
-        .card {
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: var(--transition);
-            margin-bottom: 1.5rem;
-        }
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-        }
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--surface-light);
-        }
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--secondary);
-        }
-        .card-metric {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-        .card-subtitle {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        
-        .actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-        }
-
-        .action-btn {
-            background: var(--surface-light);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: var(--transition);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            align-items: center;
-            color: var(--text-primary);
-        }
-
-        .action-btn:hover {
-            border-color: var(--secondary);
-            background: var(--secondary);
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: var(--shadow);
-        }
-        .action-btn:hover .action-icon {
-            transform: scale(1.1);
-        }
-
-        .action-icon {
-            font-size: 2rem;
-            transition: var(--transition);
-            color: var(--secondary);
-        }
-        .action-btn:hover .action-icon {
-            color: white;
-        }
-        
-        .activity-list {
-            background: var(--surface);
-            border-radius: var(--radius);
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .activity-item {
-            display: flex;
-            gap: 1rem;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--surface-light);
-        }
-        .activity-item:last-child { border-bottom: none; }
-
-        .activity-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--surface-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--secondary);
-            font-weight: 600;
-            font-size: 1.25rem;
-        }
-        .activity-content { flex: 1; }
-        .activity-text { color: var(--text-primary); margin-bottom: 0.25rem; }
-        .activity-time { color: var(--text-secondary); font-size: 0.875rem; }
-
-        /* Form Styles */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .form-group label {
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border-radius: var(--radius);
-            border: 1px solid var(--surface-light);
-            background: var(--primary);
-            color: var(--text-primary);
-            font-size: 1rem;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: var(--secondary);
-        }
-        .form-actions {
-            margin-top: 1.5rem;
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius);
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .btn-primary { background: var(--secondary); color: white; }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-secondary { background: var(--surface-light); color: var(--text-primary); }
-        .btn-secondary:hover { background: var(--dark); }
-
-        /* Table Styles */
-        .data-table-container {
-            overflow-x: auto;
-        }
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .data-table th, .data-table td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--surface-light);
-        }
-        .data-table th {
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            font-size: 0.875rem;
-        }
-        .data-table tr:hover {
-            background-color: var(--surface-light);
-        }
-        
-        /* Reports / Chart Styles */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 1.5rem;
-        }
-        .chart-container {
-            position: relative;
-            height: 350px;
-            width: 100%;
-        }
-
-        /* Message Styles */
-        .message {
-            padding: 1rem;
-            border-radius: var(--radius);
-            margin-bottom: 1.5rem;
-            display: none;
-            border: 1px solid;
-            text-align: left;
-        }
-        .message.show { display: block; }
-        .message.error { background: rgba(231, 76, 60, 0.1); color: var(--accent); border-color: var(--accent); }
-        .message.success { background: rgba(39, 174, 96, 0.1); color: var(--success); border-color: var(--success); }
-
-        /* General Utility */
-        .hidden { display: none !important; }
-
-        /* Animations */
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Responsive Design */
-        @media (max-width: 992px) {
-            .main-content {
-                flex-direction: column;
-            }
-            .sidebar {
-                width: 100%;
-                position: static;
-                height: auto;
-                border-right: none;
-                margin-bottom: 1.5rem;
-            }
-        }
-        @media (max-width: 768px) {
-            .header-content { flex-direction: column; gap: 1rem; }
-            .content-area, .sidebar, .main-content { padding: 1rem; }
-            .dashboard-grid, .charts-grid { grid-template-columns: 1fr; }
-            .actions-grid { grid-template-columns: repeat(2, 1fr); }
-            .login-card { padding: 2rem; }
-            .pin-input { gap: 0.5rem; }
-            .pin-digit { width: 40px; height: 50px; font-size: 1.5rem; }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vanguard - Stock Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* Root variables */
+    :root {
+      --primary: #1a2a3a;
+      --secondary: #3498db;
+      --accent: #e74c3c;
+      --success: #27ae60;
+      --warning: #f39c12;
+      --light: #ecf0f1;
+      --dark: #2c3e50;
+      --gray: #95a5a6;
+      --purple: #9b59b6;
+      --surface: #252f3d;
+      --surface-light: #2a3a4a;
+      --text-primary: #e0e0ff;
+      --text-secondary: #a0a0b0;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --radius: 10px;
+      --transition: all 0.3s ease;
+      
+      /* Department Specific Colors */
+      --hotel-color: #4F46E5;
+      --bar-color: #DC2626;
+      --restaurant-color: #059669;
+      --kitchen-color: #D97706;
+      --admin-color: #7C3AED;
+      --grounds-color: #16A34A;
+      --cultivation-color: #CA8A04;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, var(--primary), #1e3040);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    
+    .app-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Login Screen Styles */
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    
+    .login-card {
+      background: var(--surface);
+      padding: 2rem 3rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      animation: fadeIn 0.5s ease;
+    }
+    
+    .login-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .login-logo i {
+      font-size: 2.5rem;
+      color: var(--secondary);
+      background: rgba(52, 152, 219, 0.15);
+      padding: 15px;
+      border-radius: 50%;
+    }
+    
+    .login-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: white;
+    }
+    
+    .login-subtitle {
+      color: var(--gray);
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    
+    .pin-input {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    
+    .pin-digit {
+      width: 50px;
+      height: 60px;
+      border: 2px solid var(--surface-light);
+      border-radius: var(--radius);
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      background: var(--primary);
+      color: var(--text-primary);
+      -webkit-text-security: disc;
+    }
+    
+    .pin-digit:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    
+    .pin-digit.filled {
+      border-color: var(--success);
+    }
+    
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .key {
+      background: var(--surface-light);
+      border: 1px solid transparent;
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      font-size: 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      color: var(--text-primary);
+    }
+    
+    .key:hover {
+      background: var(--secondary);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    
+    .key:active {
+      transform: translateY(0);
+    }
+    
+    .clear-btn {
+      width: 100%;
+      padding: 1rem;
+      border-radius: var(--radius);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      background: var(--accent);
+      color: white;
+      font-size: 1.1rem;
+    }
+    
+    .clear-btn:hover {
+      background: #c0392b;
+    }
+    
+    /* Main Application Styles */
+    #mainApp {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: var(--surface);
+      color: white;
+      padding: 1rem 1.5rem;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--secondary);
+    }
+    
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      background: var(--surface-light);
+      font-size: 0.875rem;
+    }
+    
+    .sync-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+    
+    .sync-indicator.syncing {
+      background: var(--warning);
+      animation: pulse 1s infinite;
+    }
+    
+    .sync-indicator.offline {
+      background: var(--accent);
+      animation: none;
+    }
+    
+    .logout-btn {
+      background: var(--surface-light);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .logout-btn:hover {
+      background: var(--accent);
+    }
+    
+    .main-content {
+      flex: 1;
+      display: flex;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 1.5rem;
+      gap: 1.5rem;
+    }
+    
+    .sidebar {
+      width: 280px;
+      background: var(--surface);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      height: fit-content;
+      position: sticky;
+      top: 100px;
+    }
+    
+    .nav-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+      padding-left: 1rem;
+    }
+    
+    .dept-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+      margin-bottom: 0.5rem;
+      border: 1px solid transparent;
+      color: var(--text-primary);
+    }
+    
+    .dept-item:hover {
+      background: var(--surface-light);
+    }
+    
+    .dept-item.active {
+      background: var(--secondary);
+      color: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .dept-item.active .dept-icon {
+      color: white;
+    }
+    
+    .dept-icon {
+      width: 20px;
+      text-align: center;
+    }
+    
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+    }
+    
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: var(--transition);
+      margin-bottom: 1.5rem;
+    }
+    
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+    
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--surface-light);
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--secondary);
+    }
+    
+    .card-metric {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .card-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+    
+    .action-btn {
+      background: var(--surface-light);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: center;
+      color: var(--text-primary);
+    }
+    
+    .action-btn:hover {
+      border-color: var(--secondary);
+      background: var(--secondary);
+      color: white;
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+    }
+    
+    .action-btn:hover .action-icon {
+      transform: scale(1.1);
+    }
+    
+    .action-icon {
+      font-size: 2rem;
+      transition: var(--transition);
+      color: var(--secondary);
+    }
+    
+    .action-btn:hover .action-icon {
+      color: white;
+    }
+    
+    .activity-list {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .activity-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--surface-light);
+    }
+    
+    .activity-item:last-child { 
+      border-bottom: none; 
+    }
+    
+    .activity-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--surface-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--secondary);
+      font-weight: 600;
+      font-size: 1.25rem;
+    }
+    
+    .activity-content { 
+      flex: 1; 
+    }
+    
+    .activity-text { 
+      color: var(--text-primary); 
+      margin-bottom: 0.25rem; 
+    }
+    
+    .activity-time { 
+      color: var(--text-secondary); 
+      font-size: 0.875rem; 
+    }
+    
+    /* Form Styles */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .form-group label {
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    
+    .form-group input, 
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--surface-light);
+      background: var(--primary);
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+    
+    .form-group input:focus, 
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--secondary);
+    }
+    
+    .form-actions {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-primary { 
+      background: var(--secondary); 
+      color: white; 
+    }
+    
+    .btn-primary:hover { 
+      background: #2980b9; 
+    }
+    
+    .btn-secondary { 
+      background: var(--surface-light); 
+      color: var(--text-primary); 
+    }
+    
+    .btn-secondary:hover { 
+      background: var(--dark); 
+    }
+    
+    .btn-danger {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+    
+    /* Table Styles */
+    .data-table-container {
+      overflow-x: auto;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .data-table th, 
+    .data-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--surface-light);
+    }
+    
+    .data-table th {
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      font-size: 0.875rem;
+    }
+    
+    .data-table tr:hover {
+      background-color: var(--surface-light);
+    }
+    
+    /* Reports / Chart Styles */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 350px;
+      width: 100%;
+    }
+    
+    /* Message Styles */
+    .message {
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      display: none;
+      border: 1px solid;
+      text-align: left;
+    }
+    
+    .message.show { 
+      display: block; 
+    }
+    
+    .message.error { 
+      background: rgba(231, 76, 60, 0.1); 
+      color: var(--accent); 
+      border-color: var(--accent); 
+    }
+    
+    .message.success { 
+      background: rgba(39, 174, 96, 0.1); 
+      color: var(--success); 
+      border-color: var(--success); 
+    }
+    
+    .message.info { 
+      background: rgba(52, 152, 219, 0.1); 
+      color: var(--secondary); 
+      border-color: var(--secondary); 
+    }
+    
+    /* Sync Status */
+    .sync-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    
+    .sync-btn {
+      background: var(--surface-light);
+      border: none;
+      color: var(--text-primary);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    
+    .sync-btn:hover {
+      background: var(--secondary);
+      color: white;
+    }
+    
+    /* General Utility */
+    .hidden { 
+      display: none !important; 
+    }
+    
+    .btn-icon {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 4px;
+      transition: var(--transition);
+    }
+    
+    .btn-icon:hover {
+      color: var(--secondary);
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Animations */
+    @keyframes pulse { 
+      0%, 100% { opacity: 1; } 
+      50% { opacity: 0.5; } 
+    }
+    
+    @keyframes fadeIn { 
+      from { opacity: 0; transform: translateY(10px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 992px) {
+      .main-content {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        position: static;
+        height: auto;
+        border-right: none;
+        margin-bottom: 1.5rem;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .header-content { 
+        flex-direction: column; 
+        gap: 1rem; 
+      }
+      .content-area, .sidebar, .main-content { 
+        padding: 1rem; 
+      }
+      .dashboard-grid, .charts-grid { 
+        grid-template-columns: 1fr; 
+      }
+      .actions-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+      }
+      .login-card { 
+        padding: 2rem; 
+      }
+      .pin-input { 
+        gap: 0.5rem; 
+      }
+      .pin-digit { 
+        width: 40px; 
+        height: 50px; 
+        font-size: 1.5rem; 
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Login Screen -->
-        <div id="loginScreen" class="login-container">
-            <div class="login-card">
-                <div class="login-logo">
-                    <i class="fas fa-boxes-stacked"></i>
-                    <div>
-                        <h1 class="login-title">Vanguard</h1>
-                        <p class="login-subtitle">Boutique Hotel Stock Management</p>
-                    </div>
-                </div>
-                
-                <div id="loginMessage" class="message"></div>
-                
-                <div class="pin-input">
-                    <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-                    <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-                    <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-                    <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-                    <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-                </div>
-                
-                <div class="keypad">
-                    <button class="key" data-key="1">1</button>
-                    <button class="key" data-key="2">2</button>
-                    <button class="key" data-key="3">3</button>
-                    <button class="key" data-key="4">4</button>
-                    <button class="key" data-key="5">5</button>
-                    <button class="key" data-key="6">6</button>
-                    <button class="key" data-key="7">7</button>
-                    <button class="key" data-key="8">8</button>
-                    <button class="key" data-key="9">9</button>
-                    <button class="key" data-key="*">*</button>
-                    <button class="key" data-key="0">0</button>
-                    <button class="key" data-key="%">%</button>
-                </div>
-                
-                <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
-            </div>
+
+<div class="app-container">
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <div class="login-card">
+      <div class="login-logo">
+        <i class="fas fa-boxes-stacked"></i>
+        <div>
+          <h1 class="login-title">Vanguard</h1>
+          <p class="login-subtitle">Stock Management System</p>
         </div>
-
-        <!-- Main Application -->
-        <div id="mainApp" class="hidden">
-            <header class="header">
-                <div class="header-content">
-                    <div class="logo">
-                        <i class="fas fa-boxes-stacked"></i>
-                        <span>Vanguard Stock Management</span>
-                    </div>
-                    <div class="user-info">
-                        <div class="sync-status">
-                            <div class="sync-indicator"></div>
-                            <span id="syncStatus">Online</span>
-                        </div>
-                        <div id="currentUser">Welcome</div>
-                        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
-                    </div>
-                </div>
-            </header>
-
-            <div class="main-content">
-                <nav class="sidebar">
-                    <div class="department-nav">
-                        <div class="nav-title">Departments</div>
-                        <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()">
-                            <i class="dept-icon fas fa-tachometer-alt" style="color: var(--secondary);"></i>
-                            <span>Dashboard</span>
-                        </div>
-                        <div class="dept-item" data-dept="hotel">
-                            <i class="dept-icon fas fa-hotel" style="color: var(--hotel-color);"></i>
-                            <span>Hotel Ops</span>
-                        </div>
-                        <div class="dept-item" data-dept="bar">
-                           <i class="dept-icon fas fa-martini-glass-citrus" style="color: var(--bar-color);"></i>
-                            <span>Bar</span>
-                        </div>
-                        <div class="dept-item" data-dept="restaurant">
-                            <i class="dept-icon fas fa-utensils" style="color: var(--restaurant-color);"></i>
-                            <span>Restaurant</span>
-                        </div>
-                        <div class="dept-item" data-dept="kitchen">
-                           <i class="dept-icon fas fa-kitchen-set" style="color: var(--kitchen-color);"></i>
-                            <span>Kitchen</span>
-                        </div>
-                        <div class="dept-item" data-dept="admin">
-                            <i class="dept-icon fas fa-user-gear" style="color: var(--admin-color);"></i>
-                            <span>Admin</span>
-                        </div>
-                        <div class="dept-item" data-dept="grounds">
-                            <i class="dept-icon fas fa-tree" style="color: var(--grounds-color);"></i>
-                            <span>Grounds</span>
-                        </div>
-                        <div class="dept-item" data-dept="cultivation">
-                            <i class="dept-icon fas fa-seedling" style="color: var(--cultivation-color);"></i>
-                            <span>Cultivation</span>
-                        </div>
-                    </div>
-                </nav>
-
-                <main class="content-area">
-                    <!-- Dashboard View -->
-                    <div id="dashboardContent" class="view-content">
-                        <h1 style="margin-bottom: 2rem; font-size: 2rem; font-weight: 700;">Dashboard</h1>
-                        
-                        <div class="dashboard-grid">
-                            <div class="card">
-                                <div class="card-header"><div class="card-title">Total Items</div></div>
-                                <div class="card-metric" id="totalItems">0</div>
-                                <div class="card-subtitle">Across all departments</div>
-                            </div>
-                            
-                            <div class="card">
-                                <div class="card-header"><div class="card-title">Low Stock Alerts</div></div>
-                                <div class="card-metric" id="lowStockCount" style="color: var(--accent);">0</div>
-                                <div class="card-subtitle">Items need restocking</div>
-                            </div>
-                            
-                            <div class="card">
-                                <div class="card-header"><div class="card-title">Today's Movements</div></div>
-                                <div class="card-metric" id="todayMovements">0</div>
-                                <div class="card-subtitle">Stock in/out operations</div>
-                            </div>
-                            
-                            <div class="card">
-                                <div class="card-header"><div class="card-title">Active Users</div></div>
-                                <div class="card-metric" id="activeUsers">15</div>
-                                <div class="card-subtitle">Staff members registered</div>
-                            </div>
-                        </div>
-
-                        <div class="card">
-                             <div class="card-header"><div class="card-title">Quick Actions</div></div>
-                            <div class="actions-grid">
-                                <div class="action-btn" onclick="showStockIn()">
-                                    <div class="action-icon"><i class="fas fa-box-archive"></i></div>
-                                    <div>Stock In</div>
-                                </div>
-                                <div class="action-btn" onclick="showStockOut()">
-                                    <div class="action-icon"><i class="fas fa-arrow-right-from-bracket"></i></div>
-                                    <div>Stock Out</div>
-                                </div>
-                                <div class="action-btn" onclick="showInventory()">
-                                    <div class="action-icon"><i class="fas fa-clipboard-list"></i></div>
-                                    <div>Inventory</div>
-                                </div>
-                                <div class="action-btn" onclick="showReports()">
-                                    <div class="action-icon"><i class="fas fa-chart-line"></i></div>
-                                    <div>Reports</div>
-                                </div>
-                                <div class="action-btn" onclick="showAddItem()">
-                                    <div class="action-icon"><i class="fas fa-plus"></i></div>
-                                    <div>Add Item</div>
-                                </div>
-                                <div class="action-btn" onclick="showSettings()">
-                                    <div class="action-icon"><i class="fas fa-gear"></i></div>
-                                    <div>Settings</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="activity-list">
-                             <div class="card-header"><div class="card-title">Recent Activity</div></div>
-                            <div id="recentActivity">
-                                <!-- Activity items will be dynamically inserted here -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Generic Action View -->
-                    <div id="actionContent" class="view-content hidden">
-                        <!-- Content will be injected by JS -->
-                    </div>
-
-                </main>
-            </div>
-        </div>
+      </div>
+      
+      <div id="loginMessage" class="message"></div>
+      
+      <div class="pin-input">
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+      </div>
+      
+      <div class="keypad">
+        <button class="key" data-key="1">1</button>
+        <button class="key" data-key="2">2</button>
+        <button class="key" data-key="3">3</button>
+        <button class="key" data-key="4">4</button>
+        <button class="key" data-key="5">5</button>
+        <button class="key" data-key="6">6</button>
+        <button class="key" data-key="7">7</button>
+        <button class="key" data-key="8">8</button>
+        <button class="key" data-key="9">9</button>
+        <button class="key" data-key="*">*</button>
+        <button class="key" data-key="0">0</button>
+        <button class="key" data-key="%">%</button>
+      </div>
+      
+      <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
     </div>
-
-    <script>
-        // --- STATE MANAGEMENT ---
-        let currentUser = null;
-        let currentPin = '';
-        const pinDigits = document.querySelectorAll('.pin-digit');
-
-        // --- DATA STORE (using localStorage for persistence) ---
-        let state = {
-            departments: {},
-            categories: {},
-            items: {},
-            stockLevels: {},
-            stockMovements: []
-        };
-        
-        // --- CONSTANTS ---
-        const USER_ROLES = {
-            ADMIN: 'admin',
-            PROCESSOR: 'processor',
-            VIEWER: 'viewer'
-        };
-
-        const USERS = {
-            'Kelvin': { password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all' },
-            'Franklin': { password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all' },
-            'Chisomo': { password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin' },
-            'Victor': { password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin' },
-            'Boston': { password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', secondaryDepartment: 'restaurant' },
-            'Magah': { password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', secondaryDepartment: 'restaurant' },
-            'Phillip': { password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', secondaryDepartment: 'restaurant', isSupervisor: true },
-            'Gift': { password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant' },
-            'Rhodney': { password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true },
-            'Mike': { password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant' },
-            'Matias': { password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel' },
-            'Kennedy': { password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel' },
-            'Mphatso': { password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', secondaryDepartment: 'hotel' },
-            'Gaven': { password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', secondaryDepartment: 'cultivation' },
-            'Maya': { password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', secondaryDepartment: 'cultivation' }
-        };
-        
-        const DEPARTMENT_CONFIG = {
-            hotel: { name: 'Hotel Operations', color: 'var(--hotel-color)', categories: ['Linens', 'Toiletries', 'Cleaning Supplies', 'Room Amenities', 'Maintenance'] },
-            bar: { name: 'Bar', color: 'var(--bar-color)', categories: ['Spirits', 'Wines', 'Beers', 'Mixers', 'Garnishes', 'Glassware'] },
-            restaurant: { name: 'Restaurant', color: 'var(--restaurant-color)', categories: ['Beverages', 'Tableware', 'Linens', 'Service Equipment'] },
-            kitchen: { name: 'Kitchen', color: 'var(--kitchen-color)', categories: ['Fresh Produce', 'Meat & Seafood', 'Dairy', 'Dry Goods', 'Spices'] },
-            admin: { name: 'Administration', color: 'var(--admin-color)', categories: ['Office Supplies', 'IT Equipment', 'Documents'] },
-            grounds: { name: 'Grounds', color: 'var(--grounds-color)', categories: ['Tools', 'Fertilizer', 'Pesticides'] },
-            cultivation: { name: 'Cultivation', color: 'var(--cultivation-color)', categories: ['Seeds', 'Soil', 'Nutrients'] }
-        };
-        
-        // --- TELEGRAM CONFIG ---
-        const TELEGRAM_BOT_TOKEN = '7960256341:AAFw_BPZRibbnBLaSYD9Lf3id5Fw3352wDC';
-        const TELEGRAM_CHAT_ID = '1212406500';
-
-        // --- DOM ELEMENTS ---
-        const loginScreen = document.getElementById('loginScreen');
-        const mainApp = document.getElementById('mainApp');
-        const loginMessage = document.getElementById('loginMessage');
-        const keypadButtons = document.querySelectorAll('.key');
-        const deptItems = document.querySelectorAll('.dept-item');
-        const dashboardContent = document.getElementById('dashboardContent');
-        const actionContent = document.getElementById('actionContent');
-
-        // --- DATA PERSISTENCE FUNCTIONS ---
-        function saveStateToLocalStorage() {
-            localStorage.setItem('vanguardStockState', JSON.stringify(state));
-        }
-
-        function loadStateFromLocalStorage() {
-            const savedState = localStorage.getItem('vanguardStockState');
-            if (savedState) {
-                state = JSON.parse(savedState);
-            } else {
-                // Initialize with default department and category structure if no state exists
-                Object.keys(DEPARTMENT_CONFIG).forEach(deptKey => {
-                    const deptId = `dept_${deptKey}`;
-                    state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[deptKey].name };
-                    DEPARTMENT_CONFIG[deptKey].categories.forEach(catName => {
-                        const catId = `cat_${deptKey}_${catName.toLowerCase().replace(/\s/g, '')}`;
-                        state.categories[catId] = { id: catId, departmentId: deptId, name: catName };
-                    });
-                });
-            }
-        }
-
-        // --- CORE LOGIC FUNCTIONS ---
-        
-        function generateId() {
-            return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        }
-
-        function addNewItem(itemData) {
-            const itemId = generateId();
-            state.items[itemId] = {
-                id: itemId,
-                name: itemData.name,
-                categoryId: itemData.categoryId,
-                unit: itemData.unit,
-                cost: parseFloat(itemData.cost) || 0,
-                minStockLevel: parseFloat(itemData.minStockLevel) || 0,
-                createdAt: new Date().toISOString()
-            };
-            state.stockLevels[itemId] = {
-                itemId: itemId,
-                quantity: parseFloat(itemData.initialQuantity) || 0
-            };
-            logMovement(itemId, 'in', parseFloat(itemData.initialQuantity), 'Initial stock');
-            saveAndRefresh();
-        }
-
-        function adjustStock(itemId, quantity, reason, staffMember = null) {
-            const currentStock = state.stockLevels[itemId];
-            const item = state.items[itemId];
-            if (currentStock && item) {
-                if (currentStock.quantity + quantity < 0) {
-                    alert('Error: Cannot have negative stock.');
-                    return false;
-                }
-                const oldQuantity = currentStock.quantity;
-                currentStock.quantity += quantity;
-                const movementType = quantity > 0 ? 'in' : 'out';
-                logMovement(itemId, movementType, Math.abs(quantity), reason, staffMember);
-                
-                // Check for low stock alert on stock out
-                if (movementType === 'out' && oldQuantity > item.minStockLevel && currentStock.quantity <= item.minStockLevel) {
-                    const message = `🚨 *LOW STOCK ALERT* 🚨\n\nItem: *${item.name}*\nQuantity: *${currentStock.quantity} ${item.unit}*\nMinimum Level: *${item.minStockLevel} ${item.unit}*\n\nPlease restock soon.`;
-                    sendTelegramMessage(message);
-                }
-
-                saveAndRefresh();
-                return true;
-            }
-            return false;
-        }
-        
-        function logMovement(itemId, type, quantity, reason, staffMember = null) {
-            state.stockMovements.unshift({
-                id: generateId(),
-                itemId: itemId,
-                type: type,
-                quantity: quantity,
-                reason: reason,
-                user: currentUser ? currentUser.displayName : 'System',
-                staffMember: staffMember,
-                timestamp: new Date().toISOString()
-            });
-            if (state.stockMovements.length > 50) {
-                state.stockMovements.pop();
-            }
-        }
-
-        function saveAndRefresh() {
-            saveStateToLocalStorage();
-            updateDashboardMetrics();
-            renderActivityFeed();
-        }
-        
-        // --- TELEGRAM INTEGRATION ---
-        async function sendTelegramMessage(message) {
-            if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-                console.warn('Telegram bot token or chat ID not configured.');
-                return;
-            }
-            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: TELEGRAM_CHAT_ID,
-                        text: message,
-                        parse_mode: 'Markdown'
-                    }),
-                });
-                const data = await response.json();
-                if (!data.ok) {
-                    console.error('Telegram API Error:', data.description);
-                }
-            } catch (error) {
-                console.error('Failed to send Telegram message:', error);
-            }
-        }
-
-        // --- UI RENDERING & VIEW MANAGEMENT ---
-
-        function updateDashboardMetrics() {
-            const totalItems = Object.keys(state.items).length;
-            const lowStockCount = Object.values(state.items).filter(item => {
-                const stock = state.stockLevels[item.id];
-                return stock && stock.quantity <= item.minStockLevel;
-            }).length;
-            const todayMovements = state.stockMovements.filter(m => new Date(m.timestamp).toDateString() === new Date().toDateString()).length;
-
-            document.getElementById('totalItems').textContent = totalItems;
-            document.getElementById('lowStockCount').textContent = lowStockCount;
-            document.getElementById('todayMovements').textContent = todayMovements;
-        }
-
-        function renderActivityFeed() {
-            const feedContainer = document.getElementById('recentActivity');
-            feedContainer.innerHTML = '';
+  </div>
+  
+  <!-- Main Application -->
+  <div id="mainApp" class="hidden">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <i class="fas fa-boxes-stacked"></i>
+          <span>Vanguard Stock Management</span>
+        </div>
+        <div class="user-info">
+          <div class="sync-status">
+            <div id="syncIndicator" class="sync-indicator"></div>
+            <span id="syncStatus">Online</span>
+          </div>
+          <div id="currentUser">Welcome</div>
+          <div class="sync-actions">
+            <button class="sync-btn" onclick="syncData()" title="Sync Data">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+            <button class="logout-btn" onclick="logout()">
+              <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+    
+    <div class="main-content">
+      <nav class="sidebar">
+        <div class="department-nav">
+          <div class="nav-title">Departments</div>
+          <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()">
+            <i class="dept-icon fas fa-tachometer-alt" style="color: var(--secondary);"></i>
+            <span>Dashboard</span>
+          </div>
+          <div class="dept-item" data-dept="hotel">
+            <i class="dept-icon fas fa-hotel" style="color: var(--hotel-color);"></i>
+            <span>Hotel Ops</span>
+          </div>
+          <div class="dept-item" data-dept="bar">
+            <i class="dept-icon fas fa-martini-glass-citrus" style="color: var(--bar-color);"></i>
+            <span>Bar</span>
+          </div>
+          <div class="dept-item" data-dept="restaurant">
+            <i class="dept-icon fas fa-utensils" style="color: var(--restaurant-color);"></i>
+            <span>Restaurant</span>
+          </div>
+          <div class="dept-item" data-dept="kitchen">
+            <i class="dept-icon fas fa-kitchen-set" style="color: var(--kitchen-color);"></i>
+            <span>Kitchen</span>
+          </div>
+          <div class="dept-item" data-dept="admin">
+            <i class="dept-icon fas fa-user-gear" style="color: var(--admin-color);"></i>
+            <span>Admin</span>
+          </div>
+          <div class="dept-item" data-dept="grounds">
+            <i class="dept-icon fas fa-tree" style="color: var(--grounds-color);"></i>
+            <span>Grounds</span>
+          </div>
+          <div class="dept-item" data-dept="cultivation">
+            <i class="dept-icon fas fa-seedling" style="color: var(--cultivation-color);"></i>
+            <span>Cultivation</span>
+          </div>
+          <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()">
+            <i class="dept-icon fas fa-users" style="color: var(--admin-color);"></i>
+            <span>User Management</span>
+          </div>
+        </div>
+      </nav>
+      
+      <main class="content-area">
+        <!-- Dashboard View -->
+        <div id="dashboardContent" class="view-content">
+          <h1 style="margin-bottom: 2rem; font-size: 2rem; font-weight: 700;">Dashboard</h1>
+          
+          <div class="dashboard-grid">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Total Items</div>
+              </div>
+              <div class="card-metric" id="totalItems">0</div>
+              <div class="card-subtitle">Across all departments</div>
+            </div>
             
-            if (state.stockMovements.length === 0) {
-                feedContainer.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No recent activity.</p>';
-                return;
-            }
-
-            state.stockMovements.slice(0, 5).forEach(m => {
-                const item = state.items[m.itemId];
-                if (!item) return;
-
-                let iconClass = 'fa-arrows-up-down';
-                let text = '';
-                if (m.type === 'in') {
-                    iconClass = 'fa-arrow-down';
-                    text = `${m.user} stocked in ${m.quantity} ${item.unit} of ${item.name}.`;
-                } else if (m.type === 'out') {
-                    iconClass = 'fa-arrow-up';
-                    const staffName = m.staffMember ? USERS[m.staffMember]?.displayName || m.staffMember : 'N/A';
-                    text = `${m.user} issued ${m.quantity} ${item.unit} of ${item.name} to ${staffName}.`;
-                } else {
-                    text = `${m.user} added new item: ${item.name}.`;
-                }
-
-                const timeAgo = getTimeAgo(m.timestamp);
-
-                const activityElement = document.createElement('div');
-                activityElement.className = 'activity-item';
-                activityElement.innerHTML = `
-                    <div class="activity-avatar"><i class="fas ${iconClass}"></i></div>
-                    <div class="activity-content">
-                        <div class="activity-text">${text}</div>
-                        <div class="activity-time">${timeAgo}</div>
-                    </div>
-                `;
-                feedContainer.appendChild(activityElement);
-            });
-        }
-        
-        function getTimeAgo(timestamp) {
-            const now = new Date();
-            const past = new Date(timestamp);
-            const seconds = Math.floor((now - past) / 1000);
-
-            let interval = seconds / 31536000;
-            if (interval > 1) return Math.floor(interval) + " years ago";
-            interval = seconds / 2592000;
-            if (interval > 1) return Math.floor(interval) + " months ago";
-            interval = seconds / 86400;
-            if (interval > 1) return Math.floor(interval) + " days ago";
-            interval = seconds / 3600;
-            if (interval > 1) return Math.floor(interval) + " hours ago";
-            interval = seconds / 60;
-            if (interval > 1) return Math.floor(interval) + " minutes ago";
-            return "Just now";
-        }
-
-        function switchView(viewToShow, content = '') {
-            document.querySelectorAll('.view-content').forEach(view => view.classList.add('hidden'));
-            const viewElement = document.getElementById(viewToShow);
-            if (viewToShow === 'actionContent') {
-                viewElement.innerHTML = content;
-            }
-            viewElement.classList.remove('hidden');
-            viewElement.style.animation = 'fadeIn 0.3s ease-in-out';
-        }
-
-        function showDashboard() {
-            switchView('dashboardContent');
-            deptItems.forEach(item => item.classList.remove('active'));
-            document.querySelector('.dept-item[data-dept="dashboard"]').classList.add('active');
-        }
-
-        // --- QUICK ACTION VIEW FUNCTIONS ---
-
-        function showAddItem() {
-            const categoryOptions = Object.values(state.categories).map(cat => {
-                const dept = state.departments[cat.departmentId];
-                return `<option value="${cat.id}">${dept.name} - ${cat.name}</option>`;
-            }).join('');
-
-            const content = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Add New Item</div>
-                        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
-                    </div>
-                    <form id="addItemForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="itemName">Item Name</label>
-                                <input type="text" id="itemName" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="itemCategory">Category</label>
-                                <select id="itemCategory" required>${categoryOptions}</select>
-                            </div>
-                            <div class="form-group">
-                                <label for="itemUnit">Unit (e.g., kg, pcs, ltr)</label>
-                                <input type="text" id="itemUnit" required>
-                            </div>
-                             <div class="form-group">
-                                <label for="itemCost">Cost Per Unit</label>
-                                <input type="number" id="itemCost" value="0" step="any" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="initialQuantity">Initial Quantity</label>
-                                <input type="number" id="initialQuantity" value="0" step="any" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="minStockLevel">Minimum Stock Level</label>
-                                <input type="number" id="minStockLevel" value="0" step="any" required>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Add Item</button>
-                        </div>
-                    </form>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Low Stock Alerts</div>
+              </div>
+              <div class="card-metric" id="lowStockCount" style="color: var(--accent);">0</div>
+              <div class="card-subtitle">Items need restocking</div>
+            </div>
+            
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Today's Movements</div>
+              </div>
+              <div class="card-metric" id="todayMovements">0</div>
+              <div class="card-subtitle">Stock in/out operations</div>
+            </div>
+            
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Active Users</div>
+              </div>
+              <div class="card-metric" id="activeUsers">15</div>
+              <div class="card-subtitle">Staff members registered</div>
+            </div>
+            
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Quick Actions</div>
+              </div>
+              <div class="actions-grid">
+                <div class="action-btn" onclick="showStockIn()">
+                  <div class="action-icon"><i class="fas fa-box-archive"></i></div>
+                  <div>Stock In</div>
                 </div>
-            `;
-            switchView('actionContent', content);
-            document.getElementById('addItemForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const itemData = {
-                    name: document.getElementById('itemName').value,
-                    categoryId: document.getElementById('itemCategory').value,
-                    unit: document.getElementById('itemUnit').value,
-                    cost: document.getElementById('itemCost').value,
-                    initialQuantity: document.getElementById('initialQuantity').value,
-                    minStockLevel: document.getElementById('minStockLevel').value,
-                };
-                addNewItem(itemData);
-                showDashboard();
-            });
-        }
-        
-        function showInventory() {
-            let tableRows = '';
-            if (Object.keys(state.items).length === 0) {
-                tableRows = '<tr><td colspan="4">No items in inventory. Add one!</td></tr>';
-            } else {
-                tableRows = Object.values(state.items).map(item => {
-                    const category = state.categories[item.categoryId];
-                    const stock = state.stockLevels[item.id];
-                    return `
-                        <tr>
-                            <td>${item.name}</td>
-                            <td>${category ? category.name : 'N/A'}</td>
-                            <td>${stock ? stock.quantity : 0} ${item.unit}</td>
-                            <td>${item.minStockLevel} ${item.unit}</td>
-                        </tr>
-                    `;
-                }).join('');
-            }
-
-            const content = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Current Inventory</div>
-                        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
-                    </div>
-                    <div class="data-table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Item Name</th>
-                                    <th>Category</th>
-                                    <th>Current Quantity</th>
-                                    <th>Min. Stock Level</th>
-                                </tr>
-                            </thead>
-                            <tbody>${tableRows}</tbody>
-                        </table>
-                    </div>
+                <div class="action-btn" onclick="showStockOut()">
+                  <div class="action-icon"><i class="fas fa-arrow-right-from-bracket"></i></div>
+                  <div>Stock Out</div>
                 </div>
-            `;
-            switchView('actionContent', content);
-        }
-        
-        function showStockIn() {
-            const itemOptions = Object.values(state.items).map(item => `<option value="${item.id}">${item.name}</option>`).join('');
-            const content = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Stock In</div>
-                        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
-                    </div>
-                    <form id="stockInForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="stockInItem">Item</label>
-                                <select id="stockInItem" required>${itemOptions}</select>
-                            </div>
-                            <div class="form-group">
-                                <label for="stockInQuantity">Quantity to Add</label>
-                                <input type="number" id="stockInQuantity" required min="0.01" step="any">
-                            </div>
-                             <div class="form-group">
-                                <label for="stockInReason">Reason</label>
-                                <input type="text" id="stockInReason" value="Supplier delivery" required>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Add Stock</button>
-                        </div>
-                    </form>
+                <div class="action-btn" onclick="showInventory()">
+                  <div class="action-icon"><i class="fas fa-clipboard-list"></i></div>
+                  <div>Inventory</div>
                 </div>
-            `;
-            switchView('actionContent', content);
-            document.getElementById('stockInForm').addEventListener('submit', e => {
-                e.preventDefault();
-                const itemId = document.getElementById('stockInItem').value;
-                const quantity = parseFloat(document.getElementById('stockInQuantity').value);
-                const reason = document.getElementById('stockInReason').value;
-                if (itemId && quantity > 0) {
-                    adjustStock(itemId, quantity, reason);
-                    showDashboard();
-                }
-            });
-        }
-
-        function showStockOut() {
-            const itemOptions = Object.values(state.items).map(item => `<option value="${item.id}">${item.name} (Avail: ${state.stockLevels[item.id]?.quantity || 0})</option>`).join('');
-            const staffOptions = Object.entries(USERS).map(([key, user]) => `<option value="${key}">${user.displayName}</option>`).join('');
-            const content = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Stock Out</div>
-                        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
-                    </div>
-                    <form id="stockOutForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="stockOutItem">Item</label>
-                                <select id="stockOutItem" required>${itemOptions}</select>
-                            </div>
-                            <div class="form-group">
-                                <label for="stockOutQuantity">Quantity to Remove</label>
-                                <input type="number" id="stockOutQuantity" required min="0.01" step="any">
-                            </div>
-                            <div class="form-group">
-                                <label for="stockOutStaff">Issued To</label>
-                                <select id="stockOutStaff" required>${staffOptions}</select>
-                            </div>
-                             <div class="form-group">
-                                <label for="stockOutReason">Reason</label>
-                                <input type="text" id="stockOutReason" value="Department usage" required>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Remove Stock</button>
-                        </div>
-                    </form>
+                <div class="action-btn" onclick="showReports()">
+                  <div class="action-icon"><i class="fas fa-chart-line"></i></div>
+                  <div>Reports</div>
                 </div>
-            `;
-            switchView('actionContent', content);
-            document.getElementById('stockOutForm').addEventListener('submit', e => {
-                e.preventDefault();
-                const itemId = document.getElementById('stockOutItem').value;
-                const quantity = parseFloat(document.getElementById('stockOutQuantity').value);
-                const reason = document.getElementById('stockOutReason').value;
-                const staffMember = document.getElementById('stockOutStaff').value;
-                if (itemId && quantity > 0) {
-                    if (adjustStock(itemId, -quantity, reason, staffMember)) {
-                        const item = state.items[itemId];
-                        const staffUser = USERS[staffMember];
-                        const message = `✅ *STOCK ISSUED*\n\nItem: *${item.name}*\nQuantity: *${quantity} ${item.unit}*\nIssued to: *${staffUser.displayName}*\nReason: *${reason}*`;
-                        sendTelegramMessage(message);
-                        showDashboard();
-                    }
-                }
-            });
-        }
-        
-        function showReports() {
-            const content = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Reports & Analytics</div>
-                        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
-                    </div>
-                    <div class="charts-grid">
-                        <div class="card">
-                            <div class="card-header"><div class="card-title">Overall Stock Status</div></div>
-                            <div class="chart-container"><canvas id="stockStatusChart"></canvas></div>
-                        </div>
-                        <div class="card">
-                            <div class="card-header"><div class="card-title">Stock Value by Department</div></div>
-                            <div class="chart-container"><canvas id="departmentValueChart"></canvas></div>
-                        </div>
-                        <div class="card">
-                             <div class="card-header"><div class="card-title">Last 7 Days Movements</div></div>
-                            <div class="chart-container"><canvas id="movementsChart"></canvas></div>
-                        </div>
-                    </div>
+                <div class="action-btn" onclick="showAddItem()">
+                  <div class="action-icon"><i class="fas fa-plus"></i></div>
+                  <div>Add Item</div>
                 </div>
-            `;
-            switchView('actionContent', content);
-            renderReports();
-        }
-
-        function showSettings() {
-             const content = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Settings</div>
-                        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
-                    </div>
-                    <div class="actions-grid">
-                         <div class="action-btn" onclick="testTelegram()">
-                            <div class="action-icon"><i class="fab fa-telegram"></i></div>
-                            <div>Test Telegram</div>
-                        </div>
-                    </div>
+                <div class="action-btn" onclick="showSettings()">
+                  <div class="action-icon"><i class="fas fa-gear"></i></div>
+                  <div>Settings</div>
                 </div>
-            `;
-            switchView('actionContent', content);
+              </div>
+            </div>
+            
+            <div class="activity-list">
+              <div class="card-header">
+                <div class="card-title">Recent Activity</div>
+              </div>
+              <div id="recentActivity">
+                <!-- Activity items will be dynamically inserted here -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Generic Action View -->
+        <div id="actionContent" class="view-content hidden">
+          <!-- Content will be injected by JS -->
+        </div>
+        
+        <!-- User Management View -->
+        <div id="userManagementContent" class="view-content hidden">
+          <!-- Content will be injected by JS -->
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ========================
+  // SUPABASE CONFIGURATION
+  // ========================
+  const SUPABASE_URL = 'https://your-project.supabase.co';
+  const SUPABASE_KEY = 'your-anon-key';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  
+  // ========================
+  // STATE MANAGEMENT
+  // ========================
+  let currentUser = null;
+  let currentPin = '';
+  let offlineQueue = [];
+  const pinDigits = document.querySelectorAll('.pin-digit');
+  
+  // State with offline persistence
+  let state = {
+    departments: {},
+    categories: {},
+    items: {},
+    stockLevels: {},
+    stockMovements: [],
+    users: {}
+  };
+  
+  // User roles and initial users
+  const USER_ROLES = {
+    ADMIN: 'admin',
+    PROCESSOR: 'processor',
+    VIEWER: 'viewer'
+  };
+  
+  // Initial users data
+  const initialUsers = {
+    'Kelvin': {password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all'},
+    'Franklin': {password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all'},
+    'Chisomo': {password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin'},
+    'Victor': {password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin'},
+    'Boston': {password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', secondaryDepartment: 'restaurant'},
+    'Magah': {password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', secondaryDepartment: 'restaurant'},
+    'Phillip': {password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', secondaryDepartment: 'restaurant', isSupervisor: true},
+    'Gift': {password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant'},
+    'Rhodney': {password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true},
+    'Mike': {password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant'},
+    'Matias': {password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel'},
+    'Kennedy': {password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel'},
+    'Mphatso': {password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', secondaryDepartment: 'hotel'},
+    'Gaven': {password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', secondaryDepartment: 'cultivation'},
+    'Maya': {password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', secondaryDepartment: 'cultivation'}
+  };
+  
+  // Department configuration
+  const DEPARTMENT_CONFIG = {
+    hotel: {name: 'Hotel Operations', color: 'var(--hotel-color)', categories: ['Linens', 'Toiletries', 'Cleaning Supplies', 'Room Amenities', 'Maintenance']},
+    bar: {name: 'Bar', color: 'var(--bar-color)', categories: ['Spirits', 'Wines', 'Beers', 'Mixers', 'Garnishes', 'Glassware']},
+    restaurant: {name: 'Restaurant', color: 'var(--restaurant-color)', categories: ['Beverages', 'Tableware', 'Linens', 'Service Equipment']},
+    kitchen: {name: 'Kitchen', color: 'var(--kitchen-color)', categories: ['Fresh Produce', 'Meat & Seafood', 'Dairy', 'Dry Goods', 'Spices']},
+    admin: {name: 'Administration', color: 'var(--admin-color)', categories: ['Office Supplies', 'IT Equipment', 'Documents']},
+    grounds: {name: 'Grounds', color: 'var(--grounds-color)', categories: ['Tools', 'Fertilizer', 'Pesticides']},
+    cultivation: {name: 'Cultivation', color: 'var(--cultivation-color)', categories: ['Seeds', 'Soil', 'Nutrients']}
+  };
+  
+  // ========================
+  // INDEXEDDB PERSISTENCE
+  // ========================
+  // Initialize IndexedDB
+  function initIndexedDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('VanguardStockDB', 1);
+      
+      request.onerror = (event) => {
+        console.error('Database error:', event.target.error);
+        reject(event.target.error);
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        
+        // Create object stores
+        if (!db.objectStoreNames.contains('state')) {
+          db.createObjectStore('state');
         }
         
-        function testTelegram() {
-            const message = `✅ *Vanguard Stock Management*\n\nThis is a test message from the application. Telegram integration is working correctly.`;
-            sendTelegramMessage(message);
-            alert('Test message sent to Telegram!');
+        if (!db.objectStoreNames.contains('offlineQueue')) {
+          db.createObjectStore('offlineQueue', { autoIncrement: true });
         }
-
-        // --- REPORTING FUNCTIONS ---
-        function renderReports() {
-            renderStockStatusChart();
-            renderDepartmentValueChart();
-            renderMovementsChart();
+      };
+      
+      request.onsuccess = (event) => {
+        resolve(event.target.result);
+      };
+    });
+  }
+  
+  // Save state to IndexedDB
+  async function saveStateToDB() {
+    const db = await initIndexedDB();
+    const transaction = db.transaction(['state'], 'readwrite');
+    const store = transaction.objectStore('state');
+    store.put(state, 'appState');
+    
+    return new Promise((resolve) => {
+      transaction.oncomplete = () => resolve();
+    });
+  }
+  
+  // Load state from IndexedDB
+  async function loadStateFromDB() {
+    const db = await initIndexedDB();
+    const transaction = db.transaction(['state'], 'readonly');
+    const store = transaction.objectStore('state');
+    const request = store.get('appState');
+    
+    return new Promise((resolve) => {
+      request.onsuccess = (event) => {
+        if (event.target.result) {
+          state = event.target.result;
+        } else {
+          // Initialize with default data if no state exists
+          state.users = {...initialUsers};
+          initializeDefaultData();
         }
-
-        function renderStockStatusChart() {
-            const ctx = document.getElementById('stockStatusChart').getContext('2d');
-            let inStock = 0, lowStock = 0, outOfStock = 0;
-
-            Object.values(state.items).forEach(item => {
-                const stock = state.stockLevels[item.id];
-                if (!stock || stock.quantity <= 0) {
-                    outOfStock++;
-                } else if (stock.quantity <= item.minStockLevel) {
-                    lowStock++;
-                } else {
-                    inStock++;
-                }
+        resolve();
+      };
+    });
+  }
+  
+  // Add to offline queue
+  async function addToOfflineQueue(operation) {
+    const db = await initIndexedDB();
+    const transaction = db.transaction(['offlineQueue'], 'readwrite');
+    const store = transaction.objectStore('offlineQueue');
+    store.add(operation);
+    
+    offlineQueue.push(operation);
+    
+    // Update sync status
+    updateSyncStatus();
+  }
+  
+  // Load offline queue from DB
+  async function loadOfflineQueue() {
+    const db = await initIndexedDB();
+    const transaction = db.transaction(['offlineQueue'], 'readonly');
+    const store = transaction.objectStore('offlineQueue');
+    const request = store.getAll();
+    
+    return new Promise((resolve) => {
+      request.onsuccess = (event) => {
+        offlineQueue = event.target.result || [];
+        resolve();
+      };
+    });
+  }
+  
+  // Clear offline queue after sync
+  async function clearOfflineQueue() {
+    const db = await initIndexedDB();
+    const transaction = db.transaction(['offlineQueue'], 'readwrite');
+    const store = transaction.objectStore('offlineQueue');
+    store.clear();
+    
+    offlineQueue = [];
+    updateSyncStatus();
+  }
+  
+  // ========================
+  // SUPABASE SYNC FUNCTIONS
+  // ========================
+  // Sync data with Supabase
+  async function syncData() {
+    const syncIndicator = document.getElementById('syncIndicator');
+    syncIndicator.classList.add('syncing');
+    document.getElementById('syncStatus').textContent = 'Syncing...';
+    
+    try {
+      // Push offline changes to Supabase
+      await processOfflineQueue();
+      
+      // Pull latest data from Supabase
+      await pullFromSupabase();
+      
+      // Save updated state to DB
+      await saveStateToDB();
+      
+      // Update UI
+      updateDashboardMetrics();
+      renderActivityFeed();
+      
+      // Show success message
+      showMessage('Data synchronized successfully!', 'success');
+    } catch (error) {
+      console.error('Sync failed:', error);
+      showMessage(`Sync failed: ${error.message}`, 'error');
+    } finally {
+      syncIndicator.classList.remove('syncing');
+      updateSyncStatus();
+    }
+  }
+  
+  // Process offline queue operations
+  async function processOfflineQueue() {
+    if (offlineQueue.length === 0) return;
+    
+    // Process each operation in order
+    for (const operation of offlineQueue) {
+      try {
+        switch (operation.type) {
+          case 'ADD_ITEM':
+            await supabase.from('items').insert(operation.data);
+            await supabase.from('stock_levels').insert({
+              itemId: operation.data.id,
+              quantity: operation.initialQuantity
             });
-
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['In Stock', 'Low Stock', 'Out of Stock'],
-                    datasets: [{
-                        data: [inStock, lowStock, outOfStock],
-                        backgroundColor: ['var(--success)', 'var(--warning)', 'var(--accent)'],
-                        borderColor: 'var(--surface)',
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } }
-            });
+            break;
+          case 'UPDATE_ITEM':
+            await supabase.from('items').update(operation.data).eq('id', operation.id);
+            break;
+          case 'DELETE_ITEM':
+            await supabase.from('items').delete().eq('id', operation.id);
+            await supabase.from('stock_levels').delete().eq('itemId', operation.id);
+            break;
+          case 'ADD_USER':
+            await supabase.from('users').insert(operation.data);
+            break;
+          case 'UPDATE_USER':
+            await supabase.from('users').update(operation.data).eq('username', operation.id);
+            break;
+          case 'DELETE_USER':
+            await supabase.from('users').delete().eq('username', operation.id);
+            break;
+          case 'STOCK_MOVEMENT':
+            await supabase.from('stock_movements').insert(operation.data);
+            // Update stock level
+            const { data: stockData, error: stockError } = await supabase
+              .from('stock_levels')
+              .select('quantity')
+              .eq('itemId', operation.data.itemId)
+              .single();
+            
+            if (stockData) {
+              const newQuantity = stockData.quantity + 
+                (operation.data.type === 'in' ? operation.data.quantity : -operation.data.quantity);
+              
+              await supabase
+                .from('stock_levels')
+                .update({ quantity: newQuantity })
+                .eq('itemId', operation.data.itemId);
+            }
+            break;
         }
-
-        function renderDepartmentValueChart() {
-            const ctx = document.getElementById('departmentValueChart').getContext('2d');
-            const departmentValues = {};
-
-            Object.values(state.items).forEach(item => {
-                const category = state.categories[item.categoryId];
-                if (!category) return;
-                const department = state.departments[category.departmentId];
-                if (!department) return;
-                
-                const stock = state.stockLevels[item.id];
-                const value = (stock ? stock.quantity : 0) * item.cost;
-
-                if (!departmentValues[department.name]) {
-                    departmentValues[department.name] = 0;
-                }
-                departmentValues[department.name] += value;
-            });
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(departmentValues),
-                    datasets: [{
-                        label: 'Stock Value (MWK)',
-                        data: Object.values(departmentValues),
-                        backgroundColor: Object.keys(departmentValues).map(deptName => {
-                            const deptKey = Object.keys(DEPARTMENT_CONFIG).find(key => DEPARTMENT_CONFIG[key].name === deptName);
-                            return DEPARTMENT_CONFIG[deptKey]?.color || 'var(--gray)';
-                        })
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: 'var(--text-secondary)' } }, x: { ticks: { color: 'var(--text-secondary)' } } } }
-            });
-        }
+      } catch (error) {
+        console.error('Error processing operation:', operation, error);
+        throw new Error('Failed to process offline changes');
+      }
+    }
+    
+    // Clear offline queue
+    await clearOfflineQueue();
+  }
+  
+  // Pull data from Supabase
+  async function pullFromSupabase() {
+    try {
+      // Fetch items
+      const { data: items, error: itemsError } = await supabase.from('items').select('*');
+      if (itemsError) throw itemsError;
+      
+      // Fetch stock levels
+      const { data: stockLevels, error: stockError } = await supabase.from('stock_levels').select('*');
+      if (stockError) throw stockError;
+      
+      // Fetch stock movements
+      const { data: movements, error: movError } = await supabase
+        .from('stock_movements')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(50);
+      if (movError) throw movError;
+      
+      // Fetch users
+      const { data: users, error: usersError } = await supabase.from('users').select('*');
+      if (usersError) throw usersError;
+      
+      // Update state
+      state.items = {};
+      items.forEach(item => {
+        state.items[item.id] = item;
+      });
+      
+      state.stockLevels = {};
+      stockLevels.forEach(level => {
+        state.stockLevels[level.itemId] = level;
+      });
+      
+      state.stockMovements = movements;
+      
+      state.users = {};
+      users.forEach(user => {
+        state.users[user.username] = user;
+      });
+      
+    } catch (error) {
+      console.error('Error fetching data from Supabase:', error);
+      throw new Error('Failed to fetch latest data');
+    }
+  }
+  
+  // Update sync status indicator
+  function updateSyncStatus() {
+    const syncIndicator = document.getElementById('syncIndicator');
+    const syncStatus = document.getElementById('syncStatus');
+    
+    if (!navigator.onLine) {
+      syncIndicator.className = 'sync-indicator offline';
+      syncStatus.textContent = 'Offline';
+      return;
+    }
+    
+    if (offlineQueue.length > 0) {
+      syncIndicator.className = 'sync-indicator';
+      syncStatus.textContent = `${offlineQueue.length} pending changes`;
+    } else {
+      syncIndicator.className = 'sync-indicator';
+      syncStatus.textContent = 'Online';
+    }
+  }
+  
+  // ========================
+  // CORE APPLICATION LOGIC
+  // ========================
+  // Initialize default data structure
+  function initializeDefaultData() {
+    Object.keys(DEPARTMENT_CONFIG).forEach(deptKey => {
+      const deptId = `dept_${deptKey}`;
+      state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[deptKey].name };
+      
+      DEPARTMENT_CONFIG[deptKey].categories.forEach(catName => {
+        const catId = `cat_${deptKey}_${catName.toLowerCase().replace(/\s/g, '')}`;
+        state.categories[catId] = { id: catId, departmentId: deptId, name: catName };
+      });
+    });
+  }
+  
+  // Generate unique IDs
+  function generateId() {
+    return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  // Add new item
+  function addNewItem(itemData) {
+    const itemId = generateId();
+    
+    state.items[itemId] = {
+      id: itemId,
+      name: itemData.name,
+      categoryId: itemData.categoryId,
+      unit: itemData.unit,
+      cost: parseFloat(itemData.cost) || 0,
+      minStockLevel: parseFloat(itemData.minStockLevel) || 0,
+      createdAt: new Date().toISOString()
+    };
+    
+    state.stockLevels[itemId] = {
+      itemId: itemId,
+      quantity: parseFloat(itemData.initialQuantity) || 0
+    };
+    
+    logMovement(itemId, 'in', parseFloat(itemData.initialQuantity), 'Initial stock');
+    
+    // Add to offline queue
+    addToOfflineQueue({
+      type: 'ADD_ITEM',
+      data: state.items[itemId],
+      initialQuantity: parseFloat(itemData.initialQuantity) || 0
+    });
+    
+    saveStateToDB();
+    updateDashboardMetrics();
+    renderActivityFeed();
+    
+    return itemId;
+  }
+  
+  // Update existing item
+  function updateItem(itemId, itemData) {
+    if (!state.items[itemId]) return false;
+    
+    state.items[itemId] = {
+      ...state.items[itemId],
+      name: itemData.name || state.items[itemId].name,
+      categoryId: itemData.categoryId || state.items[itemId].categoryId,
+      unit: itemData.unit || state.items[itemId].unit,
+      cost: parseFloat(itemData.cost) || state.items[itemId].cost,
+      minStockLevel: parseFloat(itemData.minStockLevel) || state.items[itemId].minStockLevel
+    };
+    
+    // Add to offline queue
+    addToOfflineQueue({
+      type: 'UPDATE_ITEM',
+      id: itemId,
+      data: state.items[itemId]
+    });
+    
+    saveStateToDB();
+    return true;
+  }
+  
+  // Delete item
+  function deleteItem(itemId) {
+    if (!state.items[itemId]) return false;
+    
+    delete state.items[itemId];
+    delete state.stockLevels[itemId];
+    
+    // Remove related movements
+    state.stockMovements = state.stockMovements.filter(m => m.itemId !== itemId);
+    
+    // Add to offline queue
+    addToOfflineQueue({
+      type: 'DELETE_ITEM',
+      id: itemId
+    });
+    
+    saveStateToDB();
+    updateDashboardMetrics();
+    renderActivityFeed();
+    return true;
+  }
+  
+  // Adjust stock
+  function adjustStock(itemId, quantity, reason, staffMember = null) {
+    const currentStock = state.stockLevels[itemId];
+    const item = state.items[itemId];
+    
+    if (!currentStock || !item) return false;
+    
+    if (currentStock.quantity + quantity < 0) {
+      showMessage('Error: Cannot have negative stock.', 'error');
+      return false;
+    }
+    
+    const oldQuantity = currentStock.quantity;
+    currentStock.quantity += quantity;
+    
+    const movementType = quantity > 0 ? 'in' : 'out';
+    logMovement(itemId, movementType, Math.abs(quantity), reason, staffMember);
+    
+    // Add to offline queue
+    addToOfflineQueue({
+      type: 'STOCK_MOVEMENT',
+      data: {
+        itemId: itemId,
+        type: movementType,
+        quantity: Math.abs(quantity),
+        reason: reason,
+        user: currentUser ? currentUser.displayName : 'System',
+        staffMember: staffMember,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    saveStateToDB();
+    updateDashboardMetrics();
+    renderActivityFeed();
+    
+    return true;
+  }
+  
+  // Log stock movement
+  function logMovement(itemId, type, quantity, reason, staffMember = null) {
+    state.stockMovements.unshift({
+      id: generateId(),
+      itemId: itemId,
+      type: type,
+      quantity: quantity,
+      reason: reason,
+      user: currentUser ? currentUser.displayName : 'System',
+      staffMember: staffMember,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (state.stockMovements.length > 50) {
+      state.stockMovements.pop();
+    }
+  }
+  
+  // Add new user (only Franklin can do this)
+  function addUser(userData) {
+    const username = userData.username;
+    
+    if (state.users[username]) {
+      showMessage('User already exists!', 'error');
+      return false;
+    }
+    
+    state.users[username] = {
+      username: username,
+      password: userData.password,
+      role: userData.role,
+      displayName: userData.displayName,
+      department: userData.department,
+      secondaryDepartment: userData.secondaryDepartment || null,
+      isSupervisor: userData.isSupervisor || false
+    };
+    
+    // Add to offline queue
+    addToOfflineQueue({
+      type: 'ADD_USER',
+      data: state.users[username]
+    });
+    
+    saveStateToDB();
+    return true;
+  }
+  
+  // Update user
+  function updateUser(username, userData) {
+    if (!state.users[username]) return false;
+    
+    state.users[username] = {
+      ...state.users[username],
+      password: userData.password || state.users[username].password,
+      role: userData.role || state.users[username].role,
+      displayName: userData.displayName || state.users[username].displayName,
+      department: userData.department || state.users[username].department,
+      secondaryDepartment: userData.secondaryDepartment || state.users[username].secondaryDepartment,
+      isSupervisor: userData.isSupervisor || state.users[username].isSupervisor
+    };
+    
+    // Add to offline queue
+    addToOfflineQueue({
+      type: 'UPDATE_USER',
+      id: username,
+      data: state.users[username]
+    });
+    
+    saveStateToDB();
+    return true;
+  }
+  
+  // Delete user
+  function deleteUser(username) {
+    if (!state.users[username]) return false;
+    
+    if (username === currentUser.username) {
+      showMessage('You cannot delete your own account!', 'error');
+      return false;
+    }
+    
+    delete state.users[username];
+    
+    // Add to offline queue
+    addToOfflineQueue({
+      type: 'DELETE_USER',
+      id: username
+    });
+    
+    saveStateToDB();
+    return true;
+  }
+  
+  // ========================
+  // UI RENDERING FUNCTIONS
+  // ========================
+  // Update dashboard metrics
+  function updateDashboardMetrics() {
+    const totalItems = Object.keys(state.items).length;
+    const lowStockCount = Object.values(state.items).filter(item => {
+      const stock = state.stockLevels[item.id];
+      return stock && stock.quantity <= item.minStockLevel;
+    }).length;
+    
+    const todayMovements = state.stockMovements.filter(m => {
+      const movDate = new Date(m.timestamp);
+      const today = new Date();
+      return movDate.toDateString() === today.toDateString();
+    }).length;
+    
+    document.getElementById('totalItems').textContent = totalItems;
+    document.getElementById('lowStockCount').textContent = lowStockCount;
+    document.getElementById('todayMovements').textContent = todayMovements;
+  }
+  
+  // Render activity feed
+  function renderActivityFeed() {
+    const feedContainer = document.getElementById('recentActivity');
+    feedContainer.innerHTML = "";
+    
+    if (state.stockMovements.length === 0) {
+      feedContainer.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No recent activity.</p>';
+      return;
+    }
+    
+    state.stockMovements.slice(0, 5).forEach(m => {
+      const item = state.items[m.itemId];
+      if (!item) return;
+      
+      let iconClass = 'fa-arrows-up-down';
+      let text = "";
+      
+      if (m.type === 'in') {
+        iconClass = 'fa-arrow-down';
+        text = `${m.user} stocked in ${m.quantity} ${item.unit} of ${item.name}.`;
+      } else if (m.type === 'out') {
+        iconClass = 'fa-arrow-up';
+        const staffName = m.staffMember ? state.users[m.staffMember]?.displayName || m.staffMember : 'N/A';
+        text = `${m.user} issued ${m.quantity} ${item.unit} of ${item.name} to ${staffName}.`;
+      } else {
+        text = `${m.user} added new item: ${item.name}.`;
+      }
+      
+      const timeAgo = getTimeAgo(m.timestamp);
+      
+      const activityElement = document.createElement('div');
+      activityElement.className = 'activity-item';
+      activityElement.innerHTML = `
+        <div class="activity-avatar"><i class="fas ${iconClass}"></i></div>
+        <div class="activity-content">
+          <div class="activity-text">${text}</div>
+          <div class="activity-time">${timeAgo}</div>
+        </div>
+      `;
+      
+      feedContainer.appendChild(activityElement);
+    });
+  }
+  
+  // Get time ago string
+  function getTimeAgo(timestamp) {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const seconds = Math.floor((now - past) / 1000);
+    
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return "Just now";
+  }
+  
+  // Switch views
+  function switchView(viewToShow, content = "") {
+    document.querySelectorAll('.view-content').forEach(view => view.classList.add('hidden'));
+    const viewElement = document.getElementById(viewToShow);
+    
+    if (viewToShow === 'actionContent' || viewToShow === 'userManagementContent') {
+      viewElement.innerHTML = content;
+    }
+    
+    viewElement.classList.remove("hidden");
+    viewElement.style.animation = 'fadeIn 0.3s ease-in-out';
+  }
+  
+  // Show dashboard
+  function showDashboard() {
+    switchView('dashboardContent');
+    document.querySelectorAll('.dept-item').forEach(item => item.classList.remove('active'));
+    document.querySelector('.dept-item[data-dept="dashboard"]').classList.add('active');
+  }
+  
+  // Show add item form
+  function showAddItem() {
+    const categoryOptions = Object.values(state.categories).map(cat => {
+      const dept = state.departments[cat.departmentId];
+      return `<option value="${cat.id}">${dept.name} - ${cat.name}</option>`;
+    }).join('');
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Add New Item</div>
+          <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <form id="addItemForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="itemName">Item Name</label>
+              <input type="text" id="itemName" required>
+            </div>
+            <div class="form-group">
+              <label for="itemCategory">Category</label>
+              <select id="itemCategory" required>${categoryOptions}</select>
+            </div>
+            <div class="form-group">
+              <label for="itemUnit">Unit (e.g., kg, pcs, ltr)</label>
+              <input type="text" id="itemUnit" required>
+            </div>
+            <div class="form-group">
+              <label for="itemCost">Cost Per Unit</label>
+              <input type="number" id="itemCost" value="0" step="any" required>
+            </div>
+            <div class="form-group">
+              <label for="initialQuantity">Initial Quantity</label>
+              <input type="number" id="initialQuantity" value="0" step="any" required>
+            </div>
+            <div class="form-group">
+              <label for="minStockLevel">Minimum Stock Level</label>
+              <input type="number" id="minStockLevel" value="0" step="any" required>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Item</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+    
+    document.getElementById('addItemForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const itemData = {
+        name: document.getElementById('itemName').value,
+        categoryId: document.getElementById('itemCategory').value,
+        unit: document.getElementById('itemUnit').value,
+        cost: document.getElementById('itemCost').value,
+        initialQuantity: document.getElementById('initialQuantity').value,
+        minStockLevel: document.getElementById('minStockLevel').value
+      };
+      
+      addNewItem(itemData);
+      showDashboard();
+    });
+  }
+  
+  // Show inventory with edit/delete options
+  function showInventory() {
+    const isAdmin = currentUser && 
+      (currentUser.displayName === 'Franklin' || currentUser.displayName === 'Kelvin');
+    
+    let tableRows = "";
+    
+    if (Object.keys(state.items).length === 0) {
+      tableRows = '<tr><td colspan="6">No items in inventory. Add one!</td></tr>';
+    } else {
+      Object.values(state.items).forEach(item => {
+        const category = state.categories[item.categoryId];
+        const stock = state.stockLevels[item.id];
+        const dept = state.departments[category?.departmentId];
         
-        function renderMovementsChart() {
-            const ctx = document.getElementById('movementsChart').getContext('2d');
-            const labels = [];
-            const dataIn = [];
-            const dataOut = [];
-
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
-
-                const dateString = date.toDateString();
-                const movementsToday = state.stockMovements.filter(m => new Date(m.timestamp).toDateString() === dateString);
-                
-                dataIn.push(movementsToday.filter(m => m.type === 'in').length);
-                dataOut.push(movementsToday.filter(m => m.type === 'out').length);
-            }
-
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Stock In', data: dataIn, borderColor: 'var(--success)', tension: 0.1 },
-                        { label: 'Stock Out', data: dataOut, borderColor: 'var(--accent)', tension: 0.1 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'var(--text-primary)' } } }, scales: { y: { ticks: { color: 'var(--text-secondary)', beginAtZero: true } }, x: { ticks: { color: 'var(--text-secondary)' } } } }
-            });
-        }
-
-
-        // --- AUTHENTICATION & INITIALIZATION ---
-
-        function clearPin() {
-            currentPin = '';
-            pinDigits.forEach(digit => { digit.value = ''; digit.classList.remove('filled'); });
-            pinDigits[0].focus();
-            hideMessage();
-        }
-
-        function handleKeyPress(key) {
-            hideMessage();
-            if (currentPin.length >= pinDigits.length) return;
-            const currentDigit = pinDigits[currentPin.length];
-            currentDigit.value = key;
-            currentDigit.classList.add('filled');
-            currentPin += key;
-            if (currentPin.length < pinDigits.length) {
-                pinDigits[currentPin.length].focus();
-            } else {
-                attemptLogin();
-            }
-        }
-
-        function attemptLogin() {
-            let foundUser = null;
-            for (const username in USERS) {
-                if (USERS[username].password === currentPin) {
-                    foundUser = USERS[username];
-                    break;
-                }
-            }
-            if (foundUser && foundUser.role === USER_ROLES.ADMIN) {
-                login(foundUser);
-            } else {
-                showMessage('Invalid PIN or insufficient permissions.', 'error');
-                document.querySelector('.login-card').style.animation = 'shake 0.5s';
-                setTimeout(() => {
-                    document.querySelector('.login-card').style.animation = '';
-                    clearPin();
-                }, 500);
-            }
-        }
-        
-        function login(user) {
-            currentUser = user;
-            showMessage(`Welcome, ${user.displayName}!`, 'success');
-            document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
-            setTimeout(() => {
-                loginScreen.classList.add('hidden');
-                mainApp.classList.remove('hidden');
-                mainApp.style.animation = 'fadeIn 0.5s ease';
-                saveAndRefresh();
-            }, 500);
-        }
-
-        function logout() {
-            currentUser = null;
-            clearPin();
-            mainApp.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
-            loginScreen.style.animation = 'fadeIn 0.5s ease';
-        }
-
-        function showMessage(text, type) {
-            loginMessage.textContent = text;
-            loginMessage.className = `message ${type} show`;
-        }
-
-        function hideMessage() {
-            loginMessage.className = 'message';
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadStateFromLocalStorage();
-            pinDigits[0].focus();
-            keypadButtons.forEach(button => button.addEventListener('click', () => handleKeyPress(button.dataset.key)));
-            deptItems.forEach(item => {
-                if (item.dataset.dept !== 'dashboard') {
-                    item.addEventListener('click', (e) => {
-                        deptItems.forEach(i => i.classList.remove('active'));
-                        e.currentTarget.classList.add('active');
-                        showInventory();
-                    });
-                }
-            });
-            const style = document.createElement('style');
-            style.innerHTML = `@keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }`;
-            document.head.appendChild(style);
+        tableRows += `
+          <tr>
+            <td>${item.name}</td>
+            <td>${category ? category.name : 'N/A'}</td>
+            <td>${dept ? dept.name : 'N/A'}</td>
+            <td>${stock ? stock.quantity : 0} ${item.unit}</td>
+            <td>${item.minStockLevel} ${item.unit}</td>
+            ${isAdmin ? `
+              <td style="white-space: nowrap;">
+                <button class="btn-icon" onclick="editItemForm('${item.id}')" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon" onclick="deleteItemPrompt('${item.id}')" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            ` : '<td></td>'}
+          </tr>
+        `;
+      });
+    }
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Current Inventory</div>
+          <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Item Name</th>
+                <th>Category</th>
+                <th>Department</th>
+                <th>Current Quantity</th>
+                <th>Min. Stock Level</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+  }
+  
+  // Show edit item form
+  function editItemForm(itemId) {
+    const item = state.items[itemId];
+    if (!item) return;
+    
+    const categoryOptions = Object.values(state.categories).map(cat => {
+      const dept = state.departments[cat.departmentId];
+      const selected = cat.id === item.categoryId ? 'selected' : '';
+      return `<option value="${cat.id}" ${selected}>${dept.name} - ${cat.name}</option>`;
+    }).join('');
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Edit Item: ${item.name}</div>
+          <button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <form id="editItemForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="editItemName">Item Name</label>
+              <input type="text" id="editItemName" value="${item.name}" required>
+            </div>
+            <div class="form-group">
+              <label for="editItemCategory">Category</label>
+              <select id="editItemCategory" required>${categoryOptions}</select>
+            </div>
+            <div class="form-group">
+              <label for="editItemUnit">Unit</label>
+              <input type="text" id="editItemUnit" value="${item.unit}" required>
+            </div>
+            <div class="form-group">
+              <label for="editItemCost">Cost Per Unit</label>
+              <input type="number" id="editItemCost" value="${item.cost}" step="any" required>
+            </div>
+            <div class="form-group">
+              <label for="editMinStockLevel">Minimum Stock Level</label>
+              <input type="number" id="editMinStockLevel" value="${item.minStockLevel}" step="any" required>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="showInventory()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update Item</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+    
+    document.getElementById('editItemForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const itemData = {
+        name: document.getElementById('editItemName').value,
+        categoryId: document.getElementById('editItemCategory').value,
+        unit: document.getElementById('editItemUnit').value,
+        cost: document.getElementById('editItemCost').value,
+        minStockLevel: document.getElementById('editMinStockLevel').value
+      };
+      
+      if (updateItem(itemId, itemData)) {
+        showInventory();
+      }
+    });
+  }
+  
+  // Prompt for item deletion
+  function deleteItemPrompt(itemId) {
+    const item = state.items[itemId];
+    if (!item) return;
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Delete Item: ${item.name}</div>
+          <button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <div style="padding: 1.5rem;">
+          <p>Are you sure you want to delete this item? This action cannot be undone.</p>
+          <p><strong>Item:</strong> ${item.name}</p>
+          <p><strong>Category:</strong> ${state.categories[item.categoryId]?.name || 'N/A'}</p>
+          <p><strong>Current Stock:</strong> ${state.stockLevels[itemId]?.quantity || 0} ${item.unit}</p>
+          
+          <div class="form-actions" style="margin-top: 1.5rem;">
+            <button class="btn btn-secondary" onclick="showInventory()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDeleteItem('${itemId}')">Delete Item</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+  }
+  
+  // Confirm item deletion
+  function confirmDeleteItem(itemId) {
+    if (deleteItem(itemId)) {
+      showDashboard();
+    }
+  }
+  
+  // Show user management (only for Franklin)
+  function showUserManagement() {
+    if (currentUser?.displayName !== 'Franklin') return;
+    
+    let tableRows = "";
+    Object.values(state.users).forEach(user => {
+      tableRows += `
+        <tr>
+          <td>${user.username}</td>
+          <td>${user.displayName}</td>
+          <td>${user.role}</td>
+          <td>${user.department}</td>
+          <td style="white-space: nowrap;">
+            <button class="btn-icon" onclick="editUserForm('${user.username}')" title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon" onclick="deleteUserPrompt('${user.username}')" title="Delete">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">User Management</div>
+          <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <div class="form-actions" style="margin-bottom: 1rem; justify-content: flex-end;">
+          <button class="btn btn-primary" onclick="showAddUserForm()">
+            <i class="fas fa-plus"></i> Add New User
+          </button>
+        </div>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Display Name</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    
+    switchView('userManagementContent', content);
+  }
+  
+  // Show add user form
+  function showAddUserForm() {
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Add New User</div>
+          <button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <form id="addUserForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+              <label for="displayName">Display Name</label>
+              <input type="text" id="displayName" required>
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" required>
+            </div>
+            <div class="form-group">
+              <label for="userRole">Role</label>
+              <select id="userRole" required>
+                <option value="${USER_ROLES.ADMIN}">Admin</option>
+                <option value="${USER_ROLES.PROCESSOR}" selected>Processor</option>
+                <option value="${USER_ROLES.VIEWER}">Viewer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="department">Primary Department</label>
+              <select id="department" required>
+                ${Object.values(state.departments).map(dept => 
+                  `<option value="${dept.id}">${dept.name}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="secondaryDepartment">Secondary Department (Optional)</label>
+              <select id="secondaryDepartment">
+                <option value="">None</option>
+                ${Object.values(state.departments).map(dept => 
+                  `<option value="${dept.id}">${dept.name}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="isSupervisor">
+                <input type="checkbox" id="isSupervisor"> Supervisor
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add User</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+    
+    document.getElementById('addUserForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const userData = {
+        username: document.getElementById('username').value,
+        displayName: document.getElementById('displayName').value,
+        password: document.getElementById('password').value,
+        role: document.getElementById('userRole').value,
+        department: document.getElementById('department').value,
+        secondaryDepartment: document.getElementById('secondaryDepartment').value || null,
+        isSupervisor: document.getElementById('isSupervisor').checked
+      };
+      
+      if (addUser(userData)) {
+        showUserManagement();
+      }
+    });
+  }
+  
+  // Show edit user form
+  function editUserForm(username) {
+    const user = state.users[username];
+    if (!user) return;
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Edit User: ${user.displayName}</div>
+          <button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <form id="editUserForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" value="${user.username}" disabled>
+            </div>
+            <div class="form-group">
+              <label for="editDisplayName">Display Name</label>
+              <input type="text" id="editDisplayName" value="${user.displayName}" required>
+            </div>
+            <div class="form-group">
+              <label for="editPassword">Password</label>
+              <input type="password" id="editPassword" placeholder="Leave blank to keep current">
+            </div>
+            <div class="form-group">
+              <label for="editUserRole">Role</label>
+              <select id="editUserRole" required>
+                <option value="${USER_ROLES.ADMIN}" ${user.role === USER_ROLES.ADMIN ? 'selected' : ''}>Admin</option>
+                <option value="${USER_ROLES.PROCESSOR}" ${user.role === USER_ROLES.PROCESSOR ? 'selected' : ''}>Processor</option>
+                <option value="${USER_ROLES.VIEWER}" ${user.role === USER_ROLES.VIEWER ? 'selected' : ''}>Viewer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="editDepartment">Primary Department</label>
+              <select id="editDepartment" required>
+                ${Object.values(state.departments).map(dept => 
+                  `<option value="${dept.id}" ${dept.id === user.department ? 'selected' : ''}>${dept.name}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="editSecondaryDepartment">Secondary Department (Optional)</label>
+              <select id="editSecondaryDepartment">
+                <option value="">None</option>
+                ${Object.values(state.departments).map(dept => 
+                  `<option value="${dept.id}" ${dept.id === user.secondaryDepartment ? 'selected' : ''}>${dept.name}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="editIsSupervisor">
+                <input type="checkbox" id="editIsSupervisor" ${user.isSupervisor ? 'checked' : ''}> Supervisor
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update User</button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+    
+    document.getElementById('editUserForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const userData = {
+        displayName: document.getElementById('editDisplayName').value,
+        password: document.getElementById('editPassword').value || state.users[username].password,
+        role: document.getElementById('editUserRole').value,
+        department: document.getElementById('editDepartment').value,
+        secondaryDepartment: document.getElementById('editSecondaryDepartment').value || null,
+        isSupervisor: document.getElementById('editIsSupervisor').checked
+      };
+      
+      if (updateUser(username, userData)) {
+        showUserManagement();
+      }
+    });
+  }
+  
+  // Prompt for user deletion
+  function deleteUserPrompt(username) {
+    const user = state.users[username];
+    if (!user) return;
+    
+    const content = `
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Delete User: ${user.displayName}</div>
+          <button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i> Back</button>
+        </div>
+        <div style="padding: 1.5rem;">
+          <p>Are you sure you want to delete this user? This action cannot be undone.</p>
+          <p><strong>Username:</strong> ${user.username}</p>
+          <p><strong>Role:</strong> ${user.role}</p>
+          
+          <div class="form-actions" style="margin-top: 1.5rem;">
+            <button class="btn btn-secondary" onclick="showUserManagement()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDeleteUser('${username}')">Delete User</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    switchView('actionContent', content);
+  }
+  
+  // Confirm user deletion
+  function confirmDeleteUser(username) {
+    if (deleteUser(username)) {
+      showUserManagement();
+    }
+  }
+  
+  // ========================
+  // AUTHENTICATION FUNCTIONS
+  // ========================
+  // Clear PIN input
+  function clearPin() {
+    currentPin = '';
+    pinDigits.forEach(digit => { 
+      digit.value = '';
+      digit.classList.remove('filled');
+    });
+    pinDigits[0].focus();
+    hideMessage();
+  }
+  
+  // Handle key press
+  function handleKeyPress(key) {
+    hideMessage();
+    if (currentPin.length >= pinDigits.length) return;
+    
+    const currentDigit = pinDigits[currentPin.length];
+    currentDigit.value = key;
+    currentDigit.classList.add('filled');
+    currentPin += key;
+    
+    if (currentPin.length < pinDigits.length) {
+      pinDigits[currentPin.length].focus();
+    } else {
+      attemptLogin();
+    }
+  }
+  
+  // Attempt login
+  function attemptLogin() {
+    let foundUser = null;
+    
+    for (const username in state.users) {
+      if (state.users[username].password === currentPin) {
+        foundUser = state.users[username];
+        break;
+      }
+    }
+    
+    if (foundUser) {
+      login(foundUser);
+    } else {
+      showMessage('Invalid PIN or insufficient permissions.', 'error');
+      document.querySelector('.login-card').style.animation = 'shake 0.5s';
+      setTimeout(() => {
+        document.querySelector('.login-card').style.animation = '';
+        clearPin();
+      }, 500);
+    }
+  }
+  
+  // Login user
+  function login(user) {
+    currentUser = user;
+    showMessage(`Welcome, ${user.displayName}`, 'success');
+    document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
+    
+    // Show User Management menu only for Franklin
+    if (user.displayName === 'Franklin') {
+      document.getElementById('userManagementMenuItem').classList.remove('hidden');
+    }
+    
+    setTimeout(() => {
+      loginScreen.classList.add("hidden");
+      mainApp.classList.remove("hidden");
+      mainApp.style.animation = 'fadeIn 0.5s ease';
+      
+      // Initialize UI
+      updateDashboardMetrics();
+      renderActivityFeed();
+      updateSyncStatus();
+    }, 500);
+  }
+  
+  // Logout user
+  function logout() {
+    currentUser = null;
+    clearPin();
+    mainApp.classList.add("hidden");
+    loginScreen.classList.remove("hidden");
+    loginScreen.style.animation = 'fadeIn 0.5s ease';
+  }
+  
+  // Show message
+  function showMessage(text, type) {
+    const loginMessage = document.getElementById('loginMessage');
+    loginMessage.textContent = text;
+    loginMessage.className = `message ${type} show`;
+  }
+  
+  // Hide message
+  function hideMessage() {
+    const loginMessage = document.getElementById('loginMessage');
+    loginMessage.className = 'message';
+  }
+  
+  // ========================
+  // INITIALIZATION
+  // ========================
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize state from IndexedDB
+    await loadStateFromDB();
+    await loadOfflineQueue();
+    
+    // Focus first PIN digit
+    pinDigits[0].focus();
+    
+    // Set up keypad
+    const keypadButtons = document.querySelectorAll('.key');
+    keypadButtons.forEach(button => {
+      button.addEventListener('click', () => handleKeyPress(button.dataset.key));
+    });
+    
+    // Set up department navigation
+    const deptItems = document.querySelectorAll('.dept-item');
+    deptItems.forEach(item => {
+      if (item.dataset.dept !== 'dashboard') {
+        item.addEventListener('click', (e) => {
+          deptItems.forEach(i => i.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+          showInventory();
         });
-
-    </script>
+      }
+    });
+    
+    // Add shake animation
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes shake { 
+        0%, 100% { transform: translateX(0); } 
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 
+        20%, 40%, 60%, 80% { transform: translateX(5px); } 
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Set up online/offline detection
+    window.addEventListener('online', updateSyncStatus);
+    window.addEventListener('offline', updateSyncStatus);
+    
+    // Initial sync status
+    updateSyncStatus();
+  });
+</script>
 </body>
 </html>
