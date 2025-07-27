@@ -245,14 +245,7 @@
     try {
       const db = await initIndexedDB();
       const tx = db.transaction(['state'], 'readonly');
-      const firstTime = !localStorage.getItem('vanguardInitialized');
-if (firstTime) {
-  console.log('First time use detected – pulling fresh data from Supabase');
-  await pullFromSupabase();
-  await saveStateToDB();
-  localStorage.setItem('vanguardInitialized', 'true');
-  return;
-}
+
       const req = tx.objectStore('state').get('appState');
       await new Promise(resolve => {
         req.onsuccess = e => {
