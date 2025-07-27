@@ -31,6 +31,8 @@
     .key:active { transform: translateY(0); }
     .clear-btn { width: 100%; padding: 1rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); background: var(--accent); color: white; font-size: 1.1rem; }
     .clear-btn:hover { background: #c0392b; }
+    .reset-btn { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); background: var(--warning); color: white; font-size: 0.9rem; }
+    .reset-btn:hover { background: #e67e22; }
     #mainApp { display: flex; flex-direction: column; min-height: 100vh; }
     .header { background: var(--surface); color: white; padding: 1rem 1.5rem; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
     .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1600px; margin: 0 auto; }
@@ -120,6 +122,7 @@
       <div class="pin-input"> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> </div>
       <div class="keypad"> <button class="key" data-key="1">1</button> <button class="key" data-key="2">2</button> <button class="key" data-key="3">3</button> <button class="key" data-key="4">4</button> <button class="key" data-key="5">5</button> <button class="key" data-key="6">6</button> <button class="key" data-key="7">7</button> <button class="key" data-key="8">8</button> <button class="key" data-key="9">9</button> <button class="key" data-key="*">*</button> <button class="key" data-key="0">0</button> <button class="key" data-key="%">%</button> </div>
       <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
+      <button class="reset-btn" onclick="resetApp()">Reset App Data</button>
     </div>
   </div>
   
@@ -185,14 +188,17 @@
   // SUPABASE CONFIG
   const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // VERSION CONTROL - Increment this when you make significant changes
+  const APP_VERSION = '1.2.0';
 
   // STATE MANAGEMENT
   let currentUser = null;
   let currentPin = '';
   let offlineQueue = [];
   const pinDigits = document.querySelectorAll('.pin-digit');
-  let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {} };
+  let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {}, version: APP_VERSION };
 
   // CONSTANTS
   const USER_ROLES = { ADMIN: 'admin', PROCESSOR: 'processor', VIEWER: 'viewer' };
@@ -213,7 +219,7 @@
   // ========================
   function initIndexedDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('VanguardStockDB', 2);
+      const request = indexedDB.open('VanguardStockDB', 3); // Incremented version
       request.onerror = e => reject(e.target.error);
       request.onupgradeneeded = e => {
         const db = e.target.result;
@@ -228,6 +234,8 @@
     try {
       const db = await initIndexedDB();
       const tx = db.transaction(['state'], 'readwrite');
+      // Add version to state before saving
+      state.version = APP_VERSION;
       tx.objectStore('state').put(state, 'appState');
       await new Promise(resolve => tx.oncomplete = resolve);
     } catch (error) { console.error('Error saving state to DB:', error); }
@@ -240,15 +248,44 @@
       const req = tx.objectStore('state').get('appState');
       await new Promise(resolve => {
         req.onsuccess = e => {
-          if (e.target.result) {
-            state = e.target.result;
+          const result = e.target.result;
+          if (result && result.version === APP_VERSION) {
+            // Only load cached data if versions match
+            state = result;
+            console.log('Loaded cached data (version match)');
           } else {
+            // Version mismatch or no data - initialize fresh
+            console.log('Version mismatch or no cached data - initializing fresh');
             initializeDefaultData();
           }
           resolve();
         };
       });
-    } catch (error) { initializeDefaultData(); }
+    } catch (error) { 
+      console.error('Error loading from DB:', error);
+      initializeDefaultData(); 
+    }
+  }
+
+  async function resetAppData() {
+    try {
+      // Clear IndexedDB
+      const db = await initIndexedDB();
+      const tx = db.transaction(['state', 'offlineQueue'], 'readwrite');
+      tx.objectStore('state').clear();
+      tx.objectStore('offlineQueue').clear();
+      await new Promise(resolve => tx.oncomplete = resolve);
+      
+      // Reset in-memory state
+      initializeDefaultData();
+      offlineQueue = [];
+      
+      showMessage('App data reset successfully!', 'success');
+      console.log('App data has been reset');
+    } catch (error) {
+      console.error('Error resetting app data:', error);
+      showMessage('Error resetting app data', 'error');
+    }
   }
 
   async function addToOfflineQueue(operation) {
@@ -346,16 +383,27 @@
       if (iErr) throw iErr;
       const { data: stockLevels, error: sErr } = await supabase.from('stock_levels').select('*');
       if (sErr) throw sErr;
-      const { data: movements, error: mErr } = await supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(50);
+      
+      // FIXED: Get ALL movements, not just latest 50, to preserve today's movements
+      const { data: movements, error: mErr } = await supabase.from('stock_movements').select('*').order('timestamp', { ascending: false });
       if (mErr) throw mErr;
+      
       const { data: users, error: uErr } = await supabase.from('users').select('*');
       if (uErr) throw uErr;
 
-      // MERGE data instead of overwriting
+      // MERGE data instead of overwriting, but preserve local movements that might not be in DB yet
       items.forEach(item => state.items[item.id] = item);
       stockLevels.forEach(level => state.stockLevels[level.item_id] = level);
       users.forEach(user => state.users[user.username] = user);
-      state.stockMovements = movements || [];
+      
+      // FIXED: Merge movements instead of replacing, keeping local ones that aren't synced yet
+      if (movements) {
+        const existingIds = new Set(state.stockMovements.map(m => m.id));
+        const newMovements = movements.filter(m => !existingIds.has(m.id));
+        state.stockMovements = [...state.stockMovements, ...newMovements]
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .slice(0, 100); // Keep last 100 movements
+      }
 
     } catch (error) { throw new Error('Failed to fetch latest data'); }
   }
@@ -379,6 +427,9 @@
 
   // CORE LOGIC
   function initializeDefaultData() {
+    // Reset state with version
+    state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {}, version: APP_VERSION };
+    
     Object.keys(DEPARTMENT_CONFIG).forEach(deptKey => {
       const deptId = `dept_${deptKey}`;
       state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[deptKey].name };
@@ -478,7 +529,7 @@
       user: currentUser ? currentUser.displayName : 'System', staff_member: staffMember,
       timestamp: new Date().toISOString()
     });
-    if (state.stockMovements.length > 50) state.stockMovements.pop();
+    if (state.stockMovements.length > 100) state.stockMovements.pop(); // Keep last 100 instead of 50
   }
 
   function addUser(userData) {
@@ -526,7 +577,18 @@
   function updateDashboardMetrics() {
     document.getElementById('totalItems').textContent = Object.keys(state.items).length;
     document.getElementById('lowStockCount').textContent = Object.values(state.items).filter(item => state.stockLevels[item.id]?.quantity <= item.minStockLevel).length;
-    document.getElementById('todayMovements').textContent = state.stockMovements.filter(m => new Date(m.timestamp).toDateString() === new Date().toDateString()).length;
+    
+    // FIXED: More robust today's movements calculation
+    const today = new Date().toDateString();
+    const todaysMovements = state.stockMovements.filter(m => {
+      try {
+        return new Date(m.timestamp).toDateString() === today;
+      } catch (e) {
+        return false;
+      }
+    });
+    document.getElementById('todayMovements').textContent = todaysMovements.length;
+    
     document.getElementById('activeUsers').textContent = Object.keys(state.users).length;
   }
 
@@ -819,6 +881,16 @@
 
   function hideMessage() {
     document.getElementById('loginMessage').className = 'message';
+  }
+
+  // RESET FUNCTION
+  function resetApp() {
+    if (confirm('This will reset all app data and clear cached information. Are you sure?')) {
+      resetAppData();
+      setTimeout(() => {
+        location.reload();
+      }, 1000);
+    }
   }
 
   // INIT
