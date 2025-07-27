@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vanguard - Stock Management System</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #1a2a3a; --secondary: #3498db; --accent: #e74c3c; --success: #27ae60; --warning: #f39c12; --light: #ecf0f1; --dark: #2c3e50; --gray: #95a5a6; --purple: #9b59b6; --surface: #252f3d; --surface-light: #2a3a4a; --text-primary: #e0e0ff; --text-secondary: #a0a0b0; --shadow: 0 4px 12px rgba(0, 0, 0, 0.25); --radius: 10px; --transition: all 0.3s ease;
+      --hotel-color: #4F46E5; --bar-color: #DC2626; --restaurant-color: #059669; --kitchen-color: #D97706; --admin-color: #7C3AED; --grounds-color: #16A34A; --cultivation-color: #CA8A04;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: linear-gradient(135deg, var(--primary), #1e3040); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
+    .app-container { min-height: 100vh; display: flex; flex-direction: column; }
+    .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .login-card { background: var(--surface); padding: 2rem 3rem; border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 420px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.08); animation: fadeIn 0.5s ease; }
+    .login-logo { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
+    .login-logo i { font-size: 2.5rem; color: var(--secondary); background: rgba(52, 152, 219, 0.15); padding: 15px; border-radius: 50%; }
+    .login-title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.25rem; color: white; }
+    .login-subtitle { color: var(--gray); margin-bottom: 2rem; font-size: 1.1rem; }
+    .pin-input { display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; }
+    .pin-digit { width: 50px; height: 60px; border: 2px solid var(--surface-light); border-radius: var(--radius); text-align: center; font-size: 2rem; font-weight: 600; transition: all 0.2s; background: var(--primary); color: var(--text-primary); -webkit-text-security: disc; }
+    .pin-digit:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
+    .pin-digit.filled { border-color: var(--success); }
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .key { background: var(--surface-light); border: 1px solid transparent; padding: 1.25rem; border-radius: var(--radius); font-size: 1.5rem; font-weight: 600; cursor: pointer; transition: var(--transition); color: var(--text-primary); }
+    .key:hover { background: var(--secondary); color: white; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    .key:active { transform: translateY(0); }
+    .clear-btn { width: 100%; padding: 1rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); background: var(--accent); color: white; font-size: 1.1rem; }
+    .clear-btn:hover { background: #c0392b; }
+    .reset-btn { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); background: var(--warning); color: white; font-size: 0.9rem; }
+    .reset-btn:hover { background: #e67e22; }
+    #mainApp { display: flex; flex-direction: column; min-height: 100vh; }
+    .header { background: var(--surface); color: white; padding: 1rem 1.5rem; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+    .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1600px; margin: 0 auto; }
+    .logo { display: flex; align-items: center; gap: 0.75rem; font-size: 1.5rem; font-weight: 700; color: var(--secondary); }
+    .user-info { display: flex; align-items: center; gap: 1rem; }
+    .sync-status { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 6px; background: var(--surface-light); font-size: 0.875rem; }
+    .sync-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+    .sync-indicator.syncing { background: var(--warning); animation: pulse 1s infinite; }
+    .sync-indicator.offline { background: var(--accent); animation: none; }
+    .logout-btn { background: var(--surface-light); border: 1px solid rgba(255, 255, 255, 0.1); color: white; padding: 0.5rem 1rem; border-radius: var(--radius); cursor: pointer; transition: var(--transition); }
+    .logout-btn:hover { background: var(--accent); }
+    .main-content { flex: 1; display: flex; max-width: 1600px; margin: 0 auto; width: 100%; padding: 1.5rem; gap: 1.5rem; }
+    .sidebar { width: 280px; background: var(--surface); border-right: 1px solid rgba(255, 255, 255, 0.08); padding: 1.5rem; border-radius: var(--radius); height: fit-content; position: sticky; top: 100px; }
+    .nav-title { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-left: 1rem; }
+    .dept-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); cursor: pointer; transition: var(--transition); margin-bottom: 0.5rem; border: 1px solid transparent; color: var(--text-primary); }
+    .dept-item:hover { background: var(--surface-light); }
+    .dept-item.active { background: var(--secondary); color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .dept-item.active .dept-icon { color: white; }
+    .dept-icon { width: 20px; text-align: center; }
+    .content-area { flex: 1; overflow-y: auto; }
+    .card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); border: 1px solid rgba(255, 255, 255, 0.08); transition: var(--transition); margin-bottom: 1.5rem; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--surface-light); }
+    .card-title { font-size: 1.25rem; font-weight: 600; color: var(--secondary); }
+    .card-metric { font-size: 2.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .card-subtitle { color: var(--text-secondary); font-size: 0.875rem; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+    .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+    .action-btn { background: var(--surface-light); border: 1px solid rgba(255,255,255,0.1); padding: 1.5rem; border-radius: var(--radius); cursor: pointer; transition: var(--transition); text-align: center; display: flex; flex-direction: column; gap: 0.75rem; align-items: center; color: var(--text-primary); }
+    .action-btn:hover { border-color: var(--secondary); background: var(--secondary); color: white; transform: translateY(-3px); box-shadow: var(--shadow); }
+    .action-btn:hover .action-icon { transform: scale(1.1); }
+    .action-icon { font-size: 2rem; transition: var(--transition); color: var(--secondary); }
+    .action-btn:hover .action-icon { color: white; }
+    .activity-list { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .activity-item { display: flex; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--surface-light); }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); font-weight: 600; font-size: 1.25rem; }
+    .activity-content { flex: 1; }
+    .activity-text { color: var(--text-primary); margin-bottom: 0.25rem; }
+    .activity-time { color: var(--text-secondary); font-size: 0.875rem; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+    .form-group label { font-weight: 600; color: var(--text-secondary); }
+    .form-group input, .form-group select { width: 100%; padding: 0.75rem; border-radius: var(--radius); border: 1px solid var(--surface-light); background: var(--primary); color: var(--text-primary); font-size: 1rem; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--secondary); }
+    .form-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
+    .btn { padding: 0.75rem 1.5rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-primary { background: var(--secondary); color: white; }
+    .btn-primary:hover { background: #2980b9; }
+    .btn-secondary { background: var(--surface-light); color: var(--text-primary); }
+    .btn-secondary:hover { background: var(--dark); }
+    .btn-danger { background: var(--accent); color: white; }
+    .btn-danger:hover { background: #c0392b; }
+    .data-table-container { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th, .data-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--surface-light); }
+    .data-table th { color: var(--text-secondary); text-transform: uppercase; font-size: 0.875rem; }
+    .data-table tr:hover { background-color: var(--surface-light); }
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; }
+    .chart-container { position: relative; height: 350px; width: 100%; }
+    .message { padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; display: none; border: 1px solid; text-align: left; }
+    .message.show { display: block; }
+    .message.error { background: rgba(231, 76, 60, 0.1); color: var(--accent); border-color: var(--accent); }
+    .message.success { background: rgba(39, 174, 96, 0.1); color: var(--success); border-color: var(--success); }
+    .message.info { background: rgba(52, 152, 219, 0.1); color: var(--secondary); border-color: var(--secondary); }
+    .sync-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .sync-btn { background: var(--surface-light); border: none; color: var(--text-primary); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); }
+    .sync-btn:hover { background: var(--secondary); color: white; }
+    .hidden { display: none !important; }
+    .btn-icon { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; border-radius: 4px; transition: var(--transition); }
+    .btn-icon:hover { color: var(--secondary); background: rgba(255, 255, 255, 0.1); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 992px) { .main-content { flex-direction: column; } .sidebar { width: 100%; position: static; height: auto; border-right: none; margin-bottom: 1.5rem; } }
+    @media (max-width: 768px) { .header-content { flex-direction: column; gap: 1rem; } .content-area, .sidebar, .main-content { padding: 1rem; } .dashboard-grid, .charts-grid { grid-template-columns: 1fr; } .actions-grid { grid-template-columns: repeat(2, 1fr); } .login-card { padding: 2rem; } .pin-input { gap: 0.5rem; } .pin-digit { width: 40px; height: 50px; font-size: 1.5rem; } }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- Login Screen -->
+  <div id="loginScreen" class="login-container">
+    <div class="login-card">
+      <div class="login-logo"> <i class="fas fa-boxes-stacked"></i> <div> <h1 class="login-title">Vanguard</h1> <p class="login-subtitle">Stock Management System</p> </div> </div>
+      <div id="loginMessage" class="message"></div>
+      <div class="pin-input"> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> </div>
+      <div class="keypad"> <button class="key" data-key="1">1</button> <button class="key" data-key="2">2</button> <button class="key" data-key="3">3</button> <button class="key" data-key="4">4</button> <button class="key" data-key="5">5</button> <button class="key" data-key="6">6</button> <button class="key" data-key="7">7</button> <button class="key" data-key="8">8</button> <button class="key" data-key="9">9</button> <button class="key" data-key="*">*</button> <button class="key" data-key="0">0</button> <button class="key" data-key="%">%</button> </div>
+      <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
+      <button class="reset-btn" onclick="resetApp()">Reset App Data</button>
+    </div>
+  </div>
+  
+  <!-- Main Application -->
+  <div id="mainApp" class="hidden">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo"> <i class="fas fa-boxes-stacked"></i> <span>Vanguard Stock Management</span> </div>
+        <div class="user-info">
+          <div class="sync-status"> <div id="syncIndicator" class="sync-indicator"></div> <span id="syncStatus">Online</span> </div>
+          <div id="currentUser">Welcome</div>
+          <div class="sync-actions"> <button class="sync-btn" onclick="syncData()" title="Sync Data"> <i class="fas fa-sync-alt"></i> </button> <button class="logout-btn" onclick="logout()"> <i class="fas fa-sign-out-alt"></i> Logout </button> </div>
+        </div>
+      </div>
+    </header>
+    
+    <div class="main-content">
+      <nav class="sidebar">
+        <div class="department-nav">
+          <div class="nav-title">Departments</div>
+          <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()"> <i class="dept-icon fas fa-tachometer-alt" style="color: var(--secondary);"></i> <span>Dashboard</span> </div>
+          <div class="dept-item" data-dept="hotel"> <i class="dept-icon fas fa-hotel" style="color: var(--hotel-color);"></i> <span>Hotel Ops</span> </div>
+          <div class="dept-item" data-dept="bar"> <i class="dept-icon fas fa-martini-glass-citrus" style="color: var(--bar-color);"></i> <span>Bar</span> </div>
+          <div class="dept-item" data-dept="restaurant"> <i class="dept-icon fas fa-utensils" style="color: var(--restaurant-color);"></i> <span>Restaurant</span> </div>
+          <div class="dept-item" data-dept="kitchen"> <i class="dept-icon fas fa-kitchen-set" style="color: var(--kitchen-color);"></i> <span>Kitchen</span> </div>
+          <div class="dept-item" data-dept="admin"> <i class="dept-icon fas fa-user-gear" style="color: var(--admin-color);"></i> <span>Admin</span> </div>
+          <div class="dept-item" data-dept="grounds"> <i class="dept-icon fas fa-tree" style="color: var(--grounds-color);"></i> <span>Grounds</span> </div>
+          <div class="dept-item" data-dept="cultivation"> <i class="dept-icon fas fa-seedling" style="color: var(--cultivation-color);"></i> <span>Cultivation</span> </div>
+          <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()"> <i class="dept-icon fas fa-users" style="color: var(--admin-color);"></i> <span>User Management</span> </div>
+        </div>
+      </nav>
+      
+      <main class="content-area">
+        <div id="dashboardContent" class="view-content">
+          <h1 style="margin-bottom: 2rem; font-size: 2rem; font-weight: 700;">Dashboard</h1>
+          <div class="dashboard-grid">
+            <div class="card"> <div class="card-header"><div class="card-title">Total Items</div></div> <div class="card-metric" id="totalItems">0</div> <div class="card-subtitle">Across all departments</div> </div>
+            <div class="card"> <div class="card-header"><div class="card-title">Low Stock Alerts</div></div> <div class="card-metric" id="lowStockCount" style="color: var(--accent);">0</div> <div class="card-subtitle">Items need restocking</div> </div>
+            <div class="card"> <div class="card-header"><div class="card-title">Today's Movements</div></div> <div class="card-metric" id="todayMovements">0</div> <div class="card-subtitle">Stock in/out operations</div> </div>
+            <div class="card"> <div class="card-header"><div class="card-title">Active Users</div></div> <div class="card-metric" id="activeUsers">0</div> <div class="card-subtitle">Staff members registered</div> </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Quick Actions</div></div>
+            <div class="actions-grid">
+              <div class="action-btn" onclick="showStockIn()"> <div class="action-icon"><i class="fas fa-box-archive"></i></div> <div>Stock In</div> </div>
+              <div class="action-btn" onclick="showStockOut()"> <div class="action-icon"><i class="fas fa-arrow-right-from-bracket"></i></div> <div>Stock Out</div> </div>
+              <div class="action-btn" onclick="showInventory()"> <div class="action-icon"><i class="fas fa-clipboard-list"></i></div> <div>Inventory</div> </div>
+              <div class="action-btn" onclick="showReports()"> <div class="action-icon"><i class="fas fa-chart-line"></i></div> <div>Reports</div> </div>
+              <div class="action-btn" onclick="showAddItem()"> <div class="action-icon"><i class="fas fa-plus"></i></div> <div>Add Item</div> </div>
+              <div class="action-btn" onclick="showSettings()"> <div class="action-icon"><i class="fas fa-gear"></i></div> <div>Settings</div> </div>
+            </div>
+          </div>
+          <div class="activity-list"> <div class="card-header"><div class="card-title">Recent Activity</div></div> <div id="recentActivity"></div> </div>
+        </div>
+        <div id="actionContent" class="view-content hidden"></div>
+        <div id="userManagementContent" class="view-content hidden"></div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<script>
+  // SUPABASE CONFIG
+  const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // VERSION CONTROL - Increment this when you make significant changes
+  const APP_VERSION = '1.2.0';
+
+  // STATE MANAGEMENT
+  let currentUser = null;
+  let currentPin = '';
+  let offlineQueue = [];
+  const pinDigits = document.querySelectorAll('.pin-digit');
+  let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {}, version: APP_VERSION };
+
+  // CONSTANTS
+  const USER_ROLES = { ADMIN: 'admin', PROCESSOR: 'processor', VIEWER: 'viewer' };
+  const DEPARTMENT_CONFIG = {
+    hotel: {name: 'Hotel Operations', color: 'var(--hotel-color)', categories: ['Linens', 'Toiletries', 'Cleaning Supplies', 'Room Amenities', 'Maintenance']},
+    bar: {name: 'Bar', color: 'var(--bar-color)', categories: ['Spirits', 'Wines', 'Beers', 'Mixers', 'Garnishes', 'Glassware']},
+    restaurant: {name: 'Restaurant', color: 'var(--restaurant-color)', categories: ['Beverages', 'Tableware', 'Linens', 'Service Equipment']},
+    kitchen: {name: 'Kitchen', color: 'var(--kitchen-color)', categories: ['Fresh Produce', 'Meat & Seafood', 'Dairy', 'Dry Goods', 'Spices']},
+    admin: {name: 'Administration', color: 'var(--admin-color)', categories: ['Office Supplies', 'IT Equipment', 'Documents']},
+    grounds: {name: 'Grounds', color: 'var(--grounds-color)', categories: ['Tools', 'Fertilizer', 'Pesticides']},
+    cultivation: {name: 'Cultivation', color: 'var(--cultivation-color)', categories: ['Seeds', 'Soil', 'Nutrients']}
+  };
+  const TELEGRAM_BOT_TOKEN = '7960256341:AAFw_BPZRibbnBLaSYD9Lf3id5Fw3352wDC';
+  const TELEGRAM_CHAT_ID = '1212406500';
+
+  // ========================
+  // INDEXEDDB PERSISTENCE
+  // ========================
+  function initIndexedDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('VanguardStockDB', 3); // Incremented version
+      request.onerror = e => reject(e.target.error);
+      request.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('state')) db.createObjectStore('state');
+        if (!db.objectStoreNames.contains('offlineQueue')) db.createObjectStore('offlineQueue', { autoIncrement: true });
+      };
+      request.onsuccess = e => resolve(e.target.result);
+    });
+  }
+
+  async function saveStateToDB() {
+    try {
+      const db = await initIndexedDB();
+      const tx = db.transaction(['state'], 'readwrite');
+      // Add version to state before saving
+      state.version = APP_VERSION;
+      tx.objectStore('state').put(state, 'appState');
+      await new Promise(resolve => tx.oncomplete = resolve);
+    } catch (error) { console.error('Error saving state to DB:', error); }
+  }
+
+  async function loadStateFromDB() {
+    try {
+      const db = await initIndexedDB();
+      const tx = db.transaction(['state'], 'readonly');
+      const req = tx.objectStore('state').get('appState');
+      await new Promise(resolve => {
+        req.onsuccess = e => {
+          const result = e.target.result;
+          if (result && result.version === APP_VERSION) {
+            // Only load cached data if versions match
+            state = result;
+            console.log('Loaded cached data (version match)');
+          } else {
+            // Version mismatch or no data - initialize fresh
+            console.log('Version mismatch or no cached data - initializing fresh');
+            initializeDefaultData();
+          }
+          resolve();
+        };
+      });
+    } catch (error) { 
+      console.error('Error loading from DB:', error);
+      initializeDefaultData(); 
+    }
+  }
+
+  async function resetAppData() {
+    try {
+      // Clear IndexedDB
+      const db = await initIndexedDB();
+      const tx = db.transaction(['state', 'offlineQueue'], 'readwrite');
+      tx.objectStore('state').clear();
+      tx.objectStore('offlineQueue').clear();
+      await new Promise(resolve => tx.oncomplete = resolve);
+      
+      // Reset in-memory state
+      initializeDefaultData();
+      offlineQueue = [];
+      
+      showMessage('App data reset successfully!', 'success');
+      console.log('App data has been reset');
+    } catch (error) {
+      console.error('Error resetting app data:', error);
+      showMessage('Error resetting app data', 'error');
+    }
+  }
+
+  async function addToOfflineQueue(operation) {
+    try {
+      const db = await initIndexedDB();
+      const tx = db.transaction(['offlineQueue'], 'readwrite');
+      tx.objectStore('offlineQueue').add(operation);
+      offlineQueue.push(operation);
+      updateSyncStatus();
+    } catch (error) { console.error('Error adding to offline queue:', error); }
+  }
+
+  async function loadOfflineQueue() {
+    try {
+      const db = await initIndexedDB();
+      const tx = db.transaction(['offlineQueue'], 'readonly');
+      const req = tx.objectStore('offlineQueue').getAll();
+      await new Promise(resolve => {
+        req.onsuccess = e => {
+          offlineQueue = e.target.result || [];
+          resolve();
+        };
+      });
+    } catch (error) { offlineQueue = []; }
+  }
+
+  async function clearOfflineQueue() {
+    try {
+      const db = await initIndexedDB();
+      const tx = db.transaction(['offlineQueue'], 'readwrite');
+      tx.objectStore('offlineQueue').clear();
+      offlineQueue = [];
+      updateSyncStatus();
+    } catch (error) { console.error('Error clearing offline queue:', error); }
+  }
+
+  // ========================
+  // SUPABASE SYNC FUNCTIONS
+  // ========================
+  async function syncData() {
+    const syncIndicator = document.getElementById('syncIndicator');
+    const syncStatus = document.getElementById('syncStatus');
+    syncIndicator.classList.add('syncing');
+    syncStatus.textContent = 'Syncing...';
+    try {
+      await processOfflineQueue();
+      await pullFromSupabase();
+      await saveStateToDB();
+      updateDashboardMetrics();
+      renderActivityFeed();
+      showAppMessage('Data synchronized successfully!', 'success');
+    } catch (error) {
+      showAppMessage(`Sync failed: ${error.message}`, 'error');
+    } finally {
+      syncIndicator.classList.remove('syncing');
+      updateSyncStatus();
+    }
+  }
+
+  async function processOfflineQueue() {
+    if (offlineQueue.length === 0) return;
+    for (const op of offlineQueue) {
+      try {
+        switch (op.type) {
+          case 'ADD_ITEM':
+            await supabase.from('items').upsert(op.data);
+            await supabase.from('stock_levels').upsert({ item_id: op.data.id, quantity: op.initialQuantity });
+            break;
+          case 'UPDATE_ITEM': await supabase.from('items').update(op.data).eq('id', op.id); break;
+          case 'DELETE_ITEM':
+            await supabase.from('stock_movements').delete().eq('item_id', op.id);
+            await supabase.from('stock_levels').delete().eq('item_id', op.id);
+            await supabase.from('items').delete().eq('id', op.id);
+            break;
+          case 'ADD_USER': await supabase.from('users').upsert(op.data); break;
+          case 'UPDATE_USER': await supabase.from('users').update(op.data).eq('username', op.id); break;
+          case 'DELETE_USER': await supabase.from('users').delete().eq('username', op.id); break;
+          case 'STOCK_MOVEMENT':
+            await supabase.from('stock_movements').insert(op.data);
+            const { data: stock, error } = await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single();
+            if (stock) {
+              const newQty = stock.quantity + (op.data.type === 'in' ? op.data.quantity : -op.data.quantity);
+              await supabase.from('stock_levels').update({ quantity: newQty }).eq('item_id', op.data.item_id);
+            }
+            break;
+        }
+      } catch (error) { console.error(error); throw new Error(`Failed to process ${op.type}`); }
+    }
+    await clearOfflineQueue();
+  }
+
+  async function pullFromSupabase() {
+    try {
+      const { data: items, error: iErr } = await supabase.from('items').select('*');
+      if (iErr) throw iErr;
+      const { data: stockLevels, error: sErr } = await supabase.from('stock_levels').select('*');
+      if (sErr) throw sErr;
+      
+      // FIXED: Get ALL movements, not just latest 50, to preserve today's movements
+      const { data: movements, error: mErr } = await supabase.from('stock_movements').select('*').order('timestamp', { ascending: false });
+      if (mErr) throw mErr;
+      
+      const { data: users, error: uErr } = await supabase.from('users').select('*');
+      if (uErr) throw uErr;
+
+      // MERGE data instead of overwriting, but preserve local movements that might not be in DB yet
+      items.forEach(item => state.items[item.id] = item);
+      stockLevels.forEach(level => state.stockLevels[level.item_id] = level);
+      users.forEach(user => state.users[user.username] = user);
+      
+      // FIXED: Merge movements instead of replacing, keeping local ones that aren't synced yet
+      if (movements) {
+        const existingIds = new Set(state.stockMovements.map(m => m.id));
+        const newMovements = movements.filter(m => !existingIds.has(m.id));
+        state.stockMovements = [...state.stockMovements, ...newMovements]
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .slice(0, 100); // Keep last 100 movements
+      }
+
+    } catch (error) { throw new Error('Failed to fetch latest data'); }
+  }
+
+  function updateSyncStatus() {
+    const syncIndicator = document.getElementById('syncIndicator');
+    const syncStatus = document.getElementById('syncStatus');
+    if (!navigator.onLine) {
+      syncIndicator.className = 'sync-indicator offline';
+      syncStatus.textContent = 'Offline';
+      return;
+    }
+    if (offlineQueue.length > 0) {
+      syncIndicator.className = 'sync-indicator';
+      syncStatus.textContent = `${offlineQueue.length} pending`;
+    } else {
+      syncIndicator.className = 'sync-indicator';
+      syncStatus.textContent = 'Online';
+    }
+  }
+
+  // CORE LOGIC
+  function initializeDefaultData() {
+    // Reset state with version
+    state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {}, version: APP_VERSION };
+    
+    Object.keys(DEPARTMENT_CONFIG).forEach(deptKey => {
+      const deptId = `dept_${deptKey}`;
+      state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[deptKey].name };
+      DEPARTMENT_CONFIG[deptKey].categories.forEach(catName => {
+        const catId = `cat_${deptKey}_${catName.toLowerCase().replace(/\s/g, '')}`;
+        state.categories[catId] = { id: catId, departmentId: deptId, name: catName };
+      });
+    });
+    state.users = {
+      'Kelvin': {username: 'Kelvin', password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all'},
+      'Franklin': {username: 'Franklin', password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all'},
+      'Chisomo': {username: 'Chisomo', password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin'},
+      'Victor': {username: 'Victor', password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin'},
+      'Boston': {username: 'Boston', password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', secondaryDepartment: 'restaurant'},
+      'Magah': {username: 'Magah', password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', secondaryDepartment: 'restaurant'},
+      'Phillip': {username: 'Phillip', password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', secondaryDepartment: 'restaurant', isSupervisor: true},
+      'Gift': {username: 'Gift', password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant'},
+      'Rhodney': {username: 'Rhodney', password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true},
+      'Mike': {username: 'Mike', password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant'},
+      'Matias': {username: 'Matias', password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel'},
+      'Kennedy': {username: 'Kennedy', password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel'},
+      'Mphatso': {username: 'Mphatso', password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', secondaryDepartment: 'hotel'},
+      'Gaven': {username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', secondaryDepartment: 'cultivation'},
+      'Maya': {username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', secondaryDepartment: 'cultivation'}
+    };
+  }
+
+  function generateId() { return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; }
+
+  function addNewItem(itemData) {
+    const itemId = generateId();
+    const newItem = {
+      id: itemId, name: itemData.name, categoryId: itemData.categoryId, unit: itemData.unit,
+      cost: parseFloat(itemData.cost) || 0, minStockLevel: parseFloat(itemData.minStockLevel) || 0,
+      created_at: new Date().toISOString()
+    };
+    state.items[itemId] = newItem;
+    state.stockLevels[itemId] = { item_id: itemId, quantity: parseFloat(itemData.initialQuantity) || 0 };
+    logMovement(itemId, 'in', parseFloat(itemData.initialQuantity), 'Initial stock');
+    addToOfflineQueue({ type: 'ADD_ITEM', data: newItem, initialQuantity: parseFloat(itemData.initialQuantity) || 0 });
+    saveStateToDB();
+    updateDashboardMetrics();
+    renderActivityFeed();
+    return itemId;
+  }
+
+  function updateItem(itemId, itemData) {
+    if (!state.items[itemId]) return false;
+    state.items[itemId] = { ...state.items[itemId], ...itemData };
+    addToOfflineQueue({ type: 'UPDATE_ITEM', id: itemId, data: itemData });
+    saveStateToDB();
+    return true;
+  }
+
+  function deleteItem(itemId) {
+    if (!state.items[itemId]) return false;
+    delete state.items[itemId];
+    delete state.stockLevels[itemId];
+    state.stockMovements = state.stockMovements.filter(m => m.item_id !== itemId);
+    addToOfflineQueue({ type: 'DELETE_ITEM', id: itemId });
+    saveStateToDB();
+    updateDashboardMetrics();
+    renderActivityFeed();
+    return true;
+  }
+
+  function adjustStock(itemId, quantity, reason, staffMember = null) {
+    const currentStock = state.stockLevels[itemId];
+    const item = state.items[itemId];
+    if (!currentStock || !item) { showAppMessage('Item not found!', 'error'); return false; }
+    if (currentStock.quantity + quantity < 0) { showAppMessage('Error: Cannot have negative stock.', 'error'); return false; }
+    const oldQuantity = currentStock.quantity;
+    currentStock.quantity += quantity;
+    const movementType = quantity > 0 ? 'in' : 'out';
+    logMovement(itemId, movementType, Math.abs(quantity), reason, staffMember);
+    addToOfflineQueue({
+      type: 'STOCK_MOVEMENT',
+      data: { item_id: itemId, type: movementType, quantity: Math.abs(quantity), reason, user: currentUser.displayName, staff_member: staffMember, timestamp: new Date().toISOString() }
+    });
+    saveStateToDB();
+    updateDashboardMetrics();
+    renderActivityFeed();
+    if (movementType === 'out') {
+      const staffUser = staffMember ? state.users[staffMember] : null;
+      const staffName = staffUser ? staffUser.displayName : staffMember || 'Unknown';
+      sendTelegramMessage(`✅ *STOCK ISSUED*\n\nItem: *${item.name}*\nQuantity: *${Math.abs(quantity)} ${item.unit}*\nIssued to: *${staffName}*\nReason: *${reason}*`);
+      if (oldQuantity > item.minStockLevel && currentStock.quantity <= item.minStockLevel) {
+        sendTelegramMessage(`🚨 *LOW STOCK ALERT* 🚨\n\nItem: *${item.name}*\nQuantity: *${currentStock.quantity} ${item.unit}*\nMinimum Level: *${item.minStockLevel} ${item.unit}*`);
+      }
+    }
+    return true;
+  }
+
+  function logMovement(itemId, type, quantity, reason, staffMember = null) {
+    state.stockMovements.unshift({
+      id: generateId(), item_id: itemId, type, quantity, reason,
+      user: currentUser ? currentUser.displayName : 'System', staff_member: staffMember,
+      timestamp: new Date().toISOString()
+    });
+    if (state.stockMovements.length > 100) state.stockMovements.pop(); // Keep last 100 instead of 50
+  }
+
+  function addUser(userData) {
+    if (state.users[userData.username]) { showAppMessage('User already exists!', 'error'); return false; }
+    state.users[userData.username] = userData;
+    addToOfflineQueue({ type: 'ADD_USER', data: userData });
+    saveStateToDB();
+    return true;
+  }
+
+  function updateUser(username, userData) {
+    if (!state.users[username]) return false;
+    state.users[username] = { ...state.users[username], ...userData };
+    addToOfflineQueue({ type: 'UPDATE_USER', id: username, data: userData });
+    saveStateToDB();
+    return true;
+  }
+
+  function deleteUser(username) {
+    if (!state.users[username]) return false;
+    if (username === currentUser.username) { showAppMessage('Cannot delete your own account!', 'error'); return false; }
+    delete state.users[username];
+    addToOfflineQueue({ type: 'DELETE_USER', id: username });
+    saveStateToDB();
+    return true;
+  }
+  
+  // TELEGRAM
+  async function sendTelegramMessage(message) {
+      if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) { console.warn('Telegram not configured.'); return; }
+      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+      try {
+          const response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: 'Markdown' }),
+          });
+          const data = await response.json();
+          if (!data.ok) console.error('Telegram API Error:', data.description);
+      } catch (error) { console.error('Failed to send Telegram message:', error); }
+  }
+
+
+  // UI RENDERING
+  function updateDashboardMetrics() {
+    document.getElementById('totalItems').textContent = Object.keys(state.items).length;
+    document.getElementById('lowStockCount').textContent = Object.values(state.items).filter(item => state.stockLevels[item.id]?.quantity <= item.minStockLevel).length;
+    
+    // FIXED: More robust today's movements calculation
+    const today = new Date().toDateString();
+    const todaysMovements = state.stockMovements.filter(m => {
+      try {
+        return new Date(m.timestamp).toDateString() === today;
+      } catch (e) {
+        return false;
+      }
+    });
+    document.getElementById('todayMovements').textContent = todaysMovements.length;
+    
+    document.getElementById('activeUsers').textContent = Object.keys(state.users).length;
+  }
+
+  function renderActivityFeed() {
+    const feed = document.getElementById('recentActivity');
+    feed.innerHTML = '';
+    if (state.stockMovements.length === 0) {
+      feed.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No recent activity.</p>';
+      return;
+    }
+    state.stockMovements.slice(0, 5).forEach(m => {
+      const item = state.items[m.item_id];
+      if (!item) return;
+      let icon = 'fa-arrows-up-down', text = '';
+      if (m.type === 'in') {
+        icon = 'fa-arrow-down';
+        text = `${m.user} stocked in ${m.quantity} ${item.unit} of ${item.name}.`;
+      } else {
+        icon = 'fa-arrow-up';
+        const staffName = m.staff_member ? state.users[m.staff_member]?.displayName || m.staff_member : 'N/A';
+        text = `${m.user} issued ${m.quantity} ${item.unit} of ${item.name} to ${staffName}.`;
+      }
+      feed.innerHTML += `<div class="activity-item"><div class="activity-avatar"><i class="fas ${icon}"></i></div><div class="activity-content"><div class="activity-text">${text}</div><div class="activity-time">${getTimeAgo(m.timestamp)}</div></div></div>`;
+    });
+  }
+
+  function getTimeAgo(ts) {
+    const seconds = Math.floor((new Date() - new Date(ts)) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return `${Math.floor(interval)} years ago`;
+    interval = seconds / 2592000;
+    if (interval > 1) return `${Math.floor(interval)} months ago`;
+    interval = seconds / 86400;
+    if (interval > 1) return `${Math.floor(interval)} days ago`;
+    interval = seconds / 3600;
+    if (interval > 1) return `${Math.floor(interval)} hours ago`;
+    interval = seconds / 60;
+    if (interval > 1) return `${Math.floor(interval)} minutes ago`;
+    return "Just now";
+  }
+
+  function switchView(view, content = "") {
+    document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
+    const el = document.getElementById(view);
+    if (view === 'actionContent' || view === 'userManagementContent') el.innerHTML = content;
+    el.classList.remove("hidden");
+    el.style.animation = 'fadeIn 0.3s ease-in-out';
+  }
+
+  function showDashboard() {
+    switchView('dashboardContent');
+    document.querySelectorAll('.dept-item').forEach(i => i.classList.remove('active'));
+    document.querySelector('.dept-item[data-dept="dashboard"]').classList.add('active');
+    updateDashboardMetrics();
+    renderActivityFeed();
+  }
+
+  // QUICK ACTIONS
+  function showAddItem() {
+    const cats = Object.values(state.categories).map(c => `<option value="${c.id}">${state.departments[c.departmentId].name} - ${c.name}</option>`).join('');
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add New Item</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="addItemForm"><div class="form-grid"><div class="form-group"><label for="itemName">Name</label><input type="text" id="itemName" required></div><div class="form-group"><label for="itemCategory">Category</label><select id="itemCategory" required>${cats}</select></div><div class="form-group"><label for="itemUnit">Unit</label><input type="text" id="itemUnit" required></div><div class="form-group"><label for="itemCost">Cost</label><input type="number" id="itemCost" value="0" step="any" required></div><div class="form-group"><label for="initialQuantity">Initial Qty</label><input type="number" id="initialQuantity" value="0" step="any" required></div><div class="form-group"><label for="minStockLevel">Min. Stock</label><input type="number" id="minStockLevel" value="0" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+    document.getElementById('addItemForm').addEventListener('submit', e => {
+      e.preventDefault();
+      addNewItem({ name: itemName.value, categoryId: itemCategory.value, unit: itemUnit.value, cost: itemCost.value, initialQuantity: initialQuantity.value, minStockLevel: minStockLevel.value });
+      showDashboard();
+    });
+  }
+  
+  function showInventory() {
+    const isAdmin = currentUser?.role === USER_ROLES.ADMIN;
+    let rows = Object.values(state.items).length === 0 ? '<tr><td colspan="6">No items in inventory.</td></tr>' : Object.values(state.items).map(item => {
+      const cat = state.categories[item.categoryId];
+      const stock = state.stockLevels[item.id];
+      const dept = state.departments[cat?.departmentId];
+      return `<tr><td>${item.name}</td><td>${cat?.name || 'N/A'}</td><td>${dept?.name || 'N/A'}</td><td>${stock?.quantity || 0} ${item.unit}</td><td>${item.minStockLevel} ${item.unit}</td>${isAdmin ? `<td><button class="btn-icon" onclick="editItemForm('${item.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteItemPrompt('${item.id}')"><i class="fas fa-trash"></i></button></td>` : '<td></td>'}</tr>`;
+    }).join('');
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Inventory</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept.</th><th>Qty</th><th>Min. Stock</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+  }
+
+  function editItemForm(itemId) {
+    const item = state.items[itemId];
+    if (!item) return;
+    const cats = Object.values(state.categories).map(c => `<option value="${c.id}" ${c.id === item.categoryId ? 'selected' : ''}>${state.departments[c.departmentId].name} - ${c.name}</option>`).join('');
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${item.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><form id="editItemForm"><div class="form-grid"><div class="form-group"><label for="editName">Name</label><input type="text" id="editName" value="${item.name}" required></div><div class="form-group"><label for="editCat">Category</label><select id="editCat" required>${cats}</select></div><div class="form-group"><label for="editUnit">Unit</label><input type="text" id="editUnit" value="${item.unit}" required></div><div class="form-group"><label for="editCost">Cost</label><input type="number" id="editCost" value="${item.cost}" step="any" required></div><div class="form-group"><label for="editMin">Min. Stock</label><input type="number" id="editMin" value="${item.minStockLevel}" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showInventory()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`);
+    document.getElementById('editItemForm').addEventListener('submit', e => {
+      e.preventDefault();
+      updateItem(itemId, { name: editName.value, categoryId: editCat.value, unit: editUnit.value, cost: editCost.value, minStockLevel: editMin.value });
+      showInventory();
+    });
+  }
+
+  function deleteItemPrompt(itemId) {
+    const item = state.items[itemId];
+    if (!item) return;
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${item.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure? This is permanent.</p><div class="form-actions"><button class="btn btn-secondary" onclick="showInventory()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteItem('${itemId}')">Delete</button></div></div>`);
+  }
+
+  function confirmDeleteItem(itemId) {
+    deleteItem(itemId);
+    showInventory();
+  }
+
+  function showUserManagement() {
+    if (currentUser?.displayName !== 'Franklin') return;
+    let rows = Object.values(state.users).map(u => `<tr><td>${u.username}</td><td>${u.displayName}</td><td>${u.role}</td><td>${u.department}</td><td><button class="btn-icon" onclick="editUserForm('${u.username}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteUserPrompt('${u.username}')"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+    switchView('userManagementContent', `<div class="card"><div class="card-header"><div class="card-title">User Management</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="form-actions"><button class="btn btn-primary" onclick="showAddUserForm()"><i class="fas fa-plus"></i> Add User</button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Username</th><th>Display Name</th><th>Role</th><th>Dept.</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+  }
+
+  function showAddUserForm() {
+    const depts = Object.values(state.departments).map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add User</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="addUserForm"><div class="form-grid"><div class="form-group"><label for="username">Username</label><input type="text" id="username" required></div><div class="form-group"><label for="displayName">Display Name</label><input type="text" id="displayName" required></div><div class="form-group"><label for="password">Password</label><input type="password" id="password" required></div><div class="form-group"><label for="role">Role</label><select id="role" required><option value="admin">Admin</option><option value="processor" selected>Processor</option><option value="viewer">Viewer</option></select></div><div class="form-group"><label for="department">Dept.</label><select id="department" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+    document.getElementById('addUserForm').addEventListener('submit', e => {
+      e.preventDefault();
+      addUser({ username: username.value, displayName: displayName.value, password: password.value, role: role.value, department: department.value });
+      showUserManagement();
+    });
+  }
+  
+  function editUserForm(username) {
+    const user = state.users[username];
+    if (!user) return;
+    const depts = Object.values(state.departments).map(d => `<option value="${d.id}" ${d.id === user.department ? 'selected' : ''}>${d.name}</option>`).join('');
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${user.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="editUserForm"><div class="form-grid"><div class="form-group"><label>Username</label><input type="text" value="${user.username}" disabled></div><div class="form-group"><label for="editDisplayName">Display Name</label><input type="text" id="editDisplayName" value="${user.displayName}" required></div><div class="form-group"><label for="editPassword">Password</label><input type="password" id="editPassword" placeholder="Unchanged"></div><div class="form-group"><label for="editRole">Role</label><select id="editRole" required><option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option><option value="processor" ${user.role === 'processor' ? 'selected' : ''}>Processor</option><option value="viewer" ${user.role === 'viewer' ? 'selected' : ''}>Viewer</option></select></div><div class="form-group"><label for="editDept">Dept.</label><select id="editDept" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`);
+    document.getElementById('editUserForm').addEventListener('submit', e => {
+      e.preventDefault();
+      updateUser(username, { displayName: editDisplayName.value, password: editPassword.value || user.password, role: editRole.value, department: editDept.value });
+      showUserManagement();
+    });
+  }
+
+  function deleteUserPrompt(username) {
+    const user = state.users[username];
+    if (!user) return;
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${user.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure?</p><div class="form-actions"><button class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteUser('${username}')">Delete</button></div></div>`);
+  }
+
+  function confirmDeleteUser(username) {
+    deleteUser(username);
+    showUserManagement();
+  }
+
+  function showStockIn() {
+    const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock In</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockInForm"><div class="form-grid"><div class="form-group"><label for="item">Item</label><select id="item" required>${items}</select></div><div class="form-group"><label for="qty">Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label for="reason">Reason</label><input type="text" id="reason" value="Delivery" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+    document.getElementById('stockInForm').addEventListener('submit', e => {
+      e.preventDefault();
+      adjustStock(item.value, parseFloat(qty.value), reason.value);
+      showDashboard();
+    });
+  }
+
+  function showStockOut() {
+    const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`).join('');
+    const staff = Object.values(state.users).map(u => `<option value="${u.username}">${u.displayName}</option>`).join('');
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock Out</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockOutForm"><div class="form-grid"><div class="form-group"><label for="item">Item</label><select id="item" required>${items}</select></div><div class="form-group"><label for="qty">Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label for="staff">To</label><select id="staff" required>${staff}</select></div><div class="form-group"><label for="reason">Reason</label><input type="text" id="reason" value="Usage" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Remove</button></div></form></div>`);
+    document.getElementById('stockOutForm').addEventListener('submit', e => {
+      e.preventDefault();
+      adjustStock(item.value, -parseFloat(qty.value), reason.value, staff.value);
+      showDashboard();
+    });
+  }
+  
+  function showReports() {
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Reports</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="charts-grid"><div class="card"><div class="card-header"><div class="card-title">Stock Status</div></div><div class="chart-container"><canvas id="stockStatusChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Dept. Value</div></div><div class="chart-container"><canvas id="departmentValueChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Movements</div></div><div class="chart-container"><canvas id="movementsChart"></canvas></div></div></div></div>`);
+    renderReports();
+  }
+
+  function renderReports() {
+    renderStockStatusChart();
+    renderDepartmentValueChart();
+    renderMovementsChart();
+  }
+
+  function renderStockStatusChart() {
+    let inStock = 0, low = 0, out = 0;
+    Object.values(state.items).forEach(i => {
+      const s = state.stockLevels[i.id];
+      if (!s || s.quantity <= 0) out++;
+      else if (s.quantity <= i.minStockLevel) low++;
+      else inStock++;
+    });
+    new Chart('stockStatusChart', { type: 'doughnut', data: { labels: ['In Stock', 'Low', 'Out'], datasets: [{ data: [inStock, low, out], backgroundColor: ['var(--success)', 'var(--warning)', 'var(--accent)'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } } });
+  }
+
+  function renderDepartmentValueChart() {
+    const values = {};
+    Object.values(state.items).forEach(i => {
+      const c = state.categories[i.categoryId];
+      if (!c) return;
+      const d = state.departments[c.departmentId];
+      if (!d) return;
+      const s = state.stockLevels[i.id];
+      const v = (s ? s.quantity : 0) * i.cost;
+      if (!values[d.name]) values[d.name] = 0;
+      values[d.name] += v;
+    });
+    new Chart('departmentValueChart', { type: 'bar', data: { labels: Object.keys(values), datasets: [{ label: 'Value (MWK)', data: Object.values(values), backgroundColor: Object.keys(values).map(n => DEPARTMENT_CONFIG[Object.keys(DEPARTMENT_CONFIG).find(k => DEPARTMENT_CONFIG[k].name === n)]?.color || 'var(--gray)') }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: 'var(--text-secondary)' } }, x: { ticks: { color: 'var(--text-secondary)' } } } } });
+  }
+
+  function renderMovementsChart() {
+    const labels = [], dataIn = [], dataOut = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+      const movs = state.stockMovements.filter(m => new Date(m.timestamp).toDateString() === date.toDateString());
+      dataIn.push(movs.filter(m => m.type === 'in').length);
+      dataOut.push(movs.filter(m => m.type === 'out').length);
+    }
+    new Chart('movementsChart', { type: 'line', data: { labels, datasets: [{ label: 'In', data: dataIn, borderColor: 'var(--success)' }, { label: 'Out', data: dataOut, borderColor: 'var(--accent)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'var(--text-primary)' } } }, scales: { y: { ticks: { color: 'var(--text-secondary)', beginAtZero: true } }, x: { ticks: { color: 'var(--text-secondary)' } } } } });
+  }
+
+  function showSettings() {
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Settings</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="actions-grid"><div class="action-btn" onclick="testTelegram()"><div class="action-icon"><i class="fab fa-telegram"></i></div><div>Test Telegram</div></div></div></div>`);
+  }
+
+  function testTelegram() {
+    sendTelegramMessage('✅ *Vanguard Test*\n\nIntegration is working.');
+    showAppMessage('Test message sent!', 'success');
+  }
+
+  function showAppMessage(text, type) {
+    const el = document.createElement('div');
+    el.className = `message ${type} show`;
+    el.textContent = text;
+    document.querySelector('.content-area').prepend(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+
+  // AUTH
+  function clearPin() {
+    currentPin = '';
+    pinDigits.forEach(d => { d.value = ''; d.classList.remove('filled'); });
+    pinDigits[0].focus();
+    hideMessage();
+  }
+
+  function handleKeyPress(key) {
+    hideMessage();
+    if (currentPin.length >= pinDigits.length) return;
+    const digit = pinDigits[currentPin.length];
+    digit.value = key;
+    digit.classList.add('filled');
+    currentPin += key;
+    if (currentPin.length < pinDigits.length) pinDigits[currentPin.length].focus();
+    else attemptLogin();
+  }
+
+  function attemptLogin() {
+    let user = Object.values(state.users).find(u => u.password === currentPin);
+    if (user) login(user);
+    else {
+      showMessage('Invalid PIN.', 'error');
+      document.querySelector('.login-card').style.animation = 'shake 0.5s';
+      setTimeout(() => {
+        document.querySelector('.login-card').style.animation = '';
+        clearPin();
+      }, 500);
+    }
+  }
+
+  function login(user) {
+    currentUser = user;
+    showMessage(`Welcome, ${user.displayName}`, 'success');
+    document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
+    if (user.displayName === 'Franklin') document.getElementById('userManagementMenuItem').classList.remove('hidden');
+    setTimeout(() => {
+      loginScreen.classList.add("hidden");
+      mainApp.classList.remove("hidden");
+      mainApp.style.animation = 'fadeIn 0.5s ease';
+      updateDashboardMetrics();
+      renderActivityFeed();
+      updateSyncStatus();
+    }, 500);
+  }
+
+  function logout() {
+    currentUser = null;
+    clearPin();
+    mainApp.classList.add("hidden");
+    loginScreen.classList.remove("hidden");
+    loginScreen.style.animation = 'fadeIn 0.5s ease';
+  }
+
+  function showMessage(text, type) {
+    const el = document.getElementById('loginMessage');
+    el.textContent = text;
+    el.className = `message ${type} show`;
+  }
+
+  function hideMessage() {
+    document.getElementById('loginMessage').className = 'message';
+  }
+
+  // RESET FUNCTION
+  function resetApp() {
+    if (confirm('This will reset all app data and clear cached information. Are you sure?')) {
+      resetAppData();
+      setTimeout(() => {
+        location.reload();
+      }, 1000);
+    }
+  }
+
+  // INIT
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadStateFromDB();
+    await loadOfflineQueue();
+    pinDigits[0].focus();
+    document.querySelectorAll('.key').forEach(b => b.addEventListener('click', () => handleKeyPress(b.dataset.key)));
+    document.querySelectorAll('.dept-item').forEach(i => {
+      if (i.dataset.dept !== 'dashboard' && i.dataset.dept !== 'users') {
+        i.addEventListener('click', e => {
+          document.querySelectorAll('.dept-item').forEach(d => d.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+          showInventory();
+        });
+      }
+    });
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }`;
+    document.head.appendChild(style);
+    window.addEventListener('online', updateSyncStatus);
+    window.addEventListener('offline', updateSyncStatus);
+    updateSyncStatus();
+  });
+</script>
+
+<script>
+let pendingStockData = null;
+let pendingUser = null;
+
+// Keypad event delegation
+document.getElementById('keypad').addEventListener('click', function(e){
+    const input = document.getElementById('stockOutPassword');
+    if (e.target.classList.contains('keypad-btn')){
+        input.value += e.target.dataset.num;
+    } else if (e.target.id === "clearPwdBtn"){
+        input.value = "";
+    } else if (e.target.id === "delPwdBtn"){
+        input.value = input.value.slice(0, -1);
+    }
+});
+
+// Modal close function
+function closePwdModal() {
+    document.getElementById('passwordModal').style.display = "none";
+    document.getElementById('stockOutPassword').value = '';
+    document.getElementById('pwdResult').textContent = '';
+    pendingStockData = null;
+    pendingUser = null;
+}
+
+document.getElementById('cancelStockOutBtn').onclick = closePwdModal;
+
+document.getElementById('confirmStockOutBtn').onclick = function() {
+    let pwd = document.getElementById('stockOutPassword').value || '';
+    let errorElem = document.getElementById('pwdResult');
+    if (!pwd || pwd.length < 4){
+        errorElem.textContent = "Stock Out Failed. Try again.";
+        return;
+    }
+    // Validate password with server
+    verifyUserPassword(pendingUser.id, pwd, function(success){
+        if (success) {
+            closePwdModal();
+            completeStockOut(pendingStockData, pendingUser);
+        } else {
+            errorElem.textContent = "Stock Out Failed. Try again.";
+        }
+    });
+};
+
+// Trigger Stock Out flow
+function handleStockOutInitiate(stockData, takenByUser) {
+    // Unrestricted for Franklin
+    if (takenByUser.username && takenByUser.username.trim().toLowerCase() === 'franklin'){
+        return completeStockOut(stockData, takenByUser);
+    }
+    pendingStockData = stockData;
+    pendingUser = takenByUser;
+    document.getElementById('passwordPrompt').textContent =
+        `Enter password for ${takenByUser.username} to confirm stock out.`;
+    document.getElementById('passwordModal').style.display = "block";
+    document.getElementById('stockOutPassword').value = '';
+    document.getElementById('pwdResult').textContent = '';
+    document.getElementById('stockOutPassword').focus();
+}
+
+// AJAX - vanilla JS
+function verifyUserPassword(userId, password, cb){
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/validate-user-password', true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onreadystatechange = function(){
+        if (xhr.readyState === 4) {
+            try {
+                let resp = JSON.parse(xhr.responseText);
+                cb(resp && resp.success);
+            } catch (e) { cb(false); }
+        }
+    };
+    xhr.onerror = function() { cb(false); };
+    xhr.send(JSON.stringify({ userId: userId, password: password }));
+}
+
+// Complete stock out (do main transaction)
+function completeStockOut(stockData, user){
+    // Send to backend to process transaction
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/stock-out', true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onreadystatechange = function(){
+        if (xhr.readyState === 4){
+            try {
+                let resp = JSON.parse(xhr.responseText);
+                if (resp && resp.success){
+                    alert("Stock Out Confirmed!");
+                    // Telegram notification (optional)
+                    sendTelegramMessage(`Stock Out: ${stockData.itemName || '??'} by ${user.username}`);
+                    // Update your dashboard/UI as needed here.
+                } else {
+                    alert("Unexpected error--Stock Out not logged.");
+                }
+            } catch (e) {
+                alert("Unexpected error--Stock Out not logged.");
+            }
+        }
+    };
+    xhr.send(JSON.stringify({ stockData: stockData, userId: user.id }));
+}
+
+function sendTelegramMessage(msg) {
+    // Simple notification (optional)
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/send-telegram', true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(JSON.stringify({ msg: msg }));
+}
+</script>
+
+
+</script>
+</body>
+</html>
