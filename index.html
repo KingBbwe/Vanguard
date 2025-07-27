@@ -185,7 +185,7 @@
   // SUPABASE CONFIG
   const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // STATE MANAGEMENT
   let currentUser = null;
