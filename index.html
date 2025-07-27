@@ -279,88 +279,7 @@
   }
 
   // IMPROVED: More robust pull function with option for fresh data
-async function pullFromSupabase(forceFresh = false) {
-  try {
-    console.log('Pulling data from Supabase...');
-    
-    // Fetch all data from Supabase
-    const [itemsResult, stockLevelsResult, movementsResult, usersResult] = await Promise.all([
-      supabase.from('items').select('*'),
-      supabase.from('stock_levels').select('*'),
-      supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(200),
-      supabase.from('users').select('*')
-    ]);
 
-    // Check for errors
-    if (itemsResult.error) throw itemsResult.error;
-    if (stockLevelsResult.error) throw stockLevelsResult.error;
-    if (movementsResult.error) throw movementsResult.error;
-    if (usersResult.error) throw usersResult.error;
-
-    const { data: items } = itemsResult;
-    const { data: stockLevels } = stockLevelsResult;
-    const { data: movements } = movementsResult;
-    const { data: users } = usersResult;
-
-    console.log('Data fetched from Supabase:', {
-      items: items?.length || 0,
-      stockLevels: stockLevels?.length || 0,
-      movements: movements?.length || 0,
-      users: users?.length || 0
-    });
-
-    if (forceFresh) {
-      // Complete replacement of data (except keep local users as fallback)
-      const localUsers = { ...state.users };
-      
-      // Reset items and stock levels
-      state.items = {};
-      state.stockLevels = {};
-      
-      // Add items from Supabase
-      if (items && items.length > 0) {
-        items.forEach(item => state.items[item.id] = item);
-      }
-      
-      // Add stock levels from Supabase
-      if (stockLevels && stockLevels.length > 0) {
-        stockLevels.forEach(level => state.stockLevels[level.item_id] = level);
-      }
-      
-      // Replace users if we have them from Supabase, otherwise keep local defaults
-      if (users && users.length > 0) {
-        state.users = {};
-        users.forEach(user => state.users[user.username] = user);
-      } else {
-        // Keep local users if none in Supabase
-        state.users = localUsers;
-      }
-      
-      // Replace movements
-      state.stockMovements = movements || [];
-      
-    } else {
-      // Merge data (existing behavior)
-      if (items) items.forEach(item => state.items[item.id] = item);
-      if (stockLevels) stockLevels.forEach(level => state.stockLevels[level.item_id] = level);
-      if (users) users.forEach(user => state.users[user.username] = user);
-      
-      if (movements) {
-        const existingIds = new Set(state.stockMovements.map(m => m.id));
-        const newMovements = movements.filter(m => !existingIds.has(m.id));
-        state.stockMovements = [...state.stockMovements, ...newMovements]
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-          .slice(0, 200);
-      }
-    }
-
-    console.log('Data merge completed');
-
-  } catch (error) {
-    console.error('Error pulling from Supabase:', error);
-    throw new Error(`Failed to fetch latest data: ${error.message}`);
-  }
-}
   async function resetAppData() {
     try {
       // Clear IndexedDB
@@ -417,27 +336,156 @@ async function pullFromSupabase(forceFresh = false) {
   }
 
   // ========================
-  // SUPABASE SYNC FUNCTIONS
-  // ========================
-  async function syncData() {
-    const syncIndicator = document.getElementById('syncIndicator');
-    const syncStatus = document.getElementById('syncStatus');
-    syncIndicator.classList.add('syncing');
-    syncStatus.textContent = 'Syncing...';
-    try {
-      await processOfflineQueue();
-      await pullFromSupabase();
-      await saveStateToDB();
-      updateDashboardMetrics();
-      renderActivityFeed();
-      showAppMessage('Data synchronized successfully!', 'success');
-    } catch (error) {
-      showAppMessage(`Sync failed: ${error.message}`, 'error');
-    } finally {
-      syncIndicator.classList.remove('syncing');
-      updateSyncStatus();
+// IMPROVED SYNC FUNCTIONS
+// ========================
+async function pullFromSupabase(forceFresh = false) {
+  try {
+    console.log('Pulling data from Supabase...');
+    
+    // Fetch ALL data including departments and categories
+    const [
+      deptResult, catResult, itemsResult, 
+      stockLevelsResult, movementsResult, usersResult
+    ] = await Promise.all([
+      supabase.from('departments').select('*'),
+      supabase.from('categories').select('*'),
+      supabase.from('items').select('*'),
+      supabase.from('stock_levels').select('*'),
+      supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }),
+      supabase.from('users').select('*')
+    ]);
+
+    // Check for errors
+    if (deptResult.error) throw deptResult.error;
+    if (catResult.error) throw catResult.error;
+    if (itemsResult.error) throw itemsResult.error;
+    if (stockLevelsResult.error) throw stockLevelsResult.error;
+    if (movementsResult.error) throw movementsResult.error;
+    if (usersResult.error) throw usersResult.error;
+
+    const departments = deptResult.data || [];
+    const categories = catResult.data || [];
+    const items = itemsResult.data || [];
+    const stockLevels = stockLevelsResult.data || [];
+    const movements = movementsResult.data || [];
+    const users = usersResult.data || [];
+
+    console.log('Data fetched from Supabase:', {
+      departments: departments.length,
+      categories: categories.length,
+      items: items.length,
+      stockLevels: stockLevels.length,
+      movements: movements.length,
+      users: users.length
+    });
+
+    if (forceFresh) {
+      // Complete refresh from server
+      state = {
+        departments: {},
+        categories: {},
+        items: {},
+        stockLevels: {},
+        stockMovements: [],
+        users: {},
+        version: APP_VERSION
+      };
     }
+
+    // Update departments
+    departments.forEach(dept => {
+      state.departments[dept.id] = dept;
+    });
+
+    // Update categories
+    categories.forEach(cat => {
+      state.categories[cat.id] = cat;
+    });
+
+    // Update items and stock levels
+    items.forEach(item => {
+      state.items[item.id] = item;
+    });
+
+    stockLevels.forEach(level => {
+      state.stockLevels[level.item_id] = level;
+    });
+
+    // Update users
+    users.forEach(user => {
+      state.users[user.username] = user;
+    });
+
+    // Update movements with conflict resolution
+    const movementMap = new Map();
+    [...state.stockMovements, ...movements].forEach(m => {
+      if (!movementMap.has(m.id)) {
+        movementMap.set(m.id, m);
+      }
+    });
+    
+    state.stockMovements = Array.from(movementMap.values())
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 200);
+
+    console.log('Data merge completed');
+
+  } catch (error) {
+    console.error('Error pulling from Supabase:', error);
+    throw new Error(`Failed to fetch latest data: ${error.message}`);
   }
+}
+
+// ========================
+// IMPROVED SYNC HANDLER
+// ========================
+async function syncData() {
+  const syncIndicator = document.getElementById('syncIndicator');
+  const syncStatus = document.getElementById('syncStatus');
+  syncIndicator.classList.add('syncing');
+  syncStatus.textContent = 'Syncing...';
+  
+  try {
+    await processOfflineQueue();
+    await pullFromSupabase();
+    await saveStateToDB();
+    
+    // Refresh all UI components
+    updateDashboardMetrics();
+    renderActivityFeed();
+    
+    // Refresh current view
+    if (currentView === 'inventory') showInventory();
+    if (currentView === 'dashboard') showDashboard();
+    if (currentView === 'userManagement') showUserManagement();
+    
+    showAppMessage('Data synchronized successfully!', 'success');
+  } catch (error) {
+    console.error('Sync error:', error);
+    showAppMessage(`Sync failed: ${error.message}`, 'error');
+  } finally {
+    syncIndicator.classList.remove('syncing');
+    updateSyncStatus();
+  }
+}
+
+// ========================
+// TRACK CURRENT VIEW STATE
+// ========================
+let currentView = 'dashboard';
+
+function switchView(view, content = "") {
+  document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
+  const el = document.getElementById(view);
+  if (view === 'actionContent' || view === 'userManagementContent') el.innerHTML = content;
+  el.classList.remove("hidden");
+  el.style.animation = 'fadeIn 0.3s ease-in-out';
+  
+  // Update current view tracker
+  if (view === 'dashboardContent') currentView = 'dashboard';
+  else if (view === 'userManagementContent') currentView = 'userManagement';
+  else if (content.includes('Inventory')) currentView = 'inventory';
+}
 
   async function processOfflineQueue() {
     if (offlineQueue.length === 0) return;
@@ -659,21 +707,21 @@ async function pullFromSupabase(forceFresh = false) {
     return true;
   }
   
-  // TELEGRAM
-  async function sendTelegramMessage(message) {
-      if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) { console.warn('Telegram not configured.'); return; }
-      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-      try {
-          const response = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: 'Markdown' }),
-          });
-          const data = await response.json();
-          if (!data.ok) console.error('Telegram API Error:', data.description);
-      } catch (error) { console.error('Failed to send Telegram message:', error); }
-  }
-
+function sendTelegramMessage(message) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  
+  // Use fetch instead of axios for compatibility
+  fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: 'Markdown'
+    })
+  })
+  .catch(error => console.error('Telegram error:', error));
+}
 
   // UI RENDERING
   function updateDashboardMetrics() {
@@ -717,6 +765,22 @@ async function pullFromSupabase(forceFresh = false) {
     });
   }
 
+  function logMovement(itemId, type, quantity, reason, staffMember = null) {
+  state.stockMovements.unshift({
+    id: generateId(), 
+    item_id: itemId, 
+    type, 
+    quantity, 
+    reason,
+    user: currentUser ? currentUser.displayName : 'System', 
+    staff_member: staffMember,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Keep only latest 200 movements
+  state.stockMovements = state.stockMovements.slice(0, 200);
+}
+  
   function getTimeAgo(ts) {
     const seconds = Math.floor((new Date() - new Date(ts)) / 1000);
     let interval = seconds / 31536000;
