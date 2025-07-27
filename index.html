@@ -551,7 +551,15 @@ async function pullFromSupabase(forceFresh = false) {
     };
   }
 
-  function generateId() { return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; }
+  function generateId() {
+  // RFC4122 version 4 UUID (random)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    let r = Math.random() * 16 | 0,
+        v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 
   function addNewItem(itemData) {
     const itemId = generateId();
