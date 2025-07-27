@@ -134,7 +134,17 @@
         <div class="user-info">
           <div class="sync-status"> <div id="syncIndicator" class="sync-indicator"></div> <span id="syncStatus">Online</span> </div>
           <div id="currentUser">Welcome</div>
-          <div class="sync-actions"> <button class="sync-btn" onclick="syncData()" title="Sync Data"> <i class="fas fa-sync-alt"></i> </button> <button class="logout-btn" onclick="logout()"> <i class="fas fa-sign-out-alt"></i> Logout </button> </div>
+          <div class="sync-actions">
+  <button class="sync-btn" onclick="syncData()" title="Sync Data">
+    <i class="fas fa-sync-alt"></i>
+  </button>
+  <button class="sync-btn" onclick="freshSyncData()" title="Fresh Sync">
+    <i class="fas fa-download"></i>
+  </button>
+  <button class="logout-btn" onclick="logout()">
+    <i class="fas fa-sign-out-alt"></i> Logout
+  </button>
+</div>
         </div>
       </div>
     </header>
@@ -268,6 +278,89 @@
     }
   }
 
+  // IMPROVED: More robust pull function with option for fresh data
+async function pullFromSupabase(forceFresh = false) {
+  try {
+    console.log('Pulling data from Supabase...');
+    
+    // Fetch all data from Supabase
+    const [itemsResult, stockLevelsResult, movementsResult, usersResult] = await Promise.all([
+      supabase.from('items').select('*'),
+      supabase.from('stock_levels').select('*'),
+      supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(200),
+      supabase.from('users').select('*')
+    ]);
+
+    // Check for errors
+    if (itemsResult.error) throw itemsResult.error;
+    if (stockLevelsResult.error) throw stockLevelsResult.error;
+    if (movementsResult.error) throw movementsResult.error;
+    if (usersResult.error) throw usersResult.error;
+
+    const { data: items } = itemsResult;
+    const { data: stockLevels } = stockLevelsResult;
+    const { data: movements } = movementsResult;
+    const { data: users } = usersResult;
+
+    console.log('Data fetched from Supabase:', {
+      items: items?.length || 0,
+      stockLevels: stockLevels?.length || 0,
+      movements: movements?.length || 0,
+      users: users?.length || 0
+    });
+
+    if (forceFresh) {
+      // Complete replacement of data (except keep local users as fallback)
+      const localUsers = { ...state.users };
+      
+      // Reset items and stock levels
+      state.items = {};
+      state.stockLevels = {};
+      
+      // Add items from Supabase
+      if (items && items.length > 0) {
+        items.forEach(item => state.items[item.id] = item);
+      }
+      
+      // Add stock levels from Supabase
+      if (stockLevels && stockLevels.length > 0) {
+        stockLevels.forEach(level => state.stockLevels[level.item_id] = level);
+      }
+      
+      // Replace users if we have them from Supabase, otherwise keep local defaults
+      if (users && users.length > 0) {
+        state.users = {};
+        users.forEach(user => state.users[user.username] = user);
+      } else {
+        // Keep local users if none in Supabase
+        state.users = localUsers;
+      }
+      
+      // Replace movements
+      state.stockMovements = movements || [];
+      
+    } else {
+      // Merge data (existing behavior)
+      if (items) items.forEach(item => state.items[item.id] = item);
+      if (stockLevels) stockLevels.forEach(level => state.stockLevels[level.item_id] = level);
+      if (users) users.forEach(user => state.users[user.username] = user);
+      
+      if (movements) {
+        const existingIds = new Set(state.stockMovements.map(m => m.id));
+        const newMovements = movements.filter(m => !existingIds.has(m.id));
+        state.stockMovements = [...state.stockMovements, ...newMovements]
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .slice(0, 200);
+      }
+    }
+
+    console.log('Data merge completed');
+
+  } catch (error) {
+    console.error('Error pulling from Supabase:', error);
+    throw new Error(`Failed to fetch latest data: ${error.message}`);
+  }
+}
   async function resetAppData() {
     try {
       // Clear IndexedDB
