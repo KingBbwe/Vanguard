@@ -9,8 +9,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --primary: #1a2a3a; --secondary: #3498db; --accent: #e74c3c; --success: #27ae60; --warning: #f39c12; --light: #ecf0f1; --dark: #2c3e50; --gray: #95a5a6; --purple: #9b59b6; --surface: #252f3d; --surface-light: #2a3a4a; --text-primary: #e0e0ff; --text-secondary: #a0a0b0; --shadow: 0 4px 12px rgba(0, 0, 0, 0.25); --radius: 10px; --transition: all 0.3s ease;
-      --hotel-color: #4F46E5; --bar-color: #DC2626; --restaurant-color: #059669; --kitchen-color: #D97706; --admin-color: #7C3AED; --grounds-color: #16A34A; --cultivation-color: #CA8A04;
+      --primary: #1a2a3a; --secondary: #3498db; --accent: #e74c3c; --success: #27ae60; --warning: #f39c12;
+      --light: #ecf0f1; --dark: #2c3e50; --gray: #95a5a6; --purple: #9b59b6;
+      --surface: #252f3d; --surface-light: #2a3a4a; --text-primary: #e0e0ff; --text-secondary: #a0a0b0;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.25); --radius: 10px; --transition: all 0.3s ease;
+      --hotel-color: #4F46E5; --bar-color: #DC2626; --restaurant-color: #059669;
+      --kitchen-color: #D97706; --admin-color: #7C3AED; --grounds-color: #16A34A; --cultivation-color: #CA8A04;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body { background: linear-gradient(135deg, var(--primary), #1e3040); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
@@ -112,74 +116,129 @@
   </style>
 </head>
 <body>
-
 <div class="app-container">
   <!-- Login Screen -->
   <div id="loginScreen" class="login-container">
     <div class="login-card">
-      <div class="login-logo"> <i class="fas fa-boxes-stacked"></i> <div> <h1 class="login-title">Vanguard</h1> <p class="login-subtitle">Stock Management System</p> </div> </div>
+      <div class="login-logo">
+        <i class="fas fa-boxes-stacked"></i>
+        <div>
+          <h1 class="login-title">Vanguard</h1>
+          <p class="login-subtitle">Stock Management System</p>
+        </div>
+      </div>
       <div id="loginMessage" class="message"></div>
-      <div class="pin-input"> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly> </div>
-      <div class="keypad"> <button class="key" data-key="1">1</button> <button class="key" data-key="2">2</button> <button class="key" data-key="3">3</button> <button class="key" data-key="4">4</button> <button class="key" data-key="5">5</button> <button class="key" data-key="6">6</button> <button class="key" data-key="7">7</button> <button class="key" data-key="8">8</button> <button class="key" data-key="9">9</button> <button class="key" data-key="*">*</button> <button class="key" data-key="0">0</button> <button class="key" data-key="%">%</button> </div>
+      <div class="pin-input">
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+      </div>
+      <div class="keypad">
+        <button class="key" data-key="1">1</button>
+        <button class="key" data-key="2">2</button>
+        <button class="key" data-key="3">3</button>
+        <button class="key" data-key="4">4</button>
+        <button class="key" data-key="5">5</button>
+        <button class="key" data-key="6">6</button>
+        <button class="key" data-key="7">7</button>
+        <button class="key" data-key="8">8</button>
+        <button class="key" data-key="9">9</button>
+        <button class="key" data-key="*">*</button>
+        <button class="key" data-key="0">0</button>
+        <button class="key" data-key="%">%</button>
+      </div>
       <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
       <button class="reset-btn" onclick="resetApp()">Reset App Data</button>
     </div>
   </div>
-  
+
   <!-- Main Application -->
   <div id="mainApp" class="hidden">
     <header class="header">
       <div class="header-content">
-        <div class="logo"> <i class="fas fa-boxes-stacked"></i> <span>Vanguard Stock Management</span> </div>
+        <div class="logo">
+          <i class="fas fa-boxes-stacked"></i>
+          <span>Vanguard Stock Management</span>
+        </div>
         <div class="user-info">
-          <div class="sync-status"> <div id="syncIndicator" class="sync-indicator"></div> <span id="syncStatus">Online</span> </div>
+          <div class="sync-status">
+            <div id="syncIndicator" class="sync-indicator"></div>
+            <span id="syncStatus">Online</span>
+          </div>
           <div id="currentUser">Welcome</div>
           <div class="sync-actions">
-            <button class="sync-btn" onclick="syncData()" title="Sync Data"> <i class="fas fa-sync-alt"></i> </button>
-            <button class="sync-btn" onclick="freshSyncData()" title="Fresh Sync"> <i class="fas fa-download"></i> </button>
-            <button class="logout-btn" onclick="logout()"> <i class="fas fa-sign-out-alt"></i> Logout </button>
+            <button class="sync-btn" onclick="syncData()" title="Sync Data"><i class="fas fa-sync-alt"></i></button>
+            <button class="sync-btn" onclick="freshSyncData()" title="Fresh Sync"><i class="fas fa-download"></i></button>
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
           </div>
         </div>
       </div>
     </header>
-    
+
     <div class="main-content">
       <nav class="sidebar">
         <div class="department-nav">
           <div class="nav-title">Departments</div>
-          <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()"> <i class="dept-icon fas fa-tachometer-alt" style="color: var(--secondary);"></i> <span>Dashboard</span> </div>
-          <div class="dept-item" data-dept="hotel"> <i class="dept-icon fas fa-hotel" style="color: var(--hotel-color);"></i> <span>Hotel Ops</span> </div>
-          <div class="dept-item" data-dept="bar"> <i class="dept-icon fas fa-martini-glass-citrus" style="color: var(--bar-color);"></i> <span>Bar</span> </div>
-          <div class="dept-item" data-dept="restaurant"> <i class="dept-icon fas fa-utensils" style="color: var(--restaurant-color);"></i> <span>Restaurant</span> </div>
-          <div class="dept-item" data-dept="kitchen"> <i class="dept-icon fas fa-kitchen-set" style="color: var(--kitchen-color);"></i> <span>Kitchen</span> </div>
-          <div class="dept-item" data-dept="admin"> <i class="dept-icon fas fa-user-gear" style="color: var(--admin-color);"></i> <span>Admin</span> </div>
-          <div class="dept-item" data-dept="grounds"> <i class="dept-icon fas fa-tree" style="color: var(--grounds-color);"></i> <span>Grounds</span> </div>
-          <div class="dept-item" data-dept="cultivation"> <i class="dept-icon fas fa-seedling" style="color: var(--cultivation-color);"></i> <span>Cultivation</span> </div>
-          <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()"> <i class="dept-icon fas fa-users" style="color: var(--admin-color);"></i> <span>User Management</span> </div>
+          <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()">
+            <i class="dept-icon fas fa-tachometer-alt" style="color: var(--secondary);"></i>
+            <span>Dashboard</span>
+          </div>
+          <div class="dept-item" data-dept="hotel"><i class="dept-icon fas fa-hotel" style="color: var(--hotel-color);"></i><span>Hotel Ops</span></div>
+          <div class="dept-item" data-dept="bar"><i class="dept-icon fas fa-martini-glass-citrus" style="color: var(--bar-color);"></i><span>Bar</span></div>
+          <div class="dept-item" data-dept="restaurant"><i class="dept-icon fas fa-utensils" style="color: var(--restaurant-color);"></i><span>Restaurant</span></div>
+          <div class="dept-item" data-dept="kitchen"><i class="dept-icon fas fa-kitchen-set" style="color: var(--kitchen-color);"></i><span>Kitchen</span></div>
+          <div class="dept-item" data-dept="admin"><i class="dept-icon fas fa-user-gear" style="color: var(--admin-color);"></i><span>Admin</span></div>
+          <div class="dept-item" data-dept="grounds"><i class="dept-icon fas fa-tree" style="color: var(--grounds-color);"></i><span>Grounds</span></div>
+          <div class="dept-item" data-dept="cultivation"><i class="dept-icon fas fa-seedling" style="color: var(--cultivation-color);"></i><span>Cultivation</span></div>
+          <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()">
+            <i class="dept-icon fas fa-users" style="color: var(--admin-color);"></i>
+            <span>User Management</span>
+          </div>
         </div>
       </nav>
-      
+
       <main class="content-area">
         <div id="dashboardContent" class="view-content">
           <h1 style="margin-bottom: 2rem; font-size: 2rem; font-weight: 700;">Dashboard</h1>
           <div class="dashboard-grid">
-            <div class="card"> <div class="card-header"><div class="card-title">Total Items</div></div> <div class="card-metric" id="totalItems">0</div> <div class="card-subtitle">Across all departments</div> </div>
-            <div class="card"> <div class="card-header"><div class="card-title">Low Stock Alerts</div></div> <div class="card-metric" id="lowStockCount" style="color: var(--accent);">0</div> <div class="card-subtitle">Items need restocking</div> </div>
-            <div class="card"> <div class="card-header"><div class="card-title">Today's Movements</div></div> <div class="card-metric" id="todayMovements">0</div> <div class="card-subtitle">Stock in/out operations</div> </div>
-            <div class="card"> <div class="card-header"><div class="card-title">Active Users</div></div> <div class="card-metric" id="activeUsers">0</div> <div class="card-subtitle">Staff members registered</div> </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Total Items</div></div>
+              <div class="card-metric" id="totalItems">0</div>
+              <div class="card-subtitle">Across all departments</div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Low Stock Alerts</div></div>
+              <div class="card-metric" id="lowStockCount" style="color: var(--accent);">0</div>
+              <div class="card-subtitle">Items need restocking</div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Today's Movements</div></div>
+              <div class="card-metric" id="todayMovements">0</div>
+              <div class="card-subtitle">Stock in/out operations</div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Active Users</div></div>
+              <div class="card-metric" id="activeUsers">0</div>
+              <div class="card-subtitle">Staff members registered</div>
+            </div>
           </div>
           <div class="card">
             <div class="card-header"><div class="card-title">Quick Actions</div></div>
             <div class="actions-grid">
-              <div class="action-btn" onclick="showStockIn()"> <div class="action-icon"><i class="fas fa-box-archive"></i></div> <div>Stock In</div> </div>
-              <div class="action-btn" onclick="showStockOut()"> <div class="action-icon"><i class="fas fa-arrow-right-from-bracket"></i></div> <div>Stock Out</div> </div>
-              <div class="action-btn" onclick="showInventory()"> <div class="action-icon"><i class="fas fa-clipboard-list"></i></div> <div>Inventory</div> </div>
-              <div class="action-btn" onclick="showReports()"> <div class="action-icon"><i class="fas fa-chart-line"></i></div> <div>Reports</div> </div>
-              <div class="action-btn" onclick="showAddItem()"> <div class="action-icon"><i class="fas fa-plus"></i></div> <div>Add Item</div> </div>
-              <div class="action-btn" onclick="showSettings()"> <div class="action-icon"><i class="fas fa-gear"></i></div> <div>Settings</div> </div>
+              <div class="action-btn" onclick="showStockIn()"><div class="action-icon"><i class="fas fa-box-archive"></i></div><div>Stock In</div></div>
+              <div class="action-btn" onclick="showStockOut()"><div class="action-icon"><i class="fas fa-arrow-right-from-bracket"></i></div><div>Stock Out</div></div>
+              <div class="action-btn" onclick="showInventory()"><div class="action-icon"><i class="fas fa-clipboard-list"></i></div><div>Inventory</div></div>
+              <div class="action-btn" onclick="showReports()"><div class="action-icon"><i class="fas fa-chart-line"></i></div><div>Reports</div></div>
+              <div class="action-btn" onclick="showAddItem()"><div class="action-icon"><i class="fas fa-plus"></i></div><div>Add Item</div></div>
+              <div class="action-btn" onclick="showSettings()"><div class="action-icon"><i class="fas fa-gear"></i></div><div>Settings</div></div>
             </div>
           </div>
-          <div class="activity-list"> <div class="card-header"><div class="card-title">Recent Activity</div></div> <div id="recentActivity"></div> </div>
+          <div class="activity-list">
+            <div class="card-header"><div class="card-title">Recent Activity</div></div>
+            <div id="recentActivity"></div>
+          </div>
         </div>
         <div id="actionContent" class="view-content hidden"></div>
         <div id="userManagementContent" class="view-content hidden"></div>
@@ -190,38 +249,35 @@
 
 <script>
   // SUPABASE CONFIG
-  const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
+  const SUPABASE_URL  = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
+  const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // VERSION CONTROL
-  const APP_VERSION = '1.2.0';
+  // CONSTANTS
+  const APP_VERSION = '1.2.1';
+  const USER_ROLES = { ADMIN: 'admin', PROCESSOR: 'processor', VIEWER: 'viewer' };
+  const TELEGRAM_BOT_TOKEN = '7960256341:AAFw_BPZRibbnBLaSYD9Lf5id5Fw3352wDC';
+  const TELEGRAM_CHAT_ID   = '1212406500';
 
-  // STATE MANAGEMENT
+  // STATE
   let currentUser = null;
-  let currentPin = '';
+  let currentPin  = '';
   let offlineQueue = [];
   const pinDigits = document.querySelectorAll('.pin-digit');
   let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {}, version: APP_VERSION };
 
-  // CONSTANTS
-  const USER_ROLES = { ADMIN: 'admin', PROCESSOR: 'processor', VIEWER: 'viewer' };
   const DEPARTMENT_CONFIG = {
-    hotel: {name: 'Hotel Operations', color: 'var(--hotel-color)', categories: ['Linens', 'Toiletries', 'Cleaning Supplies', 'Room Amenities', 'Maintenance']},
-    bar: {name: 'Bar', color: 'var(--bar-color)', categories: ['Spirits', 'Wines', 'Beers', 'Mixers', 'Garnishes', 'Glassware']},
-    restaurant: {name: 'Restaurant', color: 'var(--restaurant-color)', categories: ['Beverages', 'Tableware', 'Linens', 'Service Equipment']},
-    kitchen: {name: 'Kitchen', color: 'var(--kitchen-color)', categories: ['Fresh Produce', 'Meat & Seafood', 'Dairy', 'Dry Goods', 'Spices']},
-    admin: {name: 'Administration', color: 'var(--admin-color)', categories: ['Office Supplies', 'IT Equipment', 'Documents']},
-    grounds: {name: 'Grounds', color: 'var(--grounds-color)', categories: ['Tools', 'Fertilizer', 'Pesticides']},
-    cultivation: {name: 'Cultivation', color: 'var(--cultivation-color)', categories: ['Seeds', 'Soil', 'Nutrients']}
+    hotel:        { name:'Hotel Operations',   color:'var(--hotel-color)',      categories:['Linens','Toiletries','Cleaning Supplies','Room Amenities','Maintenance']},
+    bar:          { name:'Bar',                color:'var(--bar-color)',        categories:['Spirits','Wines','Beers','Mixers','Garnishes','Glassware']},
+    restaurant:   { name:'Restaurant',         color:'var(--restaurant-color)', categories:['Beverages','Tableware','Linens','Service Equipment']},
+    kitchen:      { name:'Kitchen',            color:'var(--kitchen-color)',    categories:['Fresh Produce','Meat & Seafood','Dairy','Dry Goods','Spices']},
+    admin:        { name:'Administration',     color:'var(--admin-color)',      categories:['Office Supplies','IT Equipment','Documents']},
+    grounds:      { name:'Grounds',            color:'var(--grounds-color)',    categories:['Tools','Fertilizer','Pesticides']},
+    cultivation:  { name:'Cultivation',        color:'var(--cultivation-color)',categories:['Seeds','Soil','Nutrients']}
   };
-  const TELEGRAM_BOT_TOKEN = '7960256341:AAFw_BPZRibbnBLaSYD9Lf3id5Fw3352wDC';
-  const TELEGRAM_CHAT_ID = '1212406500';
 
-  // ========================
-  // INDEXEDDB PERSISTENCE
-  // ========================
-  function initIndexedDB() {
+  // ========== IndexedDB helpers ==========
+  async function initIndexedDB() {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open('VanguardStockDB', 3);
       request.onerror = e => reject(e.target.error);
@@ -233,798 +289,325 @@
       request.onsuccess = e => resolve(e.target.result);
     });
   }
-
   async function saveStateToDB() {
-    try {
-      const db = await initIndexedDB();
-      const tx = db.transaction(['state'], 'readwrite');
-      state.version = APP_VERSION;
-      tx.objectStore('state').put(state, 'appState');
-      await new Promise(resolve => tx.oncomplete = resolve);
-    } catch (error) { console.error('Error saving state to DB:', error); }
+    try { const db = await initIndexedDB(); const tx = db.transaction(['state'], 'readwrite'); state.version = APP_VERSION; tx.objectStore('state').put(state, 'appState'); await new Promise(r => tx.oncomplete = r); } catch {}
   }
-
   async function loadStateFromDB() {
-    try {
-      const db = await initIndexedDB();
-      const tx = db.transaction(['state'], 'readonly');
-      const req = tx.objectStore('state').get('appState');
-      await new Promise(resolve => {
-        req.onsuccess = e => {
-          const result = e.target.result;
-          if (result && result.version === APP_VERSION) {
-            state = result;
-          } else {
-            initializeDefaultData();
-          }
-          resolve();
-        };
-      });
-    } catch (error) { initializeDefaultData(); }
+    try { const db = await initIndexedDB(); const req = db.transaction(['state'], 'readonly').objectStore('state').get('appState');
+      await new Promise(r => { req.onsuccess = e => { const res = e.target.result; if (res && res.version === APP_VERSION) state = res; else initializeDefaultData(); r(); }; });
+    } catch { initializeDefaultData(); }
   }
-  
   async function resetAppData() {
-    try {
-      const db = await initIndexedDB();
-      const tx = db.transaction(['state', 'offlineQueue'], 'readwrite');
-      tx.objectStore('state').clear();
-      tx.objectStore('offlineQueue').clear();
-      await new Promise(resolve => tx.oncomplete = resolve);
-      initializeDefaultData();
-      offlineQueue = [];
-      showMessage('App data reset successfully!', 'success');
-    } catch (error) {
-      showMessage('Error resetting app data', 'error');
+    try { const db = await initIndexedDB(); const tx = db.transaction(['state','offlineQueue'], 'readwrite'); tx.objectStore('state').clear(); tx.objectStore('offlineQueue').clear(); await new Promise(r => tx.oncomplete = r); initializeDefaultData(); offlineQueue = []; showAppMessage('App data reset successfully!', 'success'); } catch { showAppMessage('Error resetting app data', 'error'); }
+  }
+  async function addToOfflineQueue(op) {
+    try { const db = await initIndexedDB(); const tx = db.transaction(['offlineQueue'], 'readwrite'); tx.objectStore('offlineQueue').add(op); offlineQueue.push(op); updateSyncStatus(); } catch {}
+  }
+  async function loadOfflineQueue() { try { const db = await initIndexedDB(); const res = await db.transaction(['offlineQueue'], 'readonly').objectStore('offlineQueue').getAll(); offlineQueue = res || []; } catch { offlineQueue = []; } }
+  async function clearOfflineQueue() { try { const db = await initIndexedDB(); db.transaction(['offlineQueue'], 'readwrite').objectStore('offlineQueue').clear(); offlineQueue = []; updateSyncStatus(); } catch {} }
+
+  // ========== Sync / Offline ==========
+  async function processOfflineQueue() {
+    if (!offlineQueue.length) return;
+    for (const op of offlineQueue) {
+      switch (op.type) {
+        case 'ADD_ITEM': {
+          const { data, initialQuantity } = op;
+          await supabase.from('items').insert({ id: data.id, name: data.name, category_id: data.categoryId, unit: data.unit, cost: data.cost, min_stock_level: data.minStockLevel, created_at: data.created_at });
+          await supabase.from('stock_levels').insert({ item_id: data.id, quantity: initialQuantity });
+          break;
+        }
+        case 'UPDATE_ITEM': {
+          const { id, data: d } = op;
+          await supabase.from('items').update({ name: d.name, category_id: d.categoryId, unit: d.unit, cost: d.cost, min_stock_level: d.minStockLevel }).eq('id', id);
+          break;
+        }
+        case 'DELETE_ITEM': {
+          await supabase.from('stock_levels').delete().eq('item_id', op.id);
+          await supabase.from('stock_movements').delete().eq('item_id', op.id);
+          await supabase.from('items').delete().eq('id', op.id);
+          break;
+        }
+        case 'STOCK_MOVEMENT': {
+          await supabase.from('stock_movements').insert({ item_id: op.data.item_id, type: op.data.type, quantity: op.data.quantity, reason: op.data.reason, user_name: op.data.user, staff_member: op.data.staff_member, timestamp: op.data.timestamp, local_id: op.data.local_id });
+          await supabase.from('stock_levels').upsert({ item_id: op.data.item_id, quantity: (await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single()).data?.quantity || 0 });
+          break;
+        }
+        case 'ADD_USER': case 'UPDATE_USER': case 'DELETE_USER': { /* not implemented for demo */ break; }
+      }
     }
+    await clearOfflineQueue();
   }
 
-  async function addToOfflineQueue(operation) {
-    try {
-      const db = await initIndexedDB();
-      const tx = db.transaction(['offlineQueue'], 'readwrite');
-      tx.objectStore('offlineQueue').add(operation);
-      offlineQueue.push(operation);
-      updateSyncStatus();
-    } catch (error) { console.error('Error adding to offline queue:', error); }
-  }
-
-  async function loadOfflineQueue() {
-    try {
-      const db = await initIndexedDB();
-      const tx = db.transaction(['offlineQueue'], 'readonly');
-      const req = tx.objectStore('offlineQueue').getAll();
-      await new Promise(resolve => {
-        req.onsuccess = e => {
-          offlineQueue = e.target.result || [];
-          resolve();
-        };
-      });
-    } catch (error) { offlineQueue = []; }
-  }
-
-  async function clearOfflineQueue() {
-    try {
-      const db = await initIndexedDB();
-      const tx = db.transaction(['offlineQueue'], 'readwrite');
-      tx.objectStore('offlineQueue').clear();
-      offlineQueue = [];
-      updateSyncStatus();
-    } catch (error) { console.error('Error clearing offline queue:', error); }
-  }
-
-  // ========================
-  // FIXED DATA TRANSFORMATION - Replace the existing pullFromSupabase function
-  // ========================
   async function pullFromSupabase(forceFresh = false) {
-    try {
-        console.log('Pulling data from Supabase...');
-        
-        const [deptResult, catResult, itemsResult, stockLevelsResult, movementsResult, usersResult] = await Promise.all([
-            supabase.from('departments').select('*'),
-            supabase.from('categories').select('*'),
-            supabase.from('items').select('*'),
-            supabase.from('stock_levels').select('*'),
-            supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(200),
-            supabase.from('users').select('*')
-        ]);
+    const [deptRes, catRes, itemRes, stockRes, moveRes, userRes] = await Promise.all([
+      supabase.from('departments').select('*'),
+      supabase.from('categories').select('*'),
+      supabase.from('items').select('*'),
+      supabase.from('stock_levels').select('*'),
+      supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(200),
+      supabase.from('users').select('*')
+    ]);
 
-        if (deptResult.error) throw deptResult.error;
-        if (catResult.error) throw catResult.error;
-        if (itemsResult.error) throw itemsResult.error;
-        if (stockLevelsResult.error) throw stockLevelsResult.error;
-        if (movementsResult.error) throw movementsResult.error;
-        if (usersResult.error) throw usersResult.error;
+    const transformed = { departments:{}, categories:{}, items:{}, stockLevels:{}, users:{}, stockMovements:[] };
 
-        console.log('Data fetched from Supabase:', {
-            departments: deptResult.data?.length || 0,
-            categories: catResult.data?.length || 0,
-            items: itemsResult.data?.length || 0,
-            stockLevels: stockLevelsResult.data?.length || 0,
-            movements: movementsResult.data?.length || 0,
-            users: usersResult.data?.length || 0
-        });
+    deptRes.data?.forEach(d => transformed.departments[d.id] = { id: d.id, name: d.name });
+    catRes.data?.forEach(c => transformed.categories[c.id] = { id: c.id, departmentId: c.department_id, name: c.name });
+    itemRes.data?.forEach(i => transformed.items[i.id] = { id: i.id, name: i.name, categoryId: i.category_id, unit: i.unit, cost: i.cost || 0, minStockLevel: i.min_stock_level || 0, created_at: i.created_at });
+    stockRes.data?.forEach(s => transformed.stockLevels[s.item_id] = { item_id: s.item_id, quantity: s.quantity || 0 });
+    userRes.data?.forEach(u => transformed.users[u.username] = { username: u.username, password: u.password, role: u.role, displayName: u.display_name || u.displayName, department: u.department, secondaryDepartment: u.secondary_department || u.secondaryDepartment, isSupervisor: u.is_supervisor || u.isSupervisor || false });
+    transformed.stockMovements = (moveRes.data || []).map(m => ({ id: m.id, item_id: m.item_id, type: m.type, quantity: m.quantity, reason: m.reason, user: m.user_name || m.user, staff_member: m.staff_member, timestamp: m.timestamp, local_id: m.local_id })).slice(0, 200);
 
-        const transformedData = {
-            departments: {},
-            categories: {},
-            items: {},
-            stockLevels: {},
-            users: {},
-            stockMovements: []
-        };
-
-        if (deptResult.data && deptResult.data.length > 0) {
-            deptResult.data.forEach(d => {
-                transformedData.departments[d.id] = { id: d.id, name: d.name };
-            });
-        }
-
-        if (catResult.data && catResult.data.length > 0) {
-            catResult.data.forEach(c => {
-                transformedData.categories[c.id] = { 
-                    id: c.id, 
-                    departmentId: c.department_id, 
-                    name: c.name 
-                };
-            });
-        }
-
-        if (itemsResult.data && itemsResult.data.length > 0) {
-            itemsResult.data.forEach(i => {
-                transformedData.items[i.id] = {
-                    id: i.id,
-                    name: i.name,
-                    categoryId: i.category_id,
-                    unit: i.unit,
-                    cost: i.cost || 0,
-                    minStockLevel: i.min_stock_level || 0,
-                    created_at: i.created_at
-                };
-            });
-        }
-
-        if (stockLevelsResult.data && stockLevelsResult.data.length > 0) {
-            stockLevelsResult.data.forEach(sl => {
-                transformedData.stockLevels[sl.item_id] = { 
-                    item_id: sl.item_id,
-                    quantity: sl.quantity || 0
-                };
-            });
-        }
-
-        if (usersResult.data && usersResult.data.length > 0) {
-            usersResult.data.forEach(u => {
-                transformedData.users[u.username] = {
-                    username: u.username,
-                    password: u.password,
-                    role: u.role,
-                    displayName: u.display_name || u.displayName,
-                    department: u.department,
-                    secondaryDepartment: u.secondary_department || u.secondaryDepartment,
-                    isSupervisor: u.is_supervisor || u.isSupervisor || false
-                };
-            });
-        }
-
-        if (movementsResult.data && movementsResult.data.length > 0) {
-            transformedData.stockMovements = movementsResult.data.map(m => ({
-                id: m.id,
-                item_id: m.item_id,
-                type: m.type,
-                quantity: m.quantity,
-                reason: m.reason,
-                user: m.user_name || m.user,
-                staff_member: m.staff_member,
-                timestamp: m.timestamp,
-                local_id: m.local_id
-            }));
-        }
-
-        if (forceFresh) {
-            const localUsers = { ...state.users };
-            state.departments = transformedData.departments;
-            state.categories = transformedData.categories;
-            state.items = transformedData.items;
-            state.stockLevels = transformedData.stockLevels;
-            state.stockMovements = transformedData.stockMovements;
-            
-            if (Object.keys(transformedData.users).length > 0) {
-                state.users = transformedData.users;
-            } else {
-                state.users = localUsers;
-            }
-        } else {
-            Object.assign(state.departments, transformedData.departments);
-            Object.assign(state.categories, transformedData.categories);
-            Object.assign(state.items, transformedData.items);
-            Object.assign(state.stockLevels, transformedData.stockLevels);
-            Object.assign(state.users, transformedData.users);
-            
-            if (transformedData.stockMovements.length > 0) {
-                const existingIds = new Set(state.stockMovements.map(m => m.id));
-                const newMovements = transformedData.stockMovements.filter(m => !existingIds.has(m.id));
-                state.stockMovements = [...state.stockMovements, ...newMovements]
-                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                    .slice(0, 200);
-            }
-        }
-
-        console.log('Data merge completed');
-
-    } catch (error) {
-        console.error('Error pulling from Supabase:', error);
-        throw new Error(`Failed to fetch latest data: ${error.message}`);
+    if (forceFresh) {
+      const localUsers = { ...state.users };
+      Object.assign(state, transformed);
+      if (Object.keys(transformed.users).length === 0) state.users = localUsers;
+    } else {
+      Object.assign(state.departments, transformed.departments);
+      Object.assign(state.categories, transformed.categories);
+      Object.assign(state.items, transformed.items);
+      Object.assign(state.stockLevels, transformed.stockLevels);
+      Object.assign(state.users, transformed.users);
+      if (transformed.stockMovements.length) {
+        const existingIds = new Set(state.stockMovements.map(m => m.id));
+        const newMoves = transformed.stockMovements.filter(m => !existingIds.has(m.id));
+        state.stockMovements = [...state.stockMovements, ...newMoves].slice(0, 200);
+      }
     }
   }
 
-  // ========================
-  // FIXED SYNC FUNCTION - Replace the existing syncData function
-  // ========================
   async function syncData() {
-    const syncIndicator = document.getElementById('syncIndicator');
-    const syncStatus = document.getElementById('syncStatus');
-    syncIndicator.classList.add('syncing');
-    syncStatus.textContent = 'Syncing...';
-    
+    const indicator = document.getElementById('syncIndicator');
+    const status   = document.getElementById('syncStatus');
+    indicator.classList.add('syncing'); status.textContent = 'Syncing...';
     try {
-        const localChanges = {
-            movements: state.stockMovements.filter(m => !m.id),
-            items: {...state.items},
-            users: {...state.users},
-            stockLevels: {...state.stockLevels}
-        };
-
-        await processOfflineQueue();
-        await pullFromSupabase();
-        
-        localChanges.movements.forEach(m => {
-            if (!m.id && !state.stockMovements.some(sm => sm.local_id === m.local_id)) {
-                state.stockMovements.unshift(m);
-            }
-        });
-        
-        Object.keys(localChanges.items).forEach(id => {
-            if (!state.items[id]) {
-                state.items[id] = localChanges.items[id];
-            }
-        });
-        
-        Object.keys(localChanges.users).forEach(username => {
-            if (!state.users[username]) {
-                state.users[username] = localChanges.users[username];
-            }
-        });
-
-        await saveStateToDB();
-        updateDashboardMetrics();
-        renderActivityFeed();
-        
-        showAppMessage('Data synchronized successfully!', 'success');
-        
-    } catch (error) {
-        console.error('Sync error:', error);
-        showAppMessage(`Sync failed: ${error.message}`, 'error');
+      await processOfflineQueue();
+      await pullFromSupabase();
+      await saveStateToDB();
+      updateDashboardMetrics(); renderActivityFeed();
+      showAppMessage('Data synchronized successfully!', 'success');
+    } catch (e) {
+      console.error(e); showAppMessage(`Sync failed: ${e.message}`, 'error');
     } finally {
-        syncIndicator.classList.remove('syncing');
-        updateSyncStatus();
+      indicator.classList.remove('syncing'); updateSyncStatus();
     }
   }
 
-  // ========================
-  // FRESH SYNC FUNCTION - Add this new function
-  // ========================
   async function freshSyncData() {
-    const syncIndicator = document.getElementById('syncIndicator');
-    const syncStatus = document.getElementById('syncStatus');
-    
-    if (!confirm('This will replace all local data with server data. Any unsaved changes will be lost. Continue?')) {
-        return;
-    }
-    
-    syncIndicator.classList.add('syncing');
-    syncStatus.textContent = 'Fresh Sync...';
-    
+    if (!confirm('This will replace ALL local data with server data. Continue?')) return;
+    const indicator = document.getElementById('syncIndicator');
+    const status   = document.getElementById('syncStatus');
+    indicator.classList.add('syncing'); status.textContent = 'Fresh Sync...';
     try {
-        await processOfflineQueue();
-        await pullFromSupabase(true);
-        await saveStateToDB();
-        
-        updateDashboardMetrics();
-        renderActivityFeed();
-        
-        if (document.getElementById('dashboardContent').classList.contains('hidden')) {
-            showDashboard();
-        }
-        
-        showAppMessage('Fresh sync completed successfully!', 'success');
-        
-    } catch (error) {
-        console.error('Fresh sync error:', error);
-        showAppMessage(`Fresh sync failed: ${error.message}`, 'error');
+      await processOfflineQueue();
+      await pullFromSupabase(true);
+      await saveStateToDB();
+      updateDashboardMetrics(); renderActivityFeed();
+      showAppMessage('Fresh sync completed!', 'success');
+    } catch (e) {
+      console.error(e); showAppMessage(`Fresh sync failed: ${e.message}`, 'error');
     } finally {
-        syncIndicator.classList.remove('syncing');
-        updateSyncStatus();
+      indicator.classList.remove('syncing'); updateSyncStatus();
     }
   }
 
-  // CORE LOGIC
+  function updateSyncStatus() {
+    const indicator = document.getElementById('syncIndicator');
+    const status    = document.getElementById('syncStatus');
+    if (offlineQueue.length) {
+      indicator.className = 'sync-indicator syncing';
+      status.textContent  = `${offlineQueue.length} pending`;
+    } else if (!navigator.onLine) {
+      indicator.className = 'sync-indicator offline';
+      status.textContent  = 'Offline';
+    } else {
+      indicator.className = 'sync-indicator';
+      status.textContent  = 'Online';
+    }
+  }
+
+  // ========== Core logic ==========
   function initializeDefaultData() {
-    state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {}, version: APP_VERSION };
-    Object.keys(DEPARTMENT_CONFIG).forEach(deptKey => {
-      const deptId = `dept_${deptKey}`;
-      state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[deptKey].name };
-      DEPARTMENT_CONFIG[deptKey].categories.forEach(catName => {
-        const catId = `cat_${deptKey}_${catName.toLowerCase().replace(/\s/g, '')}`;
-        state.categories[catId] = { id: catId, departmentId: deptId, name: catName };
+    state = { departments:{}, categories:{}, items:{}, stockLevels:{}, stockMovements:[], users:{}, version: APP_VERSION };
+    Object.keys(DEPARTMENT_CONFIG).forEach(key => {
+      const deptId = `dept_${key}`;
+      state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[key].name };
+      DEPARTMENT_CONFIG[key].categories.forEach(cat => {
+        const catId = `cat_${key}_${cat.toLowerCase().replace(/\s+/g, '')}`;
+        state.categories[catId] = { id: catId, departmentId: deptId, name: cat };
       });
     });
     state.users = {
-      'Kelvin': {username: 'Kelvin', password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all'},
-      'Franklin': {username: 'Franklin', password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all'},
-      'Chisomo': {username: 'Chisomo', password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin'},
-      'Victor': {username: 'Victor', password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin'},
-      'Boston': {username: 'Boston', password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', secondaryDepartment: 'restaurant'},
-      'Magah': {username: 'Magah', password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', secondaryDepartment: 'restaurant'},
-      'Phillip': {username: 'Phillip', password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', secondaryDepartment: 'restaurant', isSupervisor: true},
-      'Gift': {username: 'Gift', password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant'},
-      'Rhodney': {username: 'Rhodney', password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true},
-      'Mike': {username: 'Mike', password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant'},
-      'Matias': {username: 'Matias', password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel'},
-      'Kennedy': {username: 'Kennedy', password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel'},
-      'Mphatso': {username: 'Mphatso', password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', secondaryDepartment: 'hotel'},
-      'Gaven': {username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', secondaryDepartment: 'cultivation'},
-      'Maya': {username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', secondaryDepartment: 'cultivation'}
+      'Kelvin': { username:'Kelvin', password:'0100*', role:USER_ROLES.ADMIN, displayName:'Kelvin', department:'all' },
+      'Franklin': { username:'Franklin', password:'1100%', role:USER_ROLES.ADMIN, displayName:'Franklin', department:'all' },
+      'Chisomo': { username:'Chisomo', password:'2100%', role:USER_ROLES.ADMIN, displayName:'Chisomo', department:'admin' },
+      'Victor': { username:'Victor', password:'02000', role:USER_ROLES.ADMIN, displayName:'Victor', department:'admin' },
+      'Boston': { username:'Boston', password:'61006', role:USER_ROLES.PROCESSOR, displayName:'Boston', department:'bar', secondaryDepartment:'restaurant' },
+      'Magah': { username:'Magah', password:'41004', role:USER_ROLES.PROCESSOR, displayName:'Magah', department:'bar', secondaryDepartment:'restaurant' },
+      'Phillip': { username:'Phillip', password:'51005', role:USER_ROLES.PROCESSOR, displayName:'Phillip', department:'bar', secondaryDepartment:'restaurant', isSupervisor:true },
+      'Gift': { username:'Gift', password:'71007', role:USER_ROLES.PROCESSOR, displayName:'Gift', department:'restaurant' },
+      'Rhodney': { username:'Rhodney', password:'81008', role:USER_ROLES.PROCESSOR, displayName:'Rhodney', department:'restaurant', isSupervisor:true },
+      'Mike': { username:'Mike', password:'91009', role:USER_ROLES.PROCESSOR, displayName:'Mike', department:'restaurant' },
+      'Matias': { username:'Matias', password:'11100', role:USER_ROLES.PROCESSOR, displayName:'Matias', department:'hotel' },
+      'Kennedy': { username:'Kennedy', password:'22202', role:USER_ROLES.PROCESSOR, displayName:'Kennedy', department:'hotel' },
+      'Mphatso': { username:'Mphatso', password:'33303', role:USER_ROLES.PROCESSOR, displayName:'Mphatso', department:'restaurant', secondaryDepartment:'hotel' },
+      'Gaven': { username:'Gaven', password:'44404', role:USER_ROLES.PROCESSOR, displayName:'Gaven', department:'grounds', secondaryDepartment:'cultivation' },
+      'Maya': { username:'Maya', password:'55505', role:USER_ROLES.PROCESSOR, displayName:'Maya', department:'grounds', secondaryDepartment:'cultivation' }
     };
   }
 
-  function generateId() { return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; }
+  function generateId() { return `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`; }
 
-  function addNewItem(itemData) {
-    const itemId = generateId();
-    const newItem = {
-      id: itemId, name: itemData.name, categoryId: itemData.categoryId, unit: itemData.unit,
-      cost: parseFloat(itemData.cost) || 0, minStockLevel: parseFloat(itemData.minStockLevel) || 0,
-      created_at: new Date().toISOString()
-    };
-    state.items[itemId] = newItem;
-    state.stockLevels[itemId] = { item_id: itemId, quantity: parseFloat(itemData.initialQuantity) || 0 };
-    logMovement(itemId, 'in', parseFloat(itemData.initialQuantity), 'Initial stock');
-    addToOfflineQueue({ type: 'ADD_ITEM', data: newItem, initialQuantity: parseFloat(itemData.initialQuantity) || 0 });
-    saveStateToDB();
-    updateDashboardMetrics();
-    renderActivityFeed();
-    return itemId;
+  function addNewItem(data) {
+    const id = generateId();
+    state.items[id] = { id, name: data.name, categoryId: data.categoryId, unit: data.unit, cost: +data.cost || 0, minStockLevel: +data.minStockLevel || 0, created_at: new Date().toISOString() };
+    state.stockLevels[id] = { item_id: id, quantity: +data.initialQuantity || 0 };
+    logMovement(id, 'in', +data.initialQuantity, 'Initial stock');
+    addToOfflineQueue({ type:'ADD_ITEM', data:state.items[id], initialQuantity:+data.initialQuantity || 0 });
+    saveStateToDB(); updateDashboardMetrics(); renderActivityFeed(); return id;
   }
-
-  function updateItem(itemId, itemData) {
-    if (!state.items[itemId]) return false;
-    state.items[itemId] = { ...state.items[itemId], ...itemData };
-    addToOfflineQueue({ type: 'UPDATE_ITEM', id: itemId, data: itemData });
-    saveStateToDB();
-    return true;
-  }
-
-  function deleteItem(itemId) {
-    if (!state.items[itemId]) return false;
-    delete state.items[itemId];
-    delete state.stockLevels[itemId];
-    state.stockMovements = state.stockMovements.filter(m => m.item_id !== itemId);
-    addToOfflineQueue({ type: 'DELETE_ITEM', id: itemId });
-    saveStateToDB();
-    updateDashboardMetrics();
-    renderActivityFeed();
-    return true;
-  }
-
-  function adjustStock(itemId, quantity, reason, staffMember = null) {
-    const currentStock = state.stockLevels[itemId];
-    const item = state.items[itemId];
-    if (!currentStock || !item) { showAppMessage('Item not found!', 'error'); return false; }
-    if (currentStock.quantity + quantity < 0) { showAppMessage('Error: Cannot have negative stock.', 'error'); return false; }
-    const oldQuantity = currentStock.quantity;
-    currentStock.quantity += quantity;
-    const movementType = quantity > 0 ? 'in' : 'out';
-    logMovement(itemId, movementType, Math.abs(quantity), reason, staffMember);
-    addToOfflineQueue({
-      type: 'STOCK_MOVEMENT',
-      data: { item_id: itemId, type: movementType, quantity: Math.abs(quantity), reason, user: currentUser.displayName, staff_member: staffMember, timestamp: new Date().toISOString() }
-    });
-    saveStateToDB();
-    updateDashboardMetrics();
-    renderActivityFeed();
-    if (movementType === 'out') {
-      const staffUser = staffMember ? state.users[staffMember] : null;
-      const staffName = staffUser ? staffUser.displayName : staffMember || 'Unknown';
-      sendTelegramMessage(`✅ *STOCK ISSUED*\n\nItem: *${item.name}*\nQuantity: *${Math.abs(quantity)} ${item.unit}*\nIssued to: *${staffName}*\nReason: *${reason}*`);
-      if (oldQuantity > item.minStockLevel && currentStock.quantity <= item.minStockLevel) {
-        sendTelegramMessage(`🚨 *LOW STOCK ALERT* 🚨\n\nItem: *${item.name}*\nQuantity: *${currentStock.quantity} ${item.unit}*\nMinimum Level: *${item.minStockLevel} ${item.unit}*`);
-      }
+  function updateItem(id, data) { if (!state.items[id]) return false; Object.assign(state.items[id], data); addToOfflineQueue({ type:'UPDATE_ITEM', id, data }); saveStateToDB(); return true; }
+  function deleteItem(id) { if (!state.items[id]) return false; delete state.items[id]; delete state.stockLevels[id]; state.stockMovements = state.stockMovements.filter(m => m.item_id !== id); addToOfflineQueue({ type:'DELETE_ITEM', id }); saveStateToDB(); updateDashboardMetrics(); renderActivityFeed(); return true; }
+  function adjustStock(id, qty, reason, staff=null) {
+    const item  = state.items[id];
+    const stock = state.stockLevels[id];
+    if (!item || !stock) { showAppMessage('Item not found!', 'error'); return false; }
+    if (stock.quantity + qty < 0) { showAppMessage('Cannot have negative stock.', 'error'); return false; }
+    const old = stock.quantity;
+    stock.quantity += qty;
+    const type = qty > 0 ? 'in' : 'out';
+    logMovement(id, type, Math.abs(qty), reason, staff);
+    addToOfflineQueue({ type:'STOCK_MOVEMENT', data:{ item_id:id, type, quantity:Math.abs(qty), reason, user:currentUser.displayName, staff_member:staff, timestamp:new Date().toISOString(), local_id:generateId() } });
+    saveStateToDB(); updateDashboardMetrics(); renderActivityFeed();
+    if (type === 'out') {
+      const staffUser = staff ? state.users[staff] : null;
+      const staffName = staffUser ? staffUser.displayName : staff || 'Unknown';
+      sendTelegramMessage(`✅ **STOCK ISSUED**\n\nItem: **${item.name}**\nQuantity: **${Math.abs(qty)} ${item.unit}**\nIssued to: **${staffName}**\nReason: **${reason}**`);
+      if (old > item.minStockLevel && stock.quantity <= item.minStockLevel) sendTelegramMessage(`🚨 **LOW STOCK ALERT**\n\nItem: **${item.name}**\nQuantity: **${stock.quantity} ${item.unit}**\nMinimum Level: **${item.minStockLevel} ${item.unit}**`);
     }
     return true;
   }
-
-  function logMovement(itemId, type, quantity, reason, staffMember = null) {
-    state.stockMovements.unshift({
-      id: generateId(), item_id: itemId, type, quantity, reason,
-      user: currentUser ? currentUser.displayName : 'System', staff_member: staffMember,
-      timestamp: new Date().toISOString()
-    });
+  function logMovement(id, type, qty, reason, staff=null) {
+    state.stockMovements.unshift({ id:generateId(), item_id:id, type, qty, reason, user:currentUser?.displayName || 'System', staff_member:staff, timestamp:new Date().toISOString() });
     if (state.stockMovements.length > 200) state.stockMovements.pop();
   }
+  function addUser(data) { if (state.users[data.username]) { showAppMessage('User already exists!', 'error'); return false; } state.users[data.username] = data; addToOfflineQueue({ type:'ADD_USER', data }); saveStateToDB(); return true; }
+  function updateUser(username, data) { if (!state.users[username]) return false; Object.assign(state.users[username], data); addToOfflineQueue({ type:'UPDATE_USER', id:username, data }); saveStateToDB(); return true; }
+  function deleteUser(username) { if (!state.users[username]) return false; if (username === currentUser.username) { showAppMessage('Cannot delete your own account!', 'error'); return false; } delete state.users[username]; addToOfflineQueue({ type:'DELETE_USER', id:username }); saveStateToDB(); return true; }
 
-  function addUser(userData) {
-    if (state.users[userData.username]) { showAppMessage('User already exists!', 'error'); return false; }
-    state.users[userData.username] = userData;
-    addToOfflineQueue({ type: 'ADD_USER', data: userData });
-    saveStateToDB();
-    return true;
+  async function sendTelegramMessage(msg) {
+    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+    try { await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ chat_id:TELEGRAM_CHAT_ID, text:msg, parse_mode:'Markdown' }) }); } catch {}
   }
 
-  function updateUser(username, userData) {
-    if (!state.users[username]) return false;
-    state.users[username] = { ...state.users[username], ...userData };
-    addToOfflineQueue({ type: 'UPDATE_USER', id: username, data: userData });
-    saveStateToDB();
-    return true;
-  }
-
-  function deleteUser(username) {
-    if (!state.users[username]) return false;
-    if (username === currentUser.username) { showAppMessage('Cannot delete your own account!', 'error'); return false; }
-    delete state.users[username];
-    addToOfflineQueue({ type: 'DELETE_USER', id: username });
-    saveStateToDB();
-    return true;
-  }
-  
-  async function sendTelegramMessage(message) {
-      if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) { console.warn('Telegram not configured.'); return; }
-      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-      try {
-          const response = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message, parse_mode: 'Markdown' }),
-          });
-          const data = await response.json();
-          if (!data.ok) console.error('Telegram API Error:', data.description);
-      } catch (error) { console.error('Failed to send Telegram message:', error); }
-  }
-
-
-  // UI RENDERING
+  // ========== UI helpers ==========
   function updateDashboardMetrics() {
     document.getElementById('totalItems').textContent = Object.keys(state.items).length;
-    document.getElementById('lowStockCount').textContent = Object.values(state.items).filter(item => state.stockLevels[item.id]?.quantity <= item.minStockLevel).length;
+    document.getElementById('lowStockCount').textContent = Object.values(state.items).filter(i => (state.stockLevels[i.id]?.quantity || 0) <= i.minStockLevel).length;
     const today = new Date().toDateString();
     document.getElementById('todayMovements').textContent = state.stockMovements.filter(m => new Date(m.timestamp).toDateString() === today).length;
     document.getElementById('activeUsers').textContent = Object.keys(state.users).length;
   }
-
   function renderActivityFeed() {
-    const feed = document.getElementById('recentActivity');
-    feed.innerHTML = '';
-    if (state.stockMovements.length === 0) {
-        feed.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No recent activity.</p>';
-        return;
-    }
-    state.stockMovements.slice(0, 5).forEach(movement => {
-        const item = state.items[movement.item_id];
-        if (!item) return;
-        let icon = 'fa-arrows-up-down';
-        let text = '';
-        let iconColor = 'var(--secondary)';
-        if (movement.type === 'in') {
-            icon = 'fa-arrow-down';
-            iconColor = 'var(--success)';
-            text = `${movement.user} added ${movement.quantity} ${item.unit} of ${item.name}.`;
-        } else {
-            icon = 'fa-arrow-up';
-            iconColor = 'var(--accent)';
-            const staffUser = movement.staff_member ? state.users[movement.staff_member] : null;
-            const staffName = staffUser ? (staffUser.displayName || staffUser.username) : (movement.staff_member || 'Unknown');
-            text = `${movement.user} issued ${movement.quantity} ${item.unit} of ${item.name} to ${staffName}.`;
-        }
-        feed.innerHTML += `
-            <div class="activity-item">
-                <div class="activity-avatar" style="color: ${iconColor};">
-                    <i class="fas ${icon}"></i>
-                </div>
-                <div class="activity-content">
-                    <div class="activity-text">${text}</div>
-                    <div class="activity-time">${getTimeAgo(movement.timestamp)}</div>
-                </div>
-            </div>
-        `;
+    const feed = document.getElementById('recentActivity'); feed.innerHTML = '';
+    if (!state.stockMovements.length) { feed.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:2rem;">No recent activity.</p>'; return; }
+    state.stockMovements.slice(0,5).forEach(m => {
+      const item = state.items[m.item_id]; if (!item) return;
+      let icon = 'fa-arrows-up-down', color = 'var(--secondary)', text = '';
+      if (m.type === 'in') { icon = 'fa-arrow-down'; color = 'var(--success)'; text = `${m.user} added ${m.qty} ${item.unit} of ${item.name}.`; }
+      else { icon = 'fa-arrow-up'; color = 'var(--accent)'; const staffUser = m.staff_member ? state.users[m.staff_member] : null; const staffName = staffUser ? staffUser.displayName : m.staff_member || 'Unknown'; text = `${m.user} issued ${m.qty} ${item.unit} of ${item.name} to ${staffName}.`; }
+      feed.innerHTML += `<div class="activity-item"><div class="activity-avatar" style="color:${color}"><i class="fas ${icon}"></i></div><div class="activity-content"><div class="activity-text">${text}</div><div class="activity-time">${getTimeAgo(m.timestamp)}</div></div></div>`;
     });
   }
-
   function getTimeAgo(ts) {
-    const seconds = Math.floor((new Date() - new Date(ts)) / 1000);
-    let interval = seconds / 31536000;
-    if (interval > 1) return `${Math.floor(interval)} years ago`;
-    interval = seconds / 2592000;
-    if (interval > 1) return `${Math.floor(interval)} months ago`;
-    interval = seconds / 86400;
-    if (interval > 1) return `${Math.floor(interval)} days ago`;
-    interval = seconds / 3600;
-    if (interval > 1) return `${Math.floor(interval)} hours ago`;
-    interval = seconds / 60;
-    if (interval > 1) return `${Math.floor(interval)} minutes ago`;
-    return "Just now";
+    const secs = Math.floor((new Date() - new Date(ts)) / 1000);
+    const divs = [31536000, 2592000, 86400, 3600, 60];
+    const names = ['year','month','day','hour','minute'];
+    for (let i = 0; i < divs.length; i++) { const interval = secs / divs[i]; if (interval >= 1) return `${Math.floor(interval)} ${names[i]}${Math.floor(interval)>1?'s':''} ago`; }
+    return 'Just now';
   }
+  function switchView(view, html='') { document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden')); const el = document.getElementById(view); if (html) el.innerHTML = html; el.classList.remove('hidden'); el.style.animation = 'fadeIn .3s ease'; }
+  function showDashboard() { switchView('dashboardContent'); document.querySelectorAll('.dept-item').forEach(d => d.classList.remove('active')); document.querySelector('[data-dept="dashboard"]').classList.add('active'); updateDashboardMetrics(); renderActivityFeed(); }
 
-  function switchView(view, content = "") {
-    document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
-    const el = document.getElementById(view);
-    if (view === 'actionContent' || view === 'userManagementContent') el.innerHTML = content;
-    el.classList.remove("hidden");
-    el.style.animation = 'fadeIn 0.3s ease-in-out';
-  }
-
-  function showDashboard() {
-    switchView('dashboardContent');
-    document.querySelectorAll('.dept-item').forEach(i => i.classList.remove('active'));
-    document.querySelector('.dept-item[data-dept="dashboard"]').classList.add('active');
-    updateDashboardMetrics();
-    renderActivityFeed();
-  }
-
-  // QUICK ACTIONS
+  // ========== Quick actions ==========
   function showAddItem() {
     const cats = Object.values(state.categories).map(c => `<option value="${c.id}">${state.departments[c.departmentId]?.name || 'Unknown'} - ${c.name}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add New Item</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="addItemForm"><div class="form-grid"><div class="form-group"><label for="itemName">Name</label><input type="text" id="itemName" required></div><div class="form-group"><label for="itemCategory">Category</label><select id="itemCategory" required>${cats}</select></div><div class="form-group"><label for="itemUnit">Unit</label><input type="text" id="itemUnit" required></div><div class="form-group"><label for="itemCost">Cost</label><input type="number" id="itemCost" value="0" step="any" required></div><div class="form-group"><label for="initialQuantity">Initial Qty</label><input type="number" id="initialQuantity" value="0" step="any" required></div><div class="form-group"><label for="minStockLevel">Min. Stock</label><input type="number" id="minStockLevel" value="0" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
-    document.getElementById('addItemForm').addEventListener('submit', e => {
-      e.preventDefault();
-      addNewItem({ name: itemName.value, categoryId: itemCategory.value, unit: itemUnit.value, cost: itemCost.value, initialQuantity: initialQuantity.value, minStockLevel: minStockLevel.value });
-      showDashboard();
-    });
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add New Item</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="addItemForm"><div class="form-grid"><div class="form-group"><label>Name</label><input id="itemName" required></div><div class="form-group"><label>Category</label><select id="itemCategory" required>${cats}</select></div><div class="form-group"><label>Unit</label><input id="itemUnit" required></div><div class="form-group"><label>Cost</label><input type="number" id="itemCost" value="0" step="any" required></div><div class="form-group"><label>Initial Qty</label><input type="number" id="initialQuantity" value="0" step="any" required></div><div class="form-group"><label>Min. Stock</label><input type="number" id="minStockLevel" value="0" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+    document.getElementById('addItemForm').addEventListener('submit', e => { e.preventDefault(); addNewItem({ name:itemName.value, categoryId:itemCategory.value, unit:itemUnit.value, cost:itemCost.value, initialQuantity:initialQuantity.value, minStockLevel:minStockLevel.value }); showDashboard(); });
   }
-  
   function showInventory() {
-    const isAdmin = currentUser?.role === USER_ROLES.ADMIN;
-    let rows = Object.keys(state.items).length === 0 ? '<tr><td colspan="6">No items in inventory.</td></tr>' : Object.values(state.items).map(item => {
-      const cat = state.categories[item.categoryId];
-      const stock = state.stockLevels[item.id];
-      const dept = cat ? state.departments[cat.departmentId] : null;
-      return `<tr><td>${item.name}</td><td>${cat?.name || 'N/A'}</td><td>${dept?.name || 'N/A'}</td><td>${stock?.quantity || 0} ${item.unit}</td><td>${item.minStockLevel} ${item.unit}</td>${isAdmin ? `<td><button class="btn-icon" onclick="editItemForm('${item.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteItemPrompt('${item.id}')"><i class="fas fa-trash"></i></button></td>` : '<td>-</td>'}</tr>`;
-    }).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Inventory</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept.</th><th>Qty</th><th>Min. Stock</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
+    const rows = Object.values(state.items).length ? Object.values(state.items).map(i => {
+      const cat = state.categories[i.categoryId], dept = cat ? state.departments[cat.departmentId] : null, stock = state.stockLevels[i.id];
+      return `<tr><td>${i.name}</td><td>${cat?.name || 'N/A'}</td><td>${dept?.name || 'N/A'}</td><td>${stock?.quantity || 0} ${i.unit}</td><td>${i.minStockLevel} ${i.unit}</td><td><button class="btn-icon" onclick="editItemForm('${i.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteItemPrompt('${i.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
+    }).join('') : '<tr><td colspan="6">No items.</td></tr>';
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Inventory</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept</th><th>Qty</th><th>Min</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
   }
-
-  function editItemForm(itemId) {
-    const item = state.items[itemId];
-    if (!item) return;
-    const cats = Object.values(state.categories).map(c => `<option value="${c.id}" ${c.id === item.categoryId ? 'selected' : ''}>${state.departments[c.departmentId]?.name || 'Unknown'} - ${c.name}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${item.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><form id="editItemForm"><div class="form-grid"><div class="form-group"><label for="editName">Name</label><input type="text" id="editName" value="${item.name}" required></div><div class="form-group"><label for="editCat">Category</label><select id="editCat" required>${cats}</select></div><div class="form-group"><label for="editUnit">Unit</label><input type="text" id="editUnit" value="${item.unit}" required></div><div class="form-group"><label for="editCost">Cost</label><input type="number" id="editCost" value="${item.cost}" step="any" required></div><div class="form-group"><label for="editMin">Min. Stock</label><input type="number" id="editMin" value="${item.minStockLevel}" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showInventory()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`);
-    document.getElementById('editItemForm').addEventListener('submit', e => {
-      e.preventDefault();
-      updateItem(itemId, { name: editName.value, categoryId: editCat.value, unit: editUnit.value, cost: editCost.value, minStockLevel: editMin.value });
-      showInventory();
-    });
-  }
-
-  function deleteItemPrompt(itemId) {
-    const item = state.items[itemId];
-    if (!item) return;
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${item.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure? This is permanent.</p><div class="form-actions"><button class="btn btn-secondary" onclick="showInventory()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteItem('${itemId}')">Delete</button></div></div>`);
-  }
-
-  function confirmDeleteItem(itemId) {
-    deleteItem(itemId);
-    showInventory();
-  }
-
-  function showUserManagement() {
-    if (currentUser?.displayName !== 'Franklin') return;
-    let rows = Object.values(state.users).map(u => `<tr><td>${u.username}</td><td>${u.displayName}</td><td>${u.role}</td><td>${u.department}</td><td><button class="btn-icon" onclick="editUserForm('${u.username}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteUserPrompt('${u.username}')"><i class="fas fa-trash"></i></button></td></tr>`).join('');
-    switchView('userManagementContent', `<div class="card"><div class="card-header"><div class="card-title">User Management</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="form-actions"><button class="btn btn-primary" onclick="showAddUserForm()"><i class="fas fa-plus"></i> Add User</button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Username</th><th>Display Name</th><th>Role</th><th>Dept.</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
-  }
-
-  function showAddUserForm() {
-    const depts = Object.values(state.departments).map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add User</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="addUserForm"><div class="form-grid"><div class="form-group"><label for="username">Username</label><input type="text" id="username" required></div><div class="form-group"><label for="displayName">Display Name</label><input type="text" id="displayName" required></div><div class="form-group"><label for="password">Password</label><input type="password" id="password" required></div><div class="form-group"><label for="role">Role</label><select id="role" required><option value="admin">Admin</option><option value="processor" selected>Processor</option><option value="viewer">Viewer</option></select></div><div class="form-group"><label for="department">Dept.</label><select id="department" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
-    document.getElementById('addUserForm').addEventListener('submit', e => {
-      e.preventDefault();
-      addUser({ username: username.value, displayName: displayName.value, password: password.value, role: role.value, department: department.value });
-      showUserManagement();
-    });
-  }
-  
-  function editUserForm(username) {
-    const user = state.users[username];
-    if (!user) return;
-    const depts = Object.values(state.departments).map(d => `<option value="${d.id}" ${d.id === user.department ? 'selected' : ''}>${d.name}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${user.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="editUserForm"><div class="form-grid"><div class="form-group"><label>Username</label><input type="text" value="${user.username}" disabled></div><div class="form-group"><label for="editDisplayName">Display Name</label><input type="text" id="editDisplayName" value="${user.displayName}" required></div><div class="form-group"><label for="editPassword">Password</label><input type="password" id="editPassword" placeholder="Unchanged"></div><div class="form-group"><label for="editRole">Role</label><select id="editRole" required><option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option><option value="processor" ${user.role === 'processor' ? 'selected' : ''}>Processor</option><option value="viewer" ${user.role === 'viewer' ? 'selected' : ''}>Viewer</option></select></div><div class="form-group"><label for="editDept">Dept.</label><select id="editDept" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`);
-    document.getElementById('editUserForm').addEventListener('submit', e => {
-      e.preventDefault();
-      updateUser(username, { displayName: editDisplayName.value, password: editPassword.value || user.password, role: editRole.value, department: editDept.value });
-      showUserManagement();
-    });
-  }
-
-  function deleteUserPrompt(username) {
-    const user = state.users[username];
-    if (!user) return;
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${user.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure?</p><div class="form-actions"><button class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteUser('${username}')">Delete</button></div></div>`);
-  }
-
-  function confirmDeleteUser(username) {
-    deleteUser(username);
-    showUserManagement();
-  }
+  function editItemForm(id) { const i = state.items[id]; if (!i) return; const cats = Object.values(state.categories).map(c => `<option value="${c.id}" ${c.id===i.categoryId?'selected':''}>${state.departments[c.departmentId]?.name || 'Unknown'} - ${c.name}</option>`).join(''); switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${i.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><form id="editItemForm"><div class="form-grid"><div class="form-group"><label>Name</label><input id="editName" value="${i.name}" required></div><div class="form-group"><label>Category</label><select id="editCat" required>${cats}</select></div><div class="form-group"><label>Unit</label><input id="editUnit" value="${i.unit}" required></div><div class="form-group"><label>Cost</label><input type="number" id="editCost" value="${i.cost}" step="any" required></div><div class="form-group"><label>Min. Stock</label><input type="number" id="editMin" value="${i.minStockLevel}" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showInventory()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`); document.getElementById('editItemForm').addEventListener('submit', e => { e.preventDefault(); updateItem(id, { name:editName.value, categoryId:editCat.value, unit:editUnit.value, cost:editCost.value, minStockLevel:editMin.value }); showInventory(); }); }
+  function deleteItemPrompt(id) { const i = state.items[id]; if (!i) return; switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${i.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure? This is permanent.</p><div class="form-actions"><button class="btn btn-secondary" onclick="showInventory()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteItem('${id}')">Delete</button></div></div>`); }
+  function confirmDeleteItem(id) { deleteItem(id); showInventory(); }
+  function showUserManagement() { if (currentUser?.displayName !== 'Franklin') return; const rows = Object.values(state.users).map(u => `<tr><td>${u.username}</td><td>${u.displayName}</td><td>${u.role}</td><td>${u.department}</td><td><button class="btn-icon" onclick="editUserForm('${u.username}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteUserPrompt('${u.username}')"><i class="fas fa-trash"></i></button></td></tr>`).join(''); switchView('userManagementContent', `<div class="card"><div class="card-header"><div class="card-title">User Management</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="form-actions"><button class="btn btn-primary" onclick="showAddUserForm()"><i class="fas fa-plus"></i> Add User</button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Username</th><th>Display</th><th>Role</th><th>Dept</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`); }
+  function showAddUserForm() { const depts = Object.values(state.departments).map(d => `<option value="${d.id}">${d.name}</option>`).join(''); switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add User</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="addUserForm"><div class="form-grid"><div class="form-group"><label>Username</label><input id="username" required></div><div class="form-group"><label>Display Name</label><input id="displayName" required></div><div class="form-group"><label>Password</label><input type="password" id="password" required></div><div class="form-group"><label>Role</label><select id="role" required><option value="admin">Admin</option><option value="processor">Processor</option><option value="viewer">Viewer</option></select></div><div class="form-group"><label>Dept</label><select id="department" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`); document.getElementById('addUserForm').addEventListener('submit', e => { e.preventDefault(); addUser({ username:username.value, displayName:displayName.value, password:password.value, role:role.value, department:department.value }); showUserManagement(); }); }
+  function editUserForm(u) { const user = state.users[u]; if (!user) return; const depts = Object.values(state.departments).map(d => `<option value="${d.id}" ${d.id===user.department?'selected':''}>${d.name}</option>`).join(''); switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${user.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="editUserForm"><div class="form-grid"><div class="form-group"><label>Username</label><input value="${user.username}" disabled></div><div class="form-group"><label>Display Name</label><input id="editDisplayName" value="${user.displayName}" required></div><div class="form-group"><label>Password</label><input type="password" id="editPassword" placeholder="Unchanged"></div><div class="form-group"><label>Role</label><select id="editRole" required><option value="admin" ${user.role==='admin'?'selected':''}>Admin</option><option value="processor" ${user.role==='processor'?'selected':''}>Processor</option><option value="viewer" ${user.role==='viewer'?'selected':''}>Viewer</option></select></div><div class="form-group"><label>Dept</label><select id="editDept" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`); document.getElementById('editUserForm').addEventListener('submit', e => { e.preventDefault(); updateUser(u, { displayName:editDisplayName.value, password:editPassword.value || user.password, role:editRole.value, department:editDept.value }); showUserManagement(); }); }
+  function deleteUserPrompt(u) { switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${state.users[u]?.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure?</p><div class="form-actions"><button class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteUser('${u}')">Delete</button></div></div>`); }
+  function confirmDeleteUser(u) { deleteUser(u); showUserManagement(); }
 
   function showStockIn() {
     const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock In</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockInForm"><div class="form-grid"><div class="form-group"><label for="item">Item</label><select id="item" required>${items}</select></div><div class="form-group"><label for="qty">Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label for="reason">Reason</label><input type="text" id="reason" value="Delivery" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
-    document.getElementById('stockInForm').addEventListener('submit', e => {
-      e.preventDefault();
-      adjustStock(item.value, parseFloat(qty.value), reason.value);
-      showDashboard();
-    });
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock In</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockInForm"><div class="form-grid"><div class="form-group"><label>Item</label><select id="item" required>${items}</select></div><div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label>Reason</label><input id="reason" value="Delivery" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+    document.getElementById('stockInForm').addEventListener('submit', e => { e.preventDefault(); adjustStock(item.value, +qty.value, reason.value); showDashboard(); });
   }
-
   function showStockOut() {
     const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`).join('');
     const staff = Object.values(state.users).map(u => `<option value="${u.username}">${u.displayName}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock Out</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockOutForm"><div class="form-grid"><div class="form-group"><label for="item">Item</label><select id="item" required>${items}</select></div><div class="form-group"><label for="qty">Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label for="staff">To</label><select id="staff" required>${staff}</select></div><div class="form-group"><label for="reason">Reason</label><input type="text" id="reason" value="Usage" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Remove</button></div></form></div>`);
-    document.getElementById('stockOutForm').addEventListener('submit', e => {
-      e.preventDefault();
-      adjustStock(item.value, -parseFloat(qty.value), reason.value, staff.value);
-      showDashboard();
-    });
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock Out</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockOutForm"><div class="form-grid"><div class="form-group"><label>Item</label><select id="item" required>${items}</select></div><div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label>To</label><select id="staff" required>${staff}</select></div><div class="form-group"><label>Reason</label><input id="reason" value="Usage" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Remove</button></div></form></div>`);
+    document.getElementById('stockOutForm').addEventListener('submit', e => { e.preventDefault(); adjustStock(item.value, -qty.value, reason.value, staff.value); showDashboard(); });
   }
-  
   function showReports() {
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Reports</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="charts-grid"><div class="card"><div class="card-header"><div class="card-title">Stock Status</div></div><div class="chart-container"><canvas id="stockStatusChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Dept. Value</div></div><div class="chart-container"><canvas id="departmentValueChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Movements</div></div><div class="chart-container"><canvas id="movementsChart"></canvas></div></div></div></div>`);
+    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Reports</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="charts-grid"><div class="card"><div class="card-header"><div class="card-title">Stock Status</div></div><div class="chart-container"><canvas id="stockStatusChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Dept Value</div></div><div class="chart-container"><canvas id="departmentValueChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Movements</div></div><div class="chart-container"><canvas id="movementsChart"></canvas></div></div></div></div>`);
     renderReports();
   }
-
   function renderReports() {
-    renderStockStatusChart();
-    renderDepartmentValueChart();
-    renderMovementsChart();
-  }
-
-  function renderStockStatusChart() {
-    let inStock = 0, low = 0, out = 0;
-    Object.values(state.items).forEach(i => {
-      const s = state.stockLevels[i.id];
-      if (!s || s.quantity <= 0) out++;
-      else if (s.quantity <= i.minStockLevel) low++;
-      else inStock++;
-    });
-    new Chart('stockStatusChart', { type: 'doughnut', data: { labels: ['In Stock', 'Low', 'Out'], datasets: [{ data: [inStock, low, out], backgroundColor: ['var(--success)', 'var(--warning)', 'var(--accent)'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'var(--text-primary)' } } } } });
-  }
-
-  function renderDepartmentValueChart() {
+    const inStock = Object.values(state.items).filter(i => (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel).length;
+    const low     = Object.values(state.items).filter(i => { const q = state.stockLevels[i.id]?.quantity || 0; return q > 0 && q <= i.minStockLevel; }).length;
+    const out     = Object.values(state.items).filter(i => (state.stockLevels[i.id]?.quantity || 0) <= 0).length;
+    new Chart('stockStatusChart', { type:'doughnut', data:{ labels:['In Stock','Low','Out'], datasets:[{ data:[inStock,low,out], backgroundColor:['var(--success)','var(--warning)','var(--accent)'] }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'var(--text-primary)'}}} } });
     const values = {};
-    Object.values(state.items).forEach(i => {
-      const c = state.categories[i.categoryId];
-      if (!c) return;
-      const d = state.departments[c.departmentId];
-      if (!d) return;
-      const s = state.stockLevels[i.id];
-      const v = (s ? s.quantity : 0) * i.cost;
-      if (!values[d.name]) values[d.name] = 0;
-      values[d.name] += v;
-    });
-    new Chart('departmentValueChart', { type: 'bar', data: { labels: Object.keys(values), datasets: [{ label: 'Value (MWK)', data: Object.values(values), backgroundColor: Object.keys(values).map(n => DEPARTMENT_CONFIG[Object.keys(DEPARTMENT_CONFIG).find(k => DEPARTMENT_CONFIG[k].name === n)]?.color || 'var(--gray)') }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: 'var(--text-secondary)' } }, x: { ticks: { color: 'var(--text-secondary)' } } } } });
+    Object.values(state.items).forEach(i => { const c = state.categories[i.categoryId], d = c ? state.departments[c.departmentId] : null; if (!d) return; const v = (state.stockLevels[i.id]?.quantity || 0) * i.cost; values[d.name] = (values[d.name] || 0) + v; });
+    new Chart('departmentValueChart', { type:'bar', data:{ labels:Object.keys(values), datasets:[{ label:'Value (MWK)', data:Object.values(values), backgroundColor:Object.keys(values).map(n => DEPARTMENT_CONFIG[Object.keys(DEPARTMENT_CONFIG).find(k => DEPARTMENT_CONFIG[k].name === n)]?.color || 'var(--gray)') }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{color:'var(--text-secondary)'}},x:{ticks:{color:'var(--text-secondary)'}}} } });
+    const labels=[], dataIn=[], dataOut=[]; for (let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); labels.push(d.toLocaleDateString('en',{weekday:'short'})); const moves=state.stockMovements.filter(m=>new Date(m.timestamp).toDateString()===d.toDateString()); dataIn.push(moves.filter(m=>m.type==='in').length); dataOut.push(moves.filter(m=>m.type==='out').length); }
+    new Chart('movementsChart', { type:'line', data:{ labels, datasets:[{ label:'In', data:dataIn, borderColor:'var(--success)' }, { label:'Out', data:dataOut, borderColor:'var(--accent)' }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'var(--text-primary)'}}}, scales:{y:{ticks:{color:'var(--text-secondary)',beginAtZero:true}},x:{ticks:{color:'var(--text-secondary)'}}} } });
   }
-
-  function renderMovementsChart() {
-    const labels = [], dataIn = [], dataOut = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
-      const movs = state.stockMovements.filter(m => new Date(m.timestamp).toDateString() === date.toDateString());
-      dataIn.push(movs.filter(m => m.type === 'in').length);
-      dataOut.push(movs.filter(m => m.type === 'out').length);
-    }
-    new Chart('movementsChart', { type: 'line', data: { labels, datasets: [{ label: 'In', data: dataIn, borderColor: 'var(--success)' }, { label: 'Out', data: dataOut, borderColor: 'var(--accent)' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'var(--text-primary)' } } }, scales: { y: { ticks: { color: 'var(--text-secondary)', beginAtZero: true } }, x: { ticks: { color: 'var(--text-secondary)' } } } } });
-  }
-
   function showSettings() {
     switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Settings</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="actions-grid"><div class="action-btn" onclick="testTelegram()"><div class="action-icon"><i class="fab fa-telegram"></i></div><div>Test Telegram</div></div></div></div>`);
   }
+  function testTelegram() { sendTelegramMessage('✅ **Vanguard Test**\n\nIntegration working.'); showAppMessage('Test sent!', 'success'); }
+  function showAppMessage(text, type) { const el=document.createElement('div'); el.className=`message ${type} show`; el.textContent=text; document.querySelector('.content-area').prepend(el); setTimeout(()=>el.remove(),5000); }
 
-  function testTelegram() {
-    sendTelegramMessage('✅ *Vanguard Test*\n\nIntegration is working.');
-    showAppMessage('Test message sent!', 'success');
-  }
-
-  function showAppMessage(text, type) {
-    const el = document.createElement('div');
-    el.className = `message ${type} show`;
-    el.textContent = text;
-    document.querySelector('.content-area').prepend(el);
-    setTimeout(() => el.remove(), 5000);
-  }
-
-  // AUTH
-  function clearPin() {
-    currentPin = '';
-    pinDigits.forEach(d => { d.value = ''; d.classList.remove('filled'); });
-    pinDigits[0].focus();
-    hideMessage();
-  }
-
-  function handleKeyPress(key) {
-    hideMessage();
-    if (currentPin.length >= pinDigits.length) return;
-    const digit = pinDigits[currentPin.length];
-    digit.value = key;
-    digit.classList.add('filled');
-    currentPin += key;
-    if (currentPin.length < pinDigits.length) pinDigits[currentPin.length].focus();
-    else attemptLogin();
-  }
-
+  // ========== Auth ==========
+  function clearPin() { currentPin=''; pinDigits.forEach(d=>{d.value='';d.classList.remove('filled');}); pinDigits[0].focus(); hideMessage(); }
+  function handleKeyPress(k) { hideMessage(); if (currentPin.length>=pinDigits.length) return; const digit=pinDigits[currentPin.length]; digit.value=k; digit.classList.add('filled'); currentPin+=k; if (currentPin.length<pinDigits.length) pinDigits[currentPin.length].focus(); else attemptLogin(); }
   function attemptLogin() {
-    let user = Object.values(state.users).find(u => u.password === currentPin);
-    if (user) login(user);
-    else {
-      showMessage('Invalid PIN.', 'error');
-      document.querySelector('.login-card').style.animation = 'shake 0.5s';
-      setTimeout(() => {
-        document.querySelector('.login-card').style.animation = '';
-        clearPin();
-      }, 500);
-    }
+    const user = Object.values(state.users).find(u => u.password === currentPin);
+    if (user) login(user); else { showMessage('Invalid PIN.','error'); document.querySelector('.login-card').style.animation='shake .5s'; setTimeout(()=>{document.querySelector('.login-card').style.animation='';clearPin();},500); }
   }
-
   function login(user) {
     currentUser = user;
-    showMessage(`Welcome, ${user.displayName}`, 'success');
+    showMessage(`Welcome, ${user.displayName}`,'success');
     document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
     if (user.displayName === 'Franklin') document.getElementById('userManagementMenuItem').classList.remove('hidden');
-    setTimeout(() => {
-      loginScreen.classList.add("hidden");
-      mainApp.classList.remove("hidden");
-      mainApp.style.animation = 'fadeIn 0.5s ease';
-      updateDashboardMetrics();
-      renderActivityFeed();
-      updateSyncStatus();
-    }, 500);
+    setTimeout(()=>{ loginScreen.classList.add('hidden'); mainApp.classList.remove('hidden'); mainApp.style.animation='fadeIn .5s ease'; updateDashboardMetrics(); renderActivityFeed(); updateSyncStatus(); },500);
   }
+  function logout() { currentUser=null; clearPin(); mainApp.classList.add('hidden'); loginScreen.classList.remove('hidden'); loginScreen.style.animation='fadeIn .5s ease'; }
+  function showMessage(text,type) { const el=document.getElementById('loginMessage'); el.textContent=text; el.className=`message ${type} show`; }
+  function hideMessage() { document.getElementById('loginMessage').className='message'; }
 
-  function logout() {
-    currentUser = null;
-    clearPin();
-    mainApp.classList.add("hidden");
-    loginScreen.classList.remove("hidden");
-    loginScreen.style.animation = 'fadeIn 0.5s ease';
-  }
-
-  function showMessage(text, type) {
-    const el = document.getElementById('loginMessage');
-    el.textContent = text;
-    el.className = `message ${type} show`;
-  }
-
-  function hideMessage() {
-    document.getElementById('loginMessage').className = 'message';
-  }
-
-  // INIT
+  // ========== Init ==========
   document.addEventListener('DOMContentLoaded', async () => {
-    await loadStateFromDB();
-    await loadOfflineQueue();
+    await loadStateFromDB(); await loadOfflineQueue();
     pinDigits[0].focus();
-    document.querySelectorAll('.key').forEach(b => b.addEventListener('click', () => handleKeyPress(b.dataset.key)));
-    document.querySelectorAll('.dept-item').forEach(i => {
-      if (i.dataset.dept !== 'dashboard' && i.dataset.dept !== 'users') {
-        i.addEventListener('click', e => {
-          document.querySelectorAll('.dept-item').forEach(d => d.classList.remove('active'));
-          e.currentTarget.classList.add('active');
-          showInventory();
-        });
-      }
-    });
-    const style = document.createElement('style');
-    style.innerHTML = `@keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }`;
-    document.head.appendChild(style);
+    document.querySelectorAll('.key').forEach(b=>b.addEventListener('click',()=>handleKeyPress(b.dataset.key)));
+    document.querySelectorAll('.dept-item[data-dept]:not([data-dept="dashboard"]):not([data-dept="users"])').forEach(i=>i.addEventListener('click',()=>showInventory()));
+    const style=document.createElement('style'); style.innerHTML=`@keyframes shake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-5px)}20%,40%,60%,80%{transform:translateX(5px)}}`; document.head.appendChild(style);
     window.addEventListener('online', updateSyncStatus);
     window.addEventListener('offline', updateSyncStatus);
     updateSyncStatus();
