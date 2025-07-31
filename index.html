@@ -9,609 +9,417 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --primary: #1a2a3a; --secondary: #3498db; --accent: #e74c3c; --success: #27ae60; --warning: #f39c12;
-      --light: #ecf0f1; --dark: #2c3e50; --gray: #95a5a6; --purple: #9b59b6;
-      --surface: #252f3d; --surface-light: #2a3a4a; --text-primary: #e0e0ff; --text-secondary: #a0a0b0;
-      --shadow: 0 4px 12px rgba(0, 0, 0, 0.25); --radius: 10px; --transition: all 0.3s ease;
-      --hotel-color: #4F46E5; --bar-color: #DC2626; --restaurant-color: #059669;
-      --kitchen-color: #D97706; --admin-color: #7C3AED; --grounds-color: #16A34A; --cultivation-color: #CA8A04;
+      --primary:#1a2a3a;--secondary:#3498db;--accent:#e74c3c;--success:#27ae60;--warning:#f39c12;
+      --light:#ecf0f1;--dark:#2c3e50;--gray:#95a5a6;--surface:#252f3d;--surface-light:#2a3a4a;
+      --text-primary:#e0e0ff;--text-secondary:#a0a0b0;--shadow:0 4px 12px rgba(0,0,0,.25);
+      --radius:10px;--transition:all .3s ease;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background: linear-gradient(135deg, var(--primary), #1e3040); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
-    .app-container { min-height: 100vh; display: flex; flex-direction: column; }
-    .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-    .login-card { background: var(--surface); padding: 2rem 3rem; border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 420px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.08); animation: fadeIn 0.5s ease; }
-    .login-logo { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
-    .login-logo i { font-size: 2.5rem; color: var(--secondary); background: rgba(52, 152, 219, 0.15); padding: 15px; border-radius: 50%; }
-    .login-title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.25rem; color: white; }
-    .login-subtitle { color: var(--gray); margin-bottom: 2rem; font-size: 1.1rem; }
-    .pin-input { display: flex; gap: 1rem; justify-content: center; margin-bottom: 2rem; }
-    .pin-digit { width: 50px; height: 60px; border: 2px solid var(--surface-light); border-radius: var(--radius); text-align: center; font-size: 2rem; font-weight: 600; transition: all 0.2s; background: var(--primary); color: var(--text-primary); -webkit-text-security: disc; }
-    .pin-digit:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
-    .pin-digit.filled { border-color: var(--success); }
-    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
-    .key { background: var(--surface-light); border: 1px solid transparent; padding: 1.25rem; border-radius: var(--radius); font-size: 1.5rem; font-weight: 600; cursor: pointer; transition: var(--transition); color: var(--text-primary); }
-    .key:hover { background: var(--secondary); color: white; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-    .key:active { transform: translateY(0); }
-    .clear-btn { width: 100%; padding: 1rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); background: var(--accent); color: white; font-size: 1.1rem; }
-    .clear-btn:hover { background: #c0392b; }
-    .reset-btn { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); background: var(--warning); color: white; font-size: 0.9rem; }
-    .reset-btn:hover { background: #e67e22; }
-    #mainApp { display: flex; flex-direction: column; min-height: 100vh; }
-    .header { background: var(--surface); color: white; padding: 1rem 1.5rem; box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-    .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1600px; margin: 0 auto; }
-    .logo { display: flex; align-items: center; gap: 0.75rem; font-size: 1.5rem; font-weight: 700; color: var(--secondary); }
-    .user-info { display: flex; align-items: center; gap: 1rem; }
-    .sync-status { display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 6px; background: var(--surface-light); font-size: 0.875rem; }
-    .sync-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
-    .sync-indicator.syncing { background: var(--warning); animation: pulse 1s infinite; }
-    .sync-indicator.offline { background: var(--accent); animation: none; }
-    .logout-btn { background: var(--surface-light); border: 1px solid rgba(255, 255, 255, 0.1); color: white; padding: 0.5rem 1rem; border-radius: var(--radius); cursor: pointer; transition: var(--transition); }
-    .logout-btn:hover { background: var(--accent); }
-    .main-content { flex: 1; display: flex; max-width: 1600px; margin: 0 auto; width: 100%; padding: 1.5rem; gap: 1.5rem; }
-    .sidebar { width: 280px; background: var(--surface); border-right: 1px solid rgba(255, 255, 255, 0.08); padding: 1.5rem; border-radius: var(--radius); height: fit-content; position: sticky; top: 100px; }
-    .nav-title { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-left: 1rem; }
-    .dept-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: var(--radius); cursor: pointer; transition: var(--transition); margin-bottom: 0.5rem; border: 1px solid transparent; color: var(--text-primary); }
-    .dept-item:hover { background: var(--surface-light); }
-    .dept-item.active { background: var(--secondary); color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-    .dept-item.active .dept-icon { color: white; }
-    .dept-icon { width: 20px; text-align: center; }
-    .content-area { flex: 1; overflow-y: auto; }
-    .card { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); border: 1px solid rgba(255, 255, 255, 0.08); transition: var(--transition); margin-bottom: 1.5rem; }
-    .card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4); }
-    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--surface-light); }
-    .card-title { font-size: 1.25rem; font-weight: 600; color: var(--secondary); }
-    .card-metric { font-size: 2.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
-    .card-subtitle { color: var(--text-secondary); font-size: 0.875rem; }
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
-    .actions-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
-    .action-btn { background: var(--surface-light); border: 1px solid rgba(255,255,255,0.1); padding: 1.5rem; border-radius: var(--radius); cursor: pointer; transition: var(--transition); text-align: center; display: flex; flex-direction: column; gap: 0.75rem; align-items: center; color: var(--text-primary); }
-    .action-btn:hover { border-color: var(--secondary); background: var(--secondary); color: white; transform: translateY(-3px); box-shadow: var(--shadow); }
-    .action-btn:hover .action-icon { transform: scale(1.1); }
-    .action-icon { font-size: 2rem; transition: var(--transition); color: var(--secondary); }
-    .action-btn:hover .action-icon { color: white; }
-    .activity-list { background: var(--surface); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow); border: 1px solid rgba(255, 255, 255, 0.08); }
-    .activity-item { display: flex; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--surface-light); }
-    .activity-item:last-child { border-bottom: none; }
-    .activity-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); font-weight: 600; font-size: 1.25rem; }
-    .activity-content { flex: 1; }
-    .activity-text { color: var(--text-primary); margin-bottom: 0.25rem; }
-    .activity-time { color: var(--text-secondary); font-size: 0.875rem; }
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
-    .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
-    .form-group label { font-weight: 600; color: var(--text-secondary); }
-    .form-group input, .form-group select { width: 100%; padding: 0.75rem; border-radius: var(--radius); border: 1px solid var(--surface-light); background: var(--primary); color: var(--text-primary); font-size: 1rem; }
-    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--secondary); }
-    .form-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem; }
-    .btn { padding: 0.75rem 1.5rem; border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; gap: 0.5rem; }
-    .btn-primary { background: var(--secondary); color: white; }
-    .btn-primary:hover { background: #2980b9; }
-    .btn-secondary { background: var(--surface-light); color: var(--text-primary); }
-    .btn-secondary:hover { background: var(--dark); }
-    .btn-danger { background: var(--accent); color: white; }
-    .btn-danger:hover { background: #c0392b; }
-    .data-table-container { overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th, .data-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--surface-light); }
-    .data-table th { color: var(--text-secondary); text-transform: uppercase; font-size: 0.875rem; }
-    .data-table tr:hover { background-color: var(--surface-light); }
-    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; }
-    .chart-container { position: relative; height: 350px; width: 100%; }
-    .message { padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; display: none; border: 1px solid; text-align: left; }
-    .message.show { display: block; }
-    .message.error { background: rgba(231, 76, 60, 0.1); color: var(--accent); border-color: var(--accent); }
-    .message.success { background: rgba(39, 174, 96, 0.1); color: var(--success); border-color: var(--success); }
-    .message.info { background: rgba(52, 152, 219, 0.1); color: var(--secondary); border-color: var(--secondary); }
-    .sync-actions { display: flex; gap: 0.5rem; align-items: center; }
-    .sync-btn { background: var(--surface-light); border: none; color: var(--text-primary); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); }
-    .sync-btn:hover { background: var(--secondary); color: white; }
-    .hidden { display: none !important; }
-    .btn-icon { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem; border-radius: 4px; transition: var(--transition); }
-    .btn-icon:hover { color: var(--secondary); background: rgba(255, 255, 255, 0.1); }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 992px) { .main-content { flex-direction: column; } .sidebar { width: 100%; position: static; height: auto; border-right: none; margin-bottom: 1.5rem; } }
-    @media (max-width: 768px) { .header-content { flex-direction: column; gap: 1rem; } .content-area, .sidebar, .main-content { padding: 1rem; } .dashboard-grid, .charts-grid { grid-template-columns: 1fr; } .actions-grid { grid-template-columns: repeat(2, 1fr); } .login-card { padding: 2rem; } .pin-input { gap: 0.5rem; } .pin-digit { width: 40px; height: 50px; font-size: 1.5rem; } }
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+    body{background:linear-gradient(135deg,var(--primary),#1e3040);color:var(--text-primary);line-height:1.6;min-height:100vh;}
+    .app-container{min-height:100vh;display:flex;flex-direction:column;}
+    .login-container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;}
+    .login-card{background:var(--surface);padding:2rem 3rem;border-radius:var(--radius);box-shadow:var(--shadow);width:100%;max-width:420px;text-align:center;border:1px solid rgba(255,255,255,.08);}
+    .login-logo{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:2rem;}
+    .login-logo i{font-size:2.5rem;color:var(--secondary);background:rgba(52,152,219,.15);padding:15px;border-radius:50%;}
+    .login-title{font-size:2.5rem;font-weight:700;margin-bottom:.25rem;color:white;}
+    .login-subtitle{color:var(--gray);margin-bottom:2rem;font-size:1.1rem;}
+    .pin-input{display:flex;gap:1rem;justify-content:center;margin-bottom:2rem;}
+    .pin-digit{width:50px;height:60px;border:2px solid var(--surface-light);border-radius:var(--radius);text-align:center;font-size:2rem;font-weight:600;background:var(--primary);color:var(--text-primary);-webkit-text-security:disc;}
+    .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;}
+    .key{background:var(--surface-light);border:1px solid transparent;padding:1.25rem;border-radius:var(--radius);font-size:1.5rem;font-weight:600;cursor:pointer;color:var(--text-primary);}
+    .key:hover{background:var(--secondary);color:white;transform:translateY(-2px);}
+    .clear-btn,.reset-btn{width:100%;padding:1rem;border:none;border-radius:var(--radius);font-weight:600;cursor:pointer;color:white;font-size:1.1rem;}
+    .clear-btn{background:var(--accent);}.reset-btn{background:var(--warning);font-size:.9rem;}
+    #mainApp{display:flex;flex-direction:column;min-height:100vh;}
+    .header{background:var(--surface);color:white;padding:1rem 1.5rem;box-shadow:var(--shadow);position:sticky;top:0;z-index:100;}
+    .header-content{display:flex;justify-content:space-between;align-items:center;max-width:1600px;margin:0 auto;}
+    .logo{display:flex;align-items:center;gap:.75rem;font-size:1.5rem;font-weight:700;color:var(--secondary);}
+    .logout-btn{background:var(--surface-light);border:1px solid rgba(255,255,255,.1);color:white;padding:.5rem 1rem;border-radius:var(--radius);cursor:pointer;}
+    .main-content{flex:1;display:flex;max-width:1600px;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;}
+    .sidebar{width:280px;background:var(--surface);border-right:1px solid rgba(255,255,255,.08);padding:1.5rem;border-radius:var(--radius);position:sticky;top:100px;}
+    .dept-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius);cursor:pointer;color:var(--text-primary);}
+    .dept-item:hover{background:var(--surface-light);}.dept-item.active{background:var(--secondary);color:white;}
+    .content-area{flex:1;overflow-y:auto;}
+    .card{background:var(--surface);border-radius:var(--radius);padding:1.5rem;box-shadow:var(--shadow);margin-bottom:1.5rem;}
+    .dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;}
+    .actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;}
+    .action-btn{background:var(--surface-light);border:1px solid rgba(255,255,255,.1);padding:1.5rem;border-radius:var(--radius);cursor:pointer;display:flex;flex-direction:column;align-items:center;color:var(--text-primary);}
+    .action-btn:hover{background:var(--secondary);color:white;}
+    .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem;}
+    .form-group{display:flex;flex-direction:column;gap:.5rem;}
+    .form-group label{font-weight:600;color:var(--text-secondary);}
+    .form-group input,.form-group select{width:100%;padding:.75rem;border-radius:var(--radius);border:1px solid var(--surface-light);background:var(--primary);color:var(--text-primary);}
+    .message{padding:1rem;border-radius:var(--radius);margin-bottom:1rem;display:none;border:1px solid;text-align:left;}
+    .message.show{display:block;}
+    .message.success{background:rgba(39,174,96,.1);color:var(--success);border-color:var(--success);}
+    .message.error{background:rgba(231,76,60,.1);color:var(--accent);border-color:var(--accent);}
   </style>
 </head>
 <body>
-<div class="app-container">
-  <!-- Login Screen -->
-  <div id="loginScreen" class="login-container">
-    <div class="login-card">
-      <div class="login-logo">
-        <i class="fas fa-boxes-stacked"></i>
-        <div>
-          <h1 class="login-title">Vanguard</h1>
-          <p class="login-subtitle">Stock Management System</p>
-        </div>
-      </div>
-      <div id="loginMessage" class="message"></div>
-      <div class="pin-input">
-        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-        <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-      </div>
-      <div class="keypad">
-        <button class="key" data-key="1">1</button>
-        <button class="key" data-key="2">2</button>
-        <button class="key" data-key="3">3</button>
-        <button class="key" data-key="4">4</button>
-        <button class="key" data-key="5">5</button>
-        <button class="key" data-key="6">6</button>
-        <button class="key" data-key="7">7</button>
-        <button class="key" data-key="8">8</button>
-        <button class="key" data-key="9">9</button>
-        <button class="key" data-key="*">*</button>
-        <button class="key" data-key="0">0</button>
-        <button class="key" data-key="%">%</button>
-      </div>
-      <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
-      <button class="reset-btn" onclick="resetApp()">Reset App Data</button>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-container">
+  <div class="login-card">
+    <div class="login-logo">
+      <i class="fas fa-boxes-stacked"></i>
+      <div><h1 class="login-title">Vanguard</h1><p class="login-subtitle">Stock Management</p></div>
     </div>
+    <div id="loginMessage" class="message"></div>
+    <div class="pin-input">
+      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+    </div>
+    <div class="keypad">
+      <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
+      <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
+      <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
+      <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
+    </div>
+    <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
   </div>
+</div>
 
-  <!-- Main Application -->
-  <div id="mainApp" class="hidden">
-    <header class="header">
-      <div class="header-content">
-        <div class="logo">
-          <i class="fas fa-boxes-stacked"></i>
-          <span>Vanguard Stock Management</span>
+<!-- MAIN APP -->
+<div id="mainApp" class="hidden">
+  <header class="header">
+    <div class="header-content">
+      <div class="logo"><i class="fas fa-boxes-stacked"></i><span>Vanguard Stock Management</span></div>
+      <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+  </header>
+
+  <div class="main-content">
+    <nav class="sidebar">
+      <div class="department-nav">
+        <div class="nav-title">Departments</div>
+        <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></div>
+        <div class="dept-item" data-dept="hotel"><i class="fas fa-hotel"></i><span>Hotel Ops</span></div>
+        <div class="dept-item" data-dept="bar"><i class="fas fa-martini-glass-citrus"></i><span>Bar</span></div>
+        <div class="dept-item" data-dept="restaurant"><i class="fas fa-utensils"></i><span>Restaurant</span></div>
+        <div class="dept-item" data-dept="kitchen"><i class="fas fa-kitchen-set"></i><span>Kitchen</span></div>
+        <div class="dept-item" data-dept="admin"><i class="fas fa-user-gear"></i><span>Admin</span></div>
+        <div class="dept-item" data-dept="grounds"><i class="fas fa-tree"></i><span>Grounds</span></div>
+        <div class="dept-item" data-dept="cultivation"><i class="fas fa-seedling"></i><span>Cultivation</span></div>
+        <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()"><i class="fas fa-users"></i><span>User Management</span></div>
+        <div id="notificationsMenuItem" class="dept-item hidden" data-dept="notifications" onclick="showNotifications()"><i class="fas fa-bell"></i><span>Notifications</span></div>
+      </div>
+    </nav>
+
+    <main class="content-area">
+      <div id="dashboardContent" class="view-content">
+        <h1 style="margin-bottom:2rem;font-size:2rem;font-weight:700;">Dashboard</h1>
+        <div class="dashboard-grid">
+          <div class="card"><div class="card-header"><div class="card-title">Total Items</div></div><div class="card-metric" id="totalItems">0</div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Low Stock Alerts</div></div><div class="card-metric" id="lowStockCount" style="color:var(--accent);">0</div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Today's Movements</div></div><div class="card-metric" id="todayMovements">0</div></div>
+          <div class="card"><div class="card-header"><div class="card-title">Active Users</div></div><div class="card-metric" id="activeUsers">0</div></div>
         </div>
-        <div class="user-info">
-          <div class="sync-status">
-            <div id="syncIndicator" class="sync-indicator"></div>
-            <span id="syncStatus">Online</span>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Quick Actions</div></div>
+          <div class="actions-grid">
+            <div class="action-btn" onclick="showStockIn()"><i class="fas fa-box-archive"></i><div>Stock In</div></div>
+            <div class="action-btn" onclick="showStockOut()"><i class="fas fa-arrow-right-from-bracket"></i><div>Stock Out</div></div>
+            <div class="action-btn" onclick="showInventory()"><i class="fas fa-clipboard-list"></i><div>Inventory</div></div>
+            <div class="action-btn" onclick="showReports()"><i class="fas fa-chart-line"></i><div>Reports</div></div>
+            <div class="action-btn" onclick="showAddItem()"><i class="fas fa-plus"></i><div>Add Item</div></div>
+            <div class="action-btn" onclick="showSettings()"><i class="fas fa-gear"></i><div>Settings</div></div>
           </div>
-          <div id="currentUser">Welcome</div>
-          <div class="sync-actions">
-            <button class="sync-btn" onclick="syncData()" title="Sync Data"><i class="fas fa-sync-alt"></i></button>
-            <button class="sync-btn" onclick="freshSyncData()" title="Fresh Sync"><i class="fas fa-download"></i></button>
-            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
-          </div>
+        </div>
+        <div class="activity-list">
+          <div class="card-header"><div class="card-title">Recent Activity</div></div>
+          <div id="recentActivity"></div>
         </div>
       </div>
-    </header>
 
-    <div class="main-content">
-      <nav class="sidebar">
-        <div class="department-nav">
-          <div class="nav-title">Departments</div>
-          <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()">
-            <i class="dept-icon fas fa-tachometer-alt" style="color: var(--secondary);"></i>
-            <span>Dashboard</span>
-          </div>
-          <div class="dept-item" data-dept="hotel"><i class="dept-icon fas fa-hotel" style="color: var(--hotel-color);"></i><span>Hotel Ops</span></div>
-          <div class="dept-item" data-dept="bar"><i class="dept-icon fas fa-martini-glass-citrus" style="color: var(--bar-color);"></i><span>Bar</span></div>
-          <div class="dept-item" data-dept="restaurant"><i class="dept-icon fas fa-utensils" style="color: var(--restaurant-color);"></i><span>Restaurant</span></div>
-          <div class="dept-item" data-dept="kitchen"><i class="dept-icon fas fa-kitchen-set" style="color: var(--kitchen-color);"></i><span>Kitchen</span></div>
-          <div class="dept-item" data-dept="admin"><i class="dept-icon fas fa-user-gear" style="color: var(--admin-color);"></i><span>Admin</span></div>
-          <div class="dept-item" data-dept="grounds"><i class="dept-icon fas fa-tree" style="color: var(--grounds-color);"></i><span>Grounds</span></div>
-          <div class="dept-item" data-dept="cultivation"><i class="dept-icon fas fa-seedling" style="color: var(--cultivation-color);"></i><span>Cultivation</span></div>
-          <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()">
-            <i class="dept-icon fas fa-users" style="color: var(--admin-color);"></i>
-            <span>User Management</span>
-          </div>
-        </div>
-      </nav>
+      <div id="actionContent" class="view-content hidden"></div>
+      <div id="userManagementContent" class="view-content hidden"></div>
+      <div id="notificationsContent" class="view-content hidden"></div>
+    </main>
+  </div>
+</div>
 
-      <main class="content-area">
-        <div id="dashboardContent" class="view-content">
-          <h1 style="margin-bottom: 2rem; font-size: 2rem; font-weight: 700;">Dashboard</h1>
-          <div class="dashboard-grid">
-            <div class="card">
-              <div class="card-header"><div class="card-title">Total Items</div></div>
-              <div class="card-metric" id="totalItems">0</div>
-              <div class="card-subtitle">Across all departments</div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Low Stock Alerts</div></div>
-              <div class="card-metric" id="lowStockCount" style="color: var(--accent);">0</div>
-              <div class="card-subtitle">Items need restocking</div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Today's Movements</div></div>
-              <div class="card-metric" id="todayMovements">0</div>
-              <div class="card-subtitle">Stock in/out operations</div>
-            </div>
-            <div class="card">
-              <div class="card-header"><div class="card-title">Active Users</div></div>
-              <div class="card-metric" id="activeUsers">0</div>
-              <div class="card-subtitle">Staff members registered</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-header"><div class="card-title">Quick Actions</div></div>
-            <div class="actions-grid">
-              <div class="action-btn" onclick="showStockIn()"><div class="action-icon"><i class="fas fa-box-archive"></i></div><div>Stock In</div></div>
-              <div class="action-btn" onclick="showStockOut()"><div class="action-icon"><i class="fas fa-arrow-right-from-bracket"></i></div><div>Stock Out</div></div>
-              <div class="action-btn" onclick="showInventory()"><div class="action-icon"><i class="fas fa-clipboard-list"></i></div><div>Inventory</div></div>
-              <div class="action-btn" onclick="showReports()"><div class="action-icon"><i class="fas fa-chart-line"></i></div><div>Reports</div></div>
-              <div class="action-btn" onclick="showAddItem()"><div class="action-icon"><i class="fas fa-plus"></i></div><div>Add Item</div></div>
-              <div class="action-btn" onclick="showSettings()"><div class="action-icon"><i class="fas fa-gear"></i></div><div>Settings</div></div>
-            </div>
-          </div>
-          <div class="activity-list">
-            <div class="card-header"><div class="card-title">Recent Activity</div></div>
-            <div id="recentActivity"></div>
-          </div>
-        </div>
-        <div id="actionContent" class="view-content hidden"></div>
-        <div id="userManagementContent" class="view-content hidden"></div>
-      </main>
+
+    <div class="keypad">
+      <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
+      <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
+      <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
+      <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
     </div>
+    <button class="clear-btn" onclick="cancelInlinePin()">Cancel</button>
   </div>
 </div>
 
 <script>
-  // SUPABASE CONFIG
-  const SUPABASE_URL  = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
-  const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/* ===== CONFIG ===== */
+const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const APP_VERSION = '1.2.4';
+const USER_ROLES = { ADMIN: 'admin', PROCESSOR: 'processor', VIEWER: 'viewer' };
+const TELEGRAM_BOT = '7960256341:AAFw_BPZRibbnBLaSYD9Lf5id5Fw3352wDC';
+const TELEGRAM_CHAT = '1212406500';
 
-  // CONSTANTS
-  const APP_VERSION = '1.2.1';
-  const USER_ROLES = { ADMIN: 'admin', PROCESSOR: 'processor', VIEWER: 'viewer' };
-  const TELEGRAM_BOT_TOKEN = '7960256341:AAFw_BPZRibbnBLaSYD9Lf5id5Fw3352wDC';
-  const TELEGRAM_CHAT_ID   = '1212406500';
+/* ===== STATE ===== */
+let currentUser = null, currentPin = '', pendingStockOut = null;
+let state = { departments:{}, categories:{}, items:{}, stockLevels:{}, stockMovements:[], notifications:[], users:{}, version:APP_VERSION };
+let offlineQueue = [];
 
-  // STATE
-  let currentUser = null;
-  let currentPin  = '';
-  let offlineQueue = [];
-  const pinDigits = document.querySelectorAll('.pin-digit');
-  let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], users: {}, version: APP_VERSION };
-
-  const DEPARTMENT_CONFIG = {
-    hotel:        { name:'Hotel Operations',   color:'var(--hotel-color)',      categories:['Linens','Toiletries','Cleaning Supplies','Room Amenities','Maintenance']},
-    bar:          { name:'Bar',                color:'var(--bar-color)',        categories:['Spirits','Wines','Beers','Mixers','Garnishes','Glassware']},
-    restaurant:   { name:'Restaurant',         color:'var(--restaurant-color)', categories:['Beverages','Tableware','Linens','Service Equipment']},
-    kitchen:      { name:'Kitchen',            color:'var(--kitchen-color)',    categories:['Fresh Produce','Meat & Seafood','Dairy','Dry Goods','Spices']},
-    admin:        { name:'Administration',     color:'var(--admin-color)',      categories:['Office Supplies','IT Equipment','Documents']},
-    grounds:      { name:'Grounds',            color:'var(--grounds-color)',    categories:['Tools','Fertilizer','Pesticides']},
-    cultivation:  { name:'Cultivation',        color:'var(--cultivation-color)',categories:['Seeds','Soil','Nutrients']}
-  };
-
-  // ========== IndexedDB helpers ==========
-  async function initIndexedDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('VanguardStockDB', 3);
-      request.onerror = e => reject(e.target.error);
-      request.onupgradeneeded = e => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains('state')) db.createObjectStore('state');
-        if (!db.objectStoreNames.contains('offlineQueue')) db.createObjectStore('offlineQueue', { autoIncrement: true });
-      };
-      request.onsuccess = e => resolve(e.target.result);
-    });
-  }
-  async function saveStateToDB() {
-    try { const db = await initIndexedDB(); const tx = db.transaction(['state'], 'readwrite'); state.version = APP_VERSION; tx.objectStore('state').put(state, 'appState'); await new Promise(r => tx.oncomplete = r); } catch {}
-  }
-  async function loadStateFromDB() {
-    try { const db = await initIndexedDB(); const req = db.transaction(['state'], 'readonly').objectStore('state').get('appState');
-      await new Promise(r => { req.onsuccess = e => { const res = e.target.result; if (res && res.version === APP_VERSION) state = res; else initializeDefaultData(); r(); }; });
-    } catch { initializeDefaultData(); }
-  }
-  async function resetAppData() {
-    try { const db = await initIndexedDB(); const tx = db.transaction(['state','offlineQueue'], 'readwrite'); tx.objectStore('state').clear(); tx.objectStore('offlineQueue').clear(); await new Promise(r => tx.oncomplete = r); initializeDefaultData(); offlineQueue = []; showAppMessage('App data reset successfully!', 'success'); } catch { showAppMessage('Error resetting app data', 'error'); }
-  }
-  async function addToOfflineQueue(op) {
-    try { const db = await initIndexedDB(); const tx = db.transaction(['offlineQueue'], 'readwrite'); tx.objectStore('offlineQueue').add(op); offlineQueue.push(op); updateSyncStatus(); } catch {}
-  }
-  async function loadOfflineQueue() { try { const db = await initIndexedDB(); const res = await db.transaction(['offlineQueue'], 'readonly').objectStore('offlineQueue').getAll(); offlineQueue = res || []; } catch { offlineQueue = []; } }
-  async function clearOfflineQueue() { try { const db = await initIndexedDB(); db.transaction(['offlineQueue'], 'readwrite').objectStore('offlineQueue').clear(); offlineQueue = []; updateSyncStatus(); } catch {} }
-
-  // ========== Sync / Offline ==========
-  async function processOfflineQueue() {
-    if (!offlineQueue.length) return;
-    for (const op of offlineQueue) {
-      switch (op.type) {
-        case 'ADD_ITEM': {
-          const { data, initialQuantity } = op;
-          await supabase.from('items').insert({ id: data.id, name: data.name, category_id: data.categoryId, unit: data.unit, cost: data.cost, min_stock_level: data.minStockLevel, created_at: data.created_at });
-          await supabase.from('stock_levels').insert({ item_id: data.id, quantity: initialQuantity });
-          break;
-        }
-        case 'UPDATE_ITEM': {
-          const { id, data: d } = op;
-          await supabase.from('items').update({ name: d.name, category_id: d.categoryId, unit: d.unit, cost: d.cost, min_stock_level: d.minStockLevel }).eq('id', id);
-          break;
-        }
-        case 'DELETE_ITEM': {
-          await supabase.from('stock_levels').delete().eq('item_id', op.id);
-          await supabase.from('stock_movements').delete().eq('item_id', op.id);
-          await supabase.from('items').delete().eq('id', op.id);
-          break;
-        }
-        case 'STOCK_MOVEMENT': {
-          await supabase.from('stock_movements').insert({ item_id: op.data.item_id, type: op.data.type, quantity: op.data.quantity, reason: op.data.reason, user_name: op.data.user, staff_member: op.data.staff_member, timestamp: op.data.timestamp, local_id: op.data.local_id });
-          await supabase.from('stock_levels').upsert({ item_id: op.data.item_id, quantity: (await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single()).data?.quantity || 0 });
-          break;
-        }
-        case 'ADD_USER': case 'UPDATE_USER': case 'DELETE_USER': { /* not implemented for demo */ break; }
-      }
-    }
-    await clearOfflineQueue();
-  }
-
-  async function pullFromSupabase(forceFresh = false) {
-    const [deptRes, catRes, itemRes, stockRes, moveRes, userRes] = await Promise.all([
-      supabase.from('departments').select('*'),
-      supabase.from('categories').select('*'),
-      supabase.from('items').select('*'),
-      supabase.from('stock_levels').select('*'),
-      supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(200),
-      supabase.from('users').select('*')
-    ]);
-
-    const transformed = { departments:{}, categories:{}, items:{}, stockLevels:{}, users:{}, stockMovements:[] };
-
-    deptRes.data?.forEach(d => transformed.departments[d.id] = { id: d.id, name: d.name });
-    catRes.data?.forEach(c => transformed.categories[c.id] = { id: c.id, departmentId: c.department_id, name: c.name });
-    itemRes.data?.forEach(i => transformed.items[i.id] = { id: i.id, name: i.name, categoryId: i.category_id, unit: i.unit, cost: i.cost || 0, minStockLevel: i.min_stock_level || 0, created_at: i.created_at });
-    stockRes.data?.forEach(s => transformed.stockLevels[s.item_id] = { item_id: s.item_id, quantity: s.quantity || 0 });
-    userRes.data?.forEach(u => transformed.users[u.username] = { username: u.username, password: u.password, role: u.role, displayName: u.display_name || u.displayName, department: u.department, secondaryDepartment: u.secondary_department || u.secondaryDepartment, isSupervisor: u.is_supervisor || u.isSupervisor || false });
-    transformed.stockMovements = (moveRes.data || []).map(m => ({ id: m.id, item_id: m.item_id, type: m.type, quantity: m.quantity, reason: m.reason, user: m.user_name || m.user, staff_member: m.staff_member, timestamp: m.timestamp, local_id: m.local_id })).slice(0, 200);
-
-    if (forceFresh) {
-      const localUsers = { ...state.users };
-      Object.assign(state, transformed);
-      if (Object.keys(transformed.users).length === 0) state.users = localUsers;
-    } else {
-      Object.assign(state.departments, transformed.departments);
-      Object.assign(state.categories, transformed.categories);
-      Object.assign(state.items, transformed.items);
-      Object.assign(state.stockLevels, transformed.stockLevels);
-      Object.assign(state.users, transformed.users);
-      if (transformed.stockMovements.length) {
-        const existingIds = new Set(state.stockMovements.map(m => m.id));
-        const newMoves = transformed.stockMovements.filter(m => !existingIds.has(m.id));
-        state.stockMovements = [...state.stockMovements, ...newMoves].slice(0, 200);
-      }
-    }
-  }
-
-  async function syncData() {
-    const indicator = document.getElementById('syncIndicator');
-    const status   = document.getElementById('syncStatus');
-    indicator.classList.add('syncing'); status.textContent = 'Syncing...';
-    try {
-      await processOfflineQueue();
-      await pullFromSupabase();
-      await saveStateToDB();
-      updateDashboardMetrics(); renderActivityFeed();
-      showAppMessage('Data synchronized successfully!', 'success');
-    } catch (e) {
-      console.error(e); showAppMessage(`Sync failed: ${e.message}`, 'error');
-    } finally {
-      indicator.classList.remove('syncing'); updateSyncStatus();
-    }
-  }
-
-  async function freshSyncData() {
-    if (!confirm('This will replace ALL local data with server data. Continue?')) return;
-    const indicator = document.getElementById('syncIndicator');
-    const status   = document.getElementById('syncStatus');
-    indicator.classList.add('syncing'); status.textContent = 'Fresh Sync...';
-    try {
-      await processOfflineQueue();
-      await pullFromSupabase(true);
-      await saveStateToDB();
-      updateDashboardMetrics(); renderActivityFeed();
-      showAppMessage('Fresh sync completed!', 'success');
-    } catch (e) {
-      console.error(e); showAppMessage(`Fresh sync failed: ${e.message}`, 'error');
-    } finally {
-      indicator.classList.remove('syncing'); updateSyncStatus();
-    }
-  }
-
-  function updateSyncStatus() {
-    const indicator = document.getElementById('syncIndicator');
-    const status    = document.getElementById('syncStatus');
-    if (offlineQueue.length) {
-      indicator.className = 'sync-indicator syncing';
-      status.textContent  = `${offlineQueue.length} pending`;
-    } else if (!navigator.onLine) {
-      indicator.className = 'sync-indicator offline';
-      status.textContent  = 'Offline';
-    } else {
-      indicator.className = 'sync-indicator';
-      status.textContent  = 'Online';
-    }
-  }
-
-  // ========== Core logic ==========
-  function initializeDefaultData() {
-    state = { departments:{}, categories:{}, items:{}, stockLevels:{}, stockMovements:[], users:{}, version: APP_VERSION };
-    Object.keys(DEPARTMENT_CONFIG).forEach(key => {
-      const deptId = `dept_${key}`;
-      state.departments[deptId] = { id: deptId, name: DEPARTMENT_CONFIG[key].name };
-      DEPARTMENT_CONFIG[key].categories.forEach(cat => {
-        const catId = `cat_${key}_${cat.toLowerCase().replace(/\s+/g, '')}`;
-        state.categories[catId] = { id: catId, departmentId: deptId, name: cat };
-      });
-    });
-    state.users = {
-      'Kelvin': { username:'Kelvin', password:'0100*', role:USER_ROLES.ADMIN, displayName:'Kelvin', department:'all' },
-      'Franklin': { username:'Franklin', password:'1100%', role:USER_ROLES.ADMIN, displayName:'Franklin', department:'all' },
-      'Chisomo': { username:'Chisomo', password:'2100%', role:USER_ROLES.ADMIN, displayName:'Chisomo', department:'admin' },
-      'Victor': { username:'Victor', password:'02000', role:USER_ROLES.ADMIN, displayName:'Victor', department:'admin' },
-      'Boston': { username:'Boston', password:'61006', role:USER_ROLES.PROCESSOR, displayName:'Boston', department:'bar', secondaryDepartment:'restaurant' },
-      'Magah': { username:'Magah', password:'41004', role:USER_ROLES.PROCESSOR, displayName:'Magah', department:'bar', secondaryDepartment:'restaurant' },
-      'Phillip': { username:'Phillip', password:'51005', role:USER_ROLES.PROCESSOR, displayName:'Phillip', department:'bar', secondaryDepartment:'restaurant', isSupervisor:true },
-      'Gift': { username:'Gift', password:'71007', role:USER_ROLES.PROCESSOR, displayName:'Gift', department:'restaurant' },
-      'Rhodney': { username:'Rhodney', password:'81008', role:USER_ROLES.PROCESSOR, displayName:'Rhodney', department:'restaurant', isSupervisor:true },
-      'Mike': { username:'Mike', password:'91009', role:USER_ROLES.PROCESSOR, displayName:'Mike', department:'restaurant' },
-      'Matias': { username:'Matias', password:'11100', role:USER_ROLES.PROCESSOR, displayName:'Matias', department:'hotel' },
-      'Kennedy': { username:'Kennedy', password:'22202', role:USER_ROLES.PROCESSOR, displayName:'Kennedy', department:'hotel' },
-      'Mphatso': { username:'Mphatso', password:'33303', role:USER_ROLES.PROCESSOR, displayName:'Mphatso', department:'restaurant', secondaryDepartment:'hotel' },
-      'Gaven': { username:'Gaven', password:'44404', role:USER_ROLES.PROCESSOR, displayName:'Gaven', department:'grounds', secondaryDepartment:'cultivation' },
-      'Maya': { username:'Maya', password:'55505', role:USER_ROLES.PROCESSOR, displayName:'Maya', department:'grounds', secondaryDepartment:'cultivation' }
+/* ===== IndexedDB ===== */
+async function initIDB(){
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open('VanguardStockDB',4);
+    req.onerror = e=>rej(e.target.error);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('state'))db.createObjectStore('state');
+      if(!db.objectStoreNames.contains('offlineQueue'))db.createObjectStore('offlineQueue',{autoIncrement:true});
     };
-  }
-
-  function generateId() { return `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`; }
-
-  function addNewItem(data) {
-    const id = generateId();
-    state.items[id] = { id, name: data.name, categoryId: data.categoryId, unit: data.unit, cost: +data.cost || 0, minStockLevel: +data.minStockLevel || 0, created_at: new Date().toISOString() };
-    state.stockLevels[id] = { item_id: id, quantity: +data.initialQuantity || 0 };
-    logMovement(id, 'in', +data.initialQuantity, 'Initial stock');
-    addToOfflineQueue({ type:'ADD_ITEM', data:state.items[id], initialQuantity:+data.initialQuantity || 0 });
-    saveStateToDB(); updateDashboardMetrics(); renderActivityFeed(); return id;
-  }
-  function updateItem(id, data) { if (!state.items[id]) return false; Object.assign(state.items[id], data); addToOfflineQueue({ type:'UPDATE_ITEM', id, data }); saveStateToDB(); return true; }
-  function deleteItem(id) { if (!state.items[id]) return false; delete state.items[id]; delete state.stockLevels[id]; state.stockMovements = state.stockMovements.filter(m => m.item_id !== id); addToOfflineQueue({ type:'DELETE_ITEM', id }); saveStateToDB(); updateDashboardMetrics(); renderActivityFeed(); return true; }
-  function adjustStock(id, qty, reason, staff=null) {
-    const item  = state.items[id];
-    const stock = state.stockLevels[id];
-    if (!item || !stock) { showAppMessage('Item not found!', 'error'); return false; }
-    if (stock.quantity + qty < 0) { showAppMessage('Cannot have negative stock.', 'error'); return false; }
-    const old = stock.quantity;
-    stock.quantity += qty;
-    const type = qty > 0 ? 'in' : 'out';
-    logMovement(id, type, Math.abs(qty), reason, staff);
-    addToOfflineQueue({ type:'STOCK_MOVEMENT', data:{ item_id:id, type, quantity:Math.abs(qty), reason, user:currentUser.displayName, staff_member:staff, timestamp:new Date().toISOString(), local_id:generateId() } });
-    saveStateToDB(); updateDashboardMetrics(); renderActivityFeed();
-    if (type === 'out') {
-      const staffUser = staff ? state.users[staff] : null;
-      const staffName = staffUser ? staffUser.displayName : staff || 'Unknown';
-      sendTelegramMessage(`✅ **STOCK ISSUED**\n\nItem: **${item.name}**\nQuantity: **${Math.abs(qty)} ${item.unit}**\nIssued to: **${staffName}**\nReason: **${reason}**`);
-      if (old > item.minStockLevel && stock.quantity <= item.minStockLevel) sendTelegramMessage(`🚨 **LOW STOCK ALERT**\n\nItem: **${item.name}**\nQuantity: **${stock.quantity} ${item.unit}**\nMinimum Level: **${item.minStockLevel} ${item.unit}**`);
-    }
-    return true;
-  }
-  function logMovement(id, type, qty, reason, staff=null) {
-    state.stockMovements.unshift({ id:generateId(), item_id:id, type, qty, reason, user:currentUser?.displayName || 'System', staff_member:staff, timestamp:new Date().toISOString() });
-    if (state.stockMovements.length > 200) state.stockMovements.pop();
-  }
-  function addUser(data) { if (state.users[data.username]) { showAppMessage('User already exists!', 'error'); return false; } state.users[data.username] = data; addToOfflineQueue({ type:'ADD_USER', data }); saveStateToDB(); return true; }
-  function updateUser(username, data) { if (!state.users[username]) return false; Object.assign(state.users[username], data); addToOfflineQueue({ type:'UPDATE_USER', id:username, data }); saveStateToDB(); return true; }
-  function deleteUser(username) { if (!state.users[username]) return false; if (username === currentUser.username) { showAppMessage('Cannot delete your own account!', 'error'); return false; } delete state.users[username]; addToOfflineQueue({ type:'DELETE_USER', id:username }); saveStateToDB(); return true; }
-
-  async function sendTelegramMessage(msg) {
-    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
-    try { await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ chat_id:TELEGRAM_CHAT_ID, text:msg, parse_mode:'Markdown' }) }); } catch {}
-  }
-
-  // ========== UI helpers ==========
-  function updateDashboardMetrics() {
-    document.getElementById('totalItems').textContent = Object.keys(state.items).length;
-    document.getElementById('lowStockCount').textContent = Object.values(state.items).filter(i => (state.stockLevels[i.id]?.quantity || 0) <= i.minStockLevel).length;
-    const today = new Date().toDateString();
-    document.getElementById('todayMovements').textContent = state.stockMovements.filter(m => new Date(m.timestamp).toDateString() === today).length;
-    document.getElementById('activeUsers').textContent = Object.keys(state.users).length;
-  }
-  function renderActivityFeed() {
-    const feed = document.getElementById('recentActivity'); feed.innerHTML = '';
-    if (!state.stockMovements.length) { feed.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:2rem;">No recent activity.</p>'; return; }
-    state.stockMovements.slice(0,5).forEach(m => {
-      const item = state.items[m.item_id]; if (!item) return;
-      let icon = 'fa-arrows-up-down', color = 'var(--secondary)', text = '';
-      if (m.type === 'in') { icon = 'fa-arrow-down'; color = 'var(--success)'; text = `${m.user} added ${m.qty} ${item.unit} of ${item.name}.`; }
-      else { icon = 'fa-arrow-up'; color = 'var(--accent)'; const staffUser = m.staff_member ? state.users[m.staff_member] : null; const staffName = staffUser ? staffUser.displayName : m.staff_member || 'Unknown'; text = `${m.user} issued ${m.qty} ${item.unit} of ${item.name} to ${staffName}.`; }
-      feed.innerHTML += `<div class="activity-item"><div class="activity-avatar" style="color:${color}"><i class="fas ${icon}"></i></div><div class="activity-content"><div class="activity-text">${text}</div><div class="activity-time">${getTimeAgo(m.timestamp)}</div></div></div>`;
-    });
-  }
-  function getTimeAgo(ts) {
-    const secs = Math.floor((new Date() - new Date(ts)) / 1000);
-    const divs = [31536000, 2592000, 86400, 3600, 60];
-    const names = ['year','month','day','hour','minute'];
-    for (let i = 0; i < divs.length; i++) { const interval = secs / divs[i]; if (interval >= 1) return `${Math.floor(interval)} ${names[i]}${Math.floor(interval)>1?'s':''} ago`; }
-    return 'Just now';
-  }
-  function switchView(view, html='') { document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden')); const el = document.getElementById(view); if (html) el.innerHTML = html; el.classList.remove('hidden'); el.style.animation = 'fadeIn .3s ease'; }
-  function showDashboard() { switchView('dashboardContent'); document.querySelectorAll('.dept-item').forEach(d => d.classList.remove('active')); document.querySelector('[data-dept="dashboard"]').classList.add('active'); updateDashboardMetrics(); renderActivityFeed(); }
-
-  // ========== Quick actions ==========
-  function showAddItem() {
-    const cats = Object.values(state.categories).map(c => `<option value="${c.id}">${state.departments[c.departmentId]?.name || 'Unknown'} - ${c.name}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add New Item</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="addItemForm"><div class="form-grid"><div class="form-group"><label>Name</label><input id="itemName" required></div><div class="form-group"><label>Category</label><select id="itemCategory" required>${cats}</select></div><div class="form-group"><label>Unit</label><input id="itemUnit" required></div><div class="form-group"><label>Cost</label><input type="number" id="itemCost" value="0" step="any" required></div><div class="form-group"><label>Initial Qty</label><input type="number" id="initialQuantity" value="0" step="any" required></div><div class="form-group"><label>Min. Stock</label><input type="number" id="minStockLevel" value="0" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
-    document.getElementById('addItemForm').addEventListener('submit', e => { e.preventDefault(); addNewItem({ name:itemName.value, categoryId:itemCategory.value, unit:itemUnit.value, cost:itemCost.value, initialQuantity:initialQuantity.value, minStockLevel:minStockLevel.value }); showDashboard(); });
-  }
-  function showInventory() {
-    const rows = Object.values(state.items).length ? Object.values(state.items).map(i => {
-      const cat = state.categories[i.categoryId], dept = cat ? state.departments[cat.departmentId] : null, stock = state.stockLevels[i.id];
-      return `<tr><td>${i.name}</td><td>${cat?.name || 'N/A'}</td><td>${dept?.name || 'N/A'}</td><td>${stock?.quantity || 0} ${i.unit}</td><td>${i.minStockLevel} ${i.unit}</td><td><button class="btn-icon" onclick="editItemForm('${i.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteItemPrompt('${i.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
-    }).join('') : '<tr><td colspan="6">No items.</td></tr>';
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Inventory</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept</th><th>Qty</th><th>Min</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);
-  }
-  function editItemForm(id) { const i = state.items[id]; if (!i) return; const cats = Object.values(state.categories).map(c => `<option value="${c.id}" ${c.id===i.categoryId?'selected':''}>${state.departments[c.departmentId]?.name || 'Unknown'} - ${c.name}</option>`).join(''); switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${i.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><form id="editItemForm"><div class="form-grid"><div class="form-group"><label>Name</label><input id="editName" value="${i.name}" required></div><div class="form-group"><label>Category</label><select id="editCat" required>${cats}</select></div><div class="form-group"><label>Unit</label><input id="editUnit" value="${i.unit}" required></div><div class="form-group"><label>Cost</label><input type="number" id="editCost" value="${i.cost}" step="any" required></div><div class="form-group"><label>Min. Stock</label><input type="number" id="editMin" value="${i.minStockLevel}" step="any" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showInventory()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`); document.getElementById('editItemForm').addEventListener('submit', e => { e.preventDefault(); updateItem(id, { name:editName.value, categoryId:editCat.value, unit:editUnit.value, cost:editCost.value, minStockLevel:editMin.value }); showInventory(); }); }
-  function deleteItemPrompt(id) { const i = state.items[id]; if (!i) return; switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${i.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure? This is permanent.</p><div class="form-actions"><button class="btn btn-secondary" onclick="showInventory()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteItem('${id}')">Delete</button></div></div>`); }
-  function confirmDeleteItem(id) { deleteItem(id); showInventory(); }
-  function showUserManagement() { if (currentUser?.displayName !== 'Franklin') return; const rows = Object.values(state.users).map(u => `<tr><td>${u.username}</td><td>${u.displayName}</td><td>${u.role}</td><td>${u.department}</td><td><button class="btn-icon" onclick="editUserForm('${u.username}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteUserPrompt('${u.username}')"><i class="fas fa-trash"></i></button></td></tr>`).join(''); switchView('userManagementContent', `<div class="card"><div class="card-header"><div class="card-title">User Management</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="form-actions"><button class="btn btn-primary" onclick="showAddUserForm()"><i class="fas fa-plus"></i> Add User</button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Username</th><th>Display</th><th>Role</th><th>Dept</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`); }
-  function showAddUserForm() { const depts = Object.values(state.departments).map(d => `<option value="${d.id}">${d.name}</option>`).join(''); switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Add User</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="addUserForm"><div class="form-grid"><div class="form-group"><label>Username</label><input id="username" required></div><div class="form-group"><label>Display Name</label><input id="displayName" required></div><div class="form-group"><label>Password</label><input type="password" id="password" required></div><div class="form-group"><label>Role</label><select id="role" required><option value="admin">Admin</option><option value="processor">Processor</option><option value="viewer">Viewer</option></select></div><div class="form-group"><label>Dept</label><select id="department" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`); document.getElementById('addUserForm').addEventListener('submit', e => { e.preventDefault(); addUser({ username:username.value, displayName:displayName.value, password:password.value, role:role.value, department:department.value }); showUserManagement(); }); }
-  function editUserForm(u) { const user = state.users[u]; if (!user) return; const depts = Object.values(state.departments).map(d => `<option value="${d.id}" ${d.id===user.department?'selected':''}>${d.name}</option>`).join(''); switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Edit: ${user.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><form id="editUserForm"><div class="form-grid"><div class="form-group"><label>Username</label><input value="${user.username}" disabled></div><div class="form-group"><label>Display Name</label><input id="editDisplayName" value="${user.displayName}" required></div><div class="form-group"><label>Password</label><input type="password" id="editPassword" placeholder="Unchanged"></div><div class="form-group"><label>Role</label><select id="editRole" required><option value="admin" ${user.role==='admin'?'selected':''}>Admin</option><option value="processor" ${user.role==='processor'?'selected':''}>Processor</option><option value="viewer" ${user.role==='viewer'?'selected':''}>Viewer</option></select></div><div class="form-group"><label>Dept</label><select id="editDept" required><option value="all">All</option>${depts}</select></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div></form></div>`); document.getElementById('editUserForm').addEventListener('submit', e => { e.preventDefault(); updateUser(u, { displayName:editDisplayName.value, password:editPassword.value || user.password, role:editRole.value, department:editDept.value }); showUserManagement(); }); }
-  function deleteUserPrompt(u) { switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Delete: ${state.users[u]?.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div><p>Are you sure?</p><div class="form-actions"><button class="btn btn-secondary" onclick="showUserManagement()">Cancel</button><button class="btn btn-danger" onclick="confirmDeleteUser('${u}')">Delete</button></div></div>`); }
-  function confirmDeleteUser(u) { deleteUser(u); showUserManagement(); }
-
-  function showStockIn() {
-    const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock In</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockInForm"><div class="form-grid"><div class="form-group"><label>Item</label><select id="item" required>${items}</select></div><div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label>Reason</label><input id="reason" value="Delivery" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
-    document.getElementById('stockInForm').addEventListener('submit', e => { e.preventDefault(); adjustStock(item.value, +qty.value, reason.value); showDashboard(); });
-  }
-  function showStockOut() {
-    const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`).join('');
-    const staff = Object.values(state.users).map(u => `<option value="${u.username}">${u.displayName}</option>`).join('');
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Stock Out</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockOutForm"><div class="form-grid"><div class="form-group"><label>Item</label><select id="item" required>${items}</select></div><div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label>To</label><select id="staff" required>${staff}</select></div><div class="form-group"><label>Reason</label><input id="reason" value="Usage" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Remove</button></div></form></div>`);
-    document.getElementById('stockOutForm').addEventListener('submit', e => { e.preventDefault(); adjustStock(item.value, -qty.value, reason.value, staff.value); showDashboard(); });
-  }
-  function showReports() {
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Reports</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="charts-grid"><div class="card"><div class="card-header"><div class="card-title">Stock Status</div></div><div class="chart-container"><canvas id="stockStatusChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Dept Value</div></div><div class="chart-container"><canvas id="departmentValueChart"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Movements</div></div><div class="chart-container"><canvas id="movementsChart"></canvas></div></div></div></div>`);
-    renderReports();
-  }
-  function renderReports() {
-    const inStock = Object.values(state.items).filter(i => (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel).length;
-    const low     = Object.values(state.items).filter(i => { const q = state.stockLevels[i.id]?.quantity || 0; return q > 0 && q <= i.minStockLevel; }).length;
-    const out     = Object.values(state.items).filter(i => (state.stockLevels[i.id]?.quantity || 0) <= 0).length;
-    new Chart('stockStatusChart', { type:'doughnut', data:{ labels:['In Stock','Low','Out'], datasets:[{ data:[inStock,low,out], backgroundColor:['var(--success)','var(--warning)','var(--accent)'] }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'var(--text-primary)'}}} } });
-    const values = {};
-    Object.values(state.items).forEach(i => { const c = state.categories[i.categoryId], d = c ? state.departments[c.departmentId] : null; if (!d) return; const v = (state.stockLevels[i.id]?.quantity || 0) * i.cost; values[d.name] = (values[d.name] || 0) + v; });
-    new Chart('departmentValueChart', { type:'bar', data:{ labels:Object.keys(values), datasets:[{ label:'Value (MWK)', data:Object.values(values), backgroundColor:Object.keys(values).map(n => DEPARTMENT_CONFIG[Object.keys(DEPARTMENT_CONFIG).find(k => DEPARTMENT_CONFIG[k].name === n)]?.color || 'var(--gray)') }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{ticks:{color:'var(--text-secondary)'}},x:{ticks:{color:'var(--text-secondary)'}}} } });
-    const labels=[], dataIn=[], dataOut=[]; for (let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); labels.push(d.toLocaleDateString('en',{weekday:'short'})); const moves=state.stockMovements.filter(m=>new Date(m.timestamp).toDateString()===d.toDateString()); dataIn.push(moves.filter(m=>m.type==='in').length); dataOut.push(moves.filter(m=>m.type==='out').length); }
-    new Chart('movementsChart', { type:'line', data:{ labels, datasets:[{ label:'In', data:dataIn, borderColor:'var(--success)' }, { label:'Out', data:dataOut, borderColor:'var(--accent)' }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'var(--text-primary)'}}}, scales:{y:{ticks:{color:'var(--text-secondary)',beginAtZero:true}},x:{ticks:{color:'var(--text-secondary)'}}} } });
-  }
-  function showSettings() {
-    switchView('actionContent', `<div class="card"><div class="card-header"><div class="card-title">Settings</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="actions-grid"><div class="action-btn" onclick="testTelegram()"><div class="action-icon"><i class="fab fa-telegram"></i></div><div>Test Telegram</div></div></div></div>`);
-  }
-  function testTelegram() { sendTelegramMessage('✅ **Vanguard Test**\n\nIntegration working.'); showAppMessage('Test sent!', 'success'); }
-  function showAppMessage(text, type) { const el=document.createElement('div'); el.className=`message ${type} show`; el.textContent=text; document.querySelector('.content-area').prepend(el); setTimeout(()=>el.remove(),5000); }
-
-  // ========== Auth ==========
-  function clearPin() { currentPin=''; pinDigits.forEach(d=>{d.value='';d.classList.remove('filled');}); pinDigits[0].focus(); hideMessage(); }
-  function handleKeyPress(k) { hideMessage(); if (currentPin.length>=pinDigits.length) return; const digit=pinDigits[currentPin.length]; digit.value=k; digit.classList.add('filled'); currentPin+=k; if (currentPin.length<pinDigits.length) pinDigits[currentPin.length].focus(); else attemptLogin(); }
-  function attemptLogin() {
-    const user = Object.values(state.users).find(u => u.password === currentPin);
-    if (user) login(user); else { showMessage('Invalid PIN.','error'); document.querySelector('.login-card').style.animation='shake .5s'; setTimeout(()=>{document.querySelector('.login-card').style.animation='';clearPin();},500); }
-  }
-  function login(user) {
-    currentUser = user;
-    showMessage(`Welcome, ${user.displayName}`,'success');
-    document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
-    if (user.displayName === 'Franklin') document.getElementById('userManagementMenuItem').classList.remove('hidden');
-    setTimeout(()=>{ loginScreen.classList.add('hidden'); mainApp.classList.remove('hidden'); mainApp.style.animation='fadeIn .5s ease'; updateDashboardMetrics(); renderActivityFeed(); updateSyncStatus(); },500);
-  }
-  function logout() { currentUser=null; clearPin(); mainApp.classList.add('hidden'); loginScreen.classList.remove('hidden'); loginScreen.style.animation='fadeIn .5s ease'; }
-  function showMessage(text,type) { const el=document.getElementById('loginMessage'); el.textContent=text; el.className=`message ${type} show`; }
-  function hideMessage() { document.getElementById('loginMessage').className='message'; }
-
-  // ========== Init ==========
-  document.addEventListener('DOMContentLoaded', async () => {
-    await loadStateFromDB(); await loadOfflineQueue();
-    pinDigits[0].focus();
-    document.querySelectorAll('.key').forEach(b=>b.addEventListener('click',()=>handleKeyPress(b.dataset.key)));
-    document.querySelectorAll('.dept-item[data-dept]:not([data-dept="dashboard"]):not([data-dept="users"])').forEach(i=>i.addEventListener('click',()=>showInventory()));
-    const style=document.createElement('style'); style.innerHTML=`@keyframes shake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-5px)}20%,40%,60%,80%{transform:translateX(5px)}}`; document.head.appendChild(style);
-    window.addEventListener('online', updateSyncStatus);
-    window.addEventListener('offline', updateSyncStatus);
-    updateSyncStatus();
+    req.onsuccess = e=>res(e.target.result);
   });
+}
+async function saveState(){try{const db=await initIDB();const tx=db.transaction(['state'],'readwrite');state.version=APP_VERSION;tx.objectStore('state').put(state,'appState');await new Promise(r=>tx.oncomplete=r);}catch{}}
+async function loadState(){
+  try{const db=await initIDB();const req=db.transaction(['state'],'readonly').objectStore('state').get('appState');
+    await new Promise(r=>{req.onsuccess=e=>{const res=e.target.result;if(res&&res.version===APP_VERSION)state=res;else initDefault();r();}});}catch{initDefault();}
+}
+async function resetApp(){try{const db=await initIDB();const tx=db.transaction(['state','offlineQueue'],'readwrite');tx.objectStore('state').clear();tx.objectStore('offlineQueue').clear();await new Promise(r=>tx.oncomplete=r);initDefault();offlineQueue=[];}catch{}}
+async function addOffline(op){try{const db=await initIDB();const tx=db.transaction(['offlineQueue'],'readwrite');tx.objectStore('offlineQueue').add(op);offlineQueue.push(op);}catch{}}
+async function loadQueue(){try{const db=await initIDB();const res=await db.transaction(['offlineQueue'],'readonly').objectStore('offlineQueue').getAll();offlineQueue=res||[];}catch{offlineQueue=[];}}
+async function clearQueue(){try{const db=await initIDB();db.transaction(['offlineQueue'],'readwrite').objectStore('offlineQueue').clear();offlineQueue.length=0;}catch{}}
+
+/* ===== Default Data ===== */
+function initDefault(){
+  state={departments:{},categories:{},items:{},stockLevels:{},stockMovements:[],notifications:[],users:{},version:APP_VERSION};
+  const DEPT_CFG={
+    hotel:{name:'Hotel Ops',cats:['Linens','Toiletries','Cleaning','Amenities','Maintenance']},
+    bar:{name:'Bar',cats:['Spirits','Wines','Beers','Mixers','Garnishes','Glassware']},
+    restaurant:{name:'Restaurant',cats:['Beverages','Tableware','Linens','Service']},
+    kitchen:{name:'Kitchen',cats:['Fresh Produce','Meat','Dairy','Dry Goods','Spices']},
+    admin:{name:'Admin',cats:['Office','IT','Docs']},
+    grounds:{name:'Grounds',cats:['Tools','Fertilizer','Pesticides']},
+    cultivation:{name:'Cultivation',cats:['Seeds','Soil','Nutrients']}
+  };
+  Object.keys(DEPT_CFG).forEach(k=>{
+    const dId=`dept_${k}`;state.departments[dId]={id:dId,name:DEPT_CFG[k].name};
+    DEPT_CFG[k].cats.forEach(c=>{const cId=`cat_${k}_${c.toLowerCase().replace(/\s+/g,'')}`;state.categories[cId]={id:cId,departmentId:dId,name:c};});
+  });
+  state.users={
+    'Kelvin':{username:'Kelvin',password:'0100*',role:USER_ROLES.ADMIN,displayName:'Kelvin',department:'all'},
+    'Franklin':{username:'Franklin',password:'1100%',role:USER_ROLES.ADMIN,displayName:'Franklin',department:'all'},
+    'Chisomo':{username:'Chisomo',password:'2100%',role:USER_ROLES.ADMIN,displayName:'Chisomo',department:'admin'},
+    'Victor':{username:'Victor',password:'02000',role:USER_ROLES.ADMIN,displayName:'Victor',department:'admin'},
+    'Boston':{username:'Boston',password:'61006',role:USER_ROLES.PROCESSOR,displayName:'Boston',department:'bar'},
+    'Magah':{username:'Magah',password:'41004',role:USER_ROLES.PROCESSOR,displayName:'Magah',department:'bar'},
+    'Phillip':{username:'Phillip',password:'51005',role:USER_ROLES.PROCESSOR,displayName:'Phillip',department:'bar',isSupervisor:true},
+    'Gift':{username:'Gift',password:'71007',role:USER_ROLES.PROCESSOR,displayName:'Gift',department:'restaurant'},
+    'Rhodney':{username:'Rhodney',password:'81008',role:USER_ROLES.PROCESSOR,displayName:'Rhodney',department:'restaurant',isSupervisor:true},
+    'Mike':{username:'Mike',password:'91009',role:USER_ROLES.PROCESSOR,displayName:'Mike',department:'restaurant'},
+    'Matias':{username:'Matias',password:'11100',role:USER_ROLES.PROCESSOR,displayName:'Matias',department:'hotel'},
+    'Kennedy':{username:'Kennedy',password:'22202',role:USER_ROLES.PROCESSOR,displayName:'Kennedy',department:'hotel'},
+    'Mphatso':{username:'Mphatso',password:'33303',role:USER_ROLES.PROCESSOR,displayName:'Mphatso',department:'restaurant'},
+    'Gaven':{username:'Gaven',password:'44404',role:USER_ROLES.PROCESSOR,displayName:'Gaven',department:'grounds'},
+    'Maya':{username:'Maya',password:'55505',role:USER_ROLES.PROCESSOR,displayName:'Maya',department:'grounds'}
+  };
+}
+
+/* ===== Utility ===== */
+const genId = () => `id_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
+const sendTG = msg => {
+  if(!TELEGRAM_BOT||!TELEGRAM_CHAT)return;
+  fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chat_id:TELEGRAM_CHAT,text:msg,parse_mode:'Markdown'})
+  }).catch(()=>{});
+};
+
+/* ===== Core Ops ===== */
+function addItem(d){
+  const id=genId();
+  state.items[id]={id,name:d.name,categoryId:d.categoryId,unit:d.unit,cost:+d.cost||0,minStockLevel:+d.minStockLevel||0,created_at:new Date().toISOString()};
+  state.stockLevels[id]={item_id:id,quantity:+d.initialQuantity||0};
+  logMove(id,'in',+d.initialQuantity,'Initial');
+  addOffline({type:'ADD_ITEM',data:state.items[id],initialQuantity:+d.initialQuantity||0});
+  saveState();updateDash();renderAct();return id;
+}
+function logMove(i,t,q,r,s=null,p=null){
+  state.stockMovements.unshift({id:genId(),item_id:i,type:t,quantity:q,reason:r,user:currentUser.displayName,staff_member:s,confirmedPin:p,timestamp:new Date().toISOString()});
+  if(state.stockMovements.length>200)state.stockMovements.pop();
+}
+function adjustStock(itemId,qty,reason,staff=null,pin=null){
+  const item=state.items[itemId],stock=state.stockLevels[itemId];
+  if(!item||!stock){showMsg('Item not found','error');return false;}
+  if(stock.quantity+qty<0){showMsg('Negative stock','error');return false;}
+  const old=stock.quantity;
+  stock.quantity+=qty;
+  const type=qty>0?'in':'out';
+  logMove(itemId,type,Math.abs(qty),reason,staff,pin);
+  addOffline({type:'STOCK_MOVEMENT',data:{item_id:itemId,type,quantity:Math.abs(qty),reason,user:currentUser.displayName,staff_member:staff,timestamp:new Date().toISOString(),confirmedPin:pin}});
+  saveState();updateDash();renderAct();
+  if(type==='out'){
+    const staffName=staff?state.users[staff]?.displayName||staff:'Unknown';
+    sendTG(`✅ **STOCK ISSUED**\n\nItem: **${item.name}**\nQty: **${Math.abs(qty)} ${item.unit}**\nTo: **${staffName}**\nPIN: **${pin||'Admin'}**`);
+    if(old>item.minStockLevel&&stock.quantity<=item.minStockLevel){
+      const msg=`🚨 **LOW STOCK**\n\nItem: **${item.name}**\nQty: **${stock.quantity}/${item.minStockLevel} ${item.unit}**`;
+      sendTG(msg);
+      state.notifications.unshift({id:genId(),message:msg,timestamp:new Date().toISOString(),read:false});
+      saveState();
+    }
+  }
+  return true;
+}
+/* ===== Inject keypad only when issuing stock to non-admin ===== */
+function buildInlineKeypad() {
+  if (document.getElementById('inlineKeypad')) return; // already exists
+  const div = document.createElement('div');
+  div.id = 'inlineKeypad';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;';
+  div.innerHTML = `
+    <div class="modal-content">
+      <h3>Confirm Receipt</h3>
+      <p id="inlineMsg">Enter your PIN to complete issuance</p>
+      <div class="pin-input">${'<input class="pin-digit" maxlength="1" readonly>'.repeat(5)}</div>
+      <div class="keypad">
+        <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
+        <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
+        <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
+        <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
+      </div>
+      <button class="clear-btn" onclick="cancelInlinePin()">Cancel</button>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+/* ===== UI ===== */
+function updateDash(){
+  document.getElementById('totalItems').textContent=Object.keys(state.items).length;
+  document.getElementById('lowStockCount').textContent=Object.values(state.items).filter(i=>(state.stockLevels[i.id]?.quantity||0)<=i.minStockLevel).length;
+  const today=new Date().toDateString();
+  document.getElementById('todayMovements').textContent=state.stockMovements.filter(m=>new Date(m.timestamp).toDateString()===today).length;
+  document.getElementById('activeUsers').textContent=Object.keys(state.users).length;
+}
+function renderAct(){
+  const feed=document.getElementById('recentActivity');feed.innerHTML='';
+  if(!state.stockMovements.length){feed.innerHTML='<p style="text-align:center;color:var(--text-secondary);padding:2rem;">No recent activity.</p>';return;}
+  state.stockMovements.slice(0,5).forEach(m=>{
+    const item=state.items[m.item_id];if(!item)return;
+    const icon=m.type==='in'?'fa-arrow-down':'fa-arrow-up';
+    const color=m.type==='in'?'var(--success)':'var(--accent)';
+    const staff=m.staff_member?state.users[m.staff_member]?.displayName||m.staff_member:'Unknown';
+    const txt=m.type==='in'?`${m.user} added ${m.quantity} ${item.unit} of ${item.name}.`:`${m.user} issued ${m.quantity} ${item.unit} of ${item.name} to ${staff}.`;
+    feed.innerHTML+=`<div class="activity-item"><div class="activity-avatar" style="color:${color}"><i class="fas ${icon}"></i></div><div class="activity-content"><div class="activity-text">${txt}</div><div class="activity-time">${new Date(m.timestamp).toLocaleString()}</div></div></div>`;
+  });
+}
+function switchView(view,html=''){document.querySelectorAll('.view-content').forEach(v=>v.classList.add('hidden'));const el=document.getElementById(view);if(html)el.innerHTML=html;el.classList.remove('hidden');el.style.animation='fadeIn .3s';}
+function showInventory(){
+  const rows=Object.keys(state.items).length?Object.values(state.items).map(i=>{
+    const cat=state.categories[i.categoryId],dept=cat?state.departments[cat.departmentId]:null,stock=state.stockLevels[i.id];
+    return`<tr><td>${i.name}</td><td>${cat?.name||'N/A'}</td><td>${dept?.name||'N/A'}</td><td>${stock?.quantity||0} ${i.unit}</td><td>${i.minStockLevel} ${i.unit}</td><td><button class="btn-icon" onclick="editItemForm('${i.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteItemPrompt('${i.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
+  }).join(''):'<tr><td colspan="6">No items</td></tr>';
+  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Inventory</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept</th><th>Qty</th><th>Min</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);}
+function showStockIn(){
+  const items=Object.values(state.items).map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
+  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Stock In</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockInForm"><div class="form-grid"><div class="form-group"><label>Item</label><select id="item" required>${items}</select></div><div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label>Reason</label><input id="reason" value="Delivery" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+  document.getElementById('stockInForm').addEventListener('submit',e=>{e.preventDefault();adjustStock(item.value,+qty.value,reason.value);showDashboard();});
+}
+function showStockOut() {
+  const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`).join('');
+  const staff = Object.values(state.users).map(u => `<option value="${u.username}">${u.displayName}</option>`).join('');
+  switchView('actionContent', `
+    <div class="card">
+      <div class="card-header"><div class="card-title">Stock Out</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div>
+      <form id="stockOutForm">
+        <div class="form-grid">
+          <div class="form-group"><label>Item</label><select id="item" required>${items}</select></div>
+          <div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div>
+          <div class="form-group"><label>To</label><select id="staff" required>${staff}</select></div>
+          <div class="form-group"><label>Reason</label><input id="reason" value="Usage" required></div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Remove</button>
+        </div>
+      </form>
+    </div>`);
+  document.getElementById('stockOutForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const itemId = item.value, qty = +document.getElementById('qty').value, staff = document.getElementById('staff').value, reason = document.getElementById('reason').value;
+    const staffUser = state.users[staff];
+    if (staffUser && staffUser.role !== USER_ROLES.ADMIN) {
+      pendingStockOut = { itemId, qty, staff, reason };
+      buildInlineKeypad();
+      openInlinePin();
+    } else {
+      adjustStock(itemId, -qty, reason, staff);
+      showDashboard();
+    }
+  });
+}
+/* ===== INLINE-PIN HELPERS ===== */
+function buildInlineKeypad() {
+  if (document.getElementById('inlineKeypad')) return; // already built
+  const div = document.createElement('div');
+  div.id = 'inlineKeypad';
+  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;';
+  div.innerHTML = `
+    <div class="modal-content">
+      <h3>Confirm Receipt</h3>
+      <p id="inlineMsg">Enter your 5-digit PIN</p>
+      <div class="pin-input">${'<input class="pin-digit" maxlength="1" readonly>'.repeat(5)}</div>
+      <div class="keypad">
+        <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
+        <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
+        <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
+        <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
+      </div>
+      <button class="clear-btn" onclick="cancelInlinePin()">Cancel</button>
+    </div>`;
+  document.body.appendChild(div);
+}
+function openInlinePin() {
+  buildInlineKeypad();
+  document.getElementById('inlineKeypad').style.display = 'flex';
+  clearInlinePin();
+}
+function cancelInlinePin() {
+  const k = document.getElementById('inlineKeypad');
+  if (k) k.remove();
+  pendingStockOut = null;
+}
+function clearInlinePin() {
+  const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+  digits.forEach(d => { d.value = ''; d.classList.remove('filled'); });
+  digits[0].focus();
+}
+function confirmInlinePin() {
+  const pin = Array.from(document.querySelectorAll('#inlineKeypad .pin-digit')).map(d => d.value).join('');
+  if (pin.length !== 5) { showMsg('PIN must be 5 digits', 'error'); return; }
+  const user = state.users[pendingStockOut.staff];
+  if (!user || user.password !== pin) { showMsg('Wrong PIN. Try again.', 'error'); clearInlinePin(); return; }
+  adjustStock(pendingStockOut.itemId, -pendingStockOut.qty, pendingStockOut.reason, pendingStockOut.staff, pin);
+  showMsg('Stock issued successfully', 'success');
+  cancelInlinePin();
+  showDashboard();
+}
+
+/* ===== PIN HANDLERS FOR INLINE KEYPAD ===== */
+document.addEventListener('click', e => {
+  if (!e.target.classList.contains('key') || !document.getElementById('inlineKeypad')) return;
+  const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+  const filled = Array.from(digits).filter(d => d.value).length;
+  if (filled >= 5) return;
+  digits[filled].value = e.target.dataset.key;
+  digits[filled].classList.add('filled');
+  if (filled === 4) confirmInlinePin();
+});
+
+/* ===== INIT ===== */
+document.addEventListener('DOMContentLoaded',async()=>{
+  await loadState();await loadQueue();
+  updateDash();renderAct();
+});
 </script>
 </body>
 </html>
