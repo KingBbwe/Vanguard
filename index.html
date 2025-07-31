@@ -1,40 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vanguard - Stock Management System</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vanguard – Stock Management</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root {
+    :root{
       --primary:#1a2a3a;--secondary:#3498db;--accent:#e74c3c;--success:#27ae60;--warning:#f39c12;
-      --light:#ecf0f1;--dark:#2c3e50;--gray:#95a5a6;--surface:#252f3d;--surface-light:#2a3a4a;
+      --light:#ecf0f1;--surface:#252f3d;--surface-light:#2a3a4a;
       --text-primary:#e0e0ff;--text-secondary:#a0a0b0;--shadow:0 4px 12px rgba(0,0,0,.25);
       --radius:10px;--transition:all .3s ease;
     }
     *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
-    body{background:linear-gradient(135deg,var(--primary),#1e3040);color:var(--text-primary);line-height:1.6;min-height:100vh;}
-    .app-container{min-height:100vh;display:flex;flex-direction:column;}
+    body{background:linear-gradient(135deg,var(--primary),#1e3040);color:var(--text-primary);min-height:100vh;}
+    .hidden{display:none!important;}
+    /* LOGIN */
     .login-container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;}
-    .login-card{background:var(--surface);padding:2rem 3rem;border-radius:var(--radius);box-shadow:var(--shadow);width:100%;max-width:420px;text-align:center;border:1px solid rgba(255,255,255,.08);}
+    .login-card{background:var(--surface);padding:2rem 3rem;border-radius:var(--radius);box-shadow:var(--shadow);width:100%;max-width:420px;text-align:center;}
     .login-logo{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:2rem;}
     .login-logo i{font-size:2.5rem;color:var(--secondary);background:rgba(52,152,219,.15);padding:15px;border-radius:50%;}
-    .login-title{font-size:2.5rem;font-weight:700;margin-bottom:.25rem;color:white;}
-    .login-subtitle{color:var(--gray);margin-bottom:2rem;font-size:1.1rem;}
+    .login-title{font-size:2.5rem;font-weight:700;color:white;}
+    .login-subtitle{color:var(--text-secondary);margin-bottom:2rem;font-size:1.1rem;}
     .pin-input{display:flex;gap:1rem;justify-content:center;margin-bottom:2rem;}
     .pin-digit{width:50px;height:60px;border:2px solid var(--surface-light);border-radius:var(--radius);text-align:center;font-size:2rem;font-weight:600;background:var(--primary);color:var(--text-primary);-webkit-text-security:disc;}
     .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;}
-    .key{background:var(--surface-light);border:1px solid transparent;padding:1.25rem;border-radius:var(--radius);font-size:1.5rem;font-weight:600;cursor:pointer;color:var(--text-primary);}
+    .key{background:var(--surface-light);border:none;padding:1.25rem;border-radius:var(--radius);font-size:1.5rem;font-weight:600;cursor:pointer;color:var(--text-primary);}
     .key:hover{background:var(--secondary);color:white;transform:translateY(-2px);}
     .clear-btn,.reset-btn{width:100%;padding:1rem;border:none;border-radius:var(--radius);font-weight:600;cursor:pointer;color:white;font-size:1.1rem;}
-    .clear-btn{background:var(--accent);}.reset-btn{background:var(--warning);font-size:.9rem;}
+    .clear-btn{background:var(--accent);}.reset-btn{background:var(--warning);font-size:.9rem;margin-top:.5rem;}
+    /* APP */
     #mainApp{display:flex;flex-direction:column;min-height:100vh;}
     .header{background:var(--surface);color:white;padding:1rem 1.5rem;box-shadow:var(--shadow);position:sticky;top:0;z-index:100;}
     .header-content{display:flex;justify-content:space-between;align-items:center;max-width:1600px;margin:0 auto;}
     .logo{display:flex;align-items:center;gap:.75rem;font-size:1.5rem;font-weight:700;color:var(--secondary);}
+    .user-info{display:flex;align-items:center;gap:1rem;}
+    .sync-status{display:flex;align-items:center;gap:.5rem;padding:.25rem .75rem;border-radius:6px;background:var(--surface-light);font-size:.875rem;}
+    .sync-indicator{width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite;}
+    .sync-indicator.syncing{background:var(--warning);animation:pulse 1s infinite;}
+    .sync-indicator.offline{background:var(--accent);animation:none;}
     .logout-btn{background:var(--surface-light);border:1px solid rgba(255,255,255,.1);color:white;padding:.5rem 1rem;border-radius:var(--radius);cursor:pointer;}
+    .logout-btn:hover{background:var(--accent);}
     .main-content{flex:1;display:flex;max-width:1600px;margin:0 auto;width:100%;padding:1.5rem;gap:1.5rem;}
     .sidebar{width:280px;background:var(--surface);border-right:1px solid rgba(255,255,255,.08);padding:1.5rem;border-radius:var(--radius);position:sticky;top:100px;}
     .dept-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius);cursor:pointer;color:var(--text-primary);}
@@ -53,6 +61,14 @@
     .message.show{display:block;}
     .message.success{background:rgba(39,174,96,.1);color:var(--success);border-color:var(--success);}
     .message.error{background:rgba(231,76,60,.1);color:var(--accent);border-color:var(--accent);}
+    /* TABLES */
+    .data-table{width:100%;border-collapse:collapse;margin-bottom:1rem;}
+    .data-table th,.data-table td{padding:.5rem;border-bottom:1px solid var(--surface-light);}
+    .data-table th{color:var(--text-secondary);text-transform:uppercase;font-size:.75rem;}
+    .btn-icon{background:transparent;border:none;color:var(--text-secondary);cursor:pointer;}
+    .btn-icon:hover{color:var(--secondary);}
+    /* INLINE KEYPAD */
+    .modal-content{background:var(--surface);padding:2rem;border-radius:var(--radius);box-shadow:var(--shadow);width:100%;max-width:320px;text-align:center;}
   </style>
 </head>
 <body>
@@ -66,11 +82,11 @@
     </div>
     <div id="loginMessage" class="message"></div>
     <div class="pin-input">
-      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
-      <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
+      <input type="text" class="pin-digit" maxlength="1" readonly>
+      <input type="text" class="pin-digit" maxlength="1" readonly>
+      <input type="text" class="pin-digit" maxlength="1" readonly>
+      <input type="text" class="pin-digit" maxlength="1" readonly>
+      <input type="text" class="pin-digit" maxlength="1" readonly>
     </div>
     <div class="keypad">
       <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
@@ -79,6 +95,7 @@
       <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
     </div>
     <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
+    <button class="reset-btn" onclick="resetApp()">Reset App Data</button>
   </div>
 </div>
 
@@ -87,25 +104,29 @@
   <header class="header">
     <div class="header-content">
       <div class="logo"><i class="fas fa-boxes-stacked"></i><span>Vanguard Stock Management</span></div>
-      <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      <div class="user-info">
+        <div class="sync-status">
+          <div id="syncIndicator" class="sync-indicator"></div>
+          <span id="syncStatus">Online</span>
+        </div>
+        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        <button class="logout-btn" onclick="syncData()" title="Sync with server"><i class="fas fa-sync-alt"></i></button>
+      </div>
     </div>
   </header>
 
   <div class="main-content">
     <nav class="sidebar">
-      <div class="department-nav">
-        <div class="nav-title">Departments</div>
-        <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></div>
-        <div class="dept-item" data-dept="hotel"><i class="fas fa-hotel"></i><span>Hotel Ops</span></div>
-        <div class="dept-item" data-dept="bar"><i class="fas fa-martini-glass-citrus"></i><span>Bar</span></div>
-        <div class="dept-item" data-dept="restaurant"><i class="fas fa-utensils"></i><span>Restaurant</span></div>
-        <div class="dept-item" data-dept="kitchen"><i class="fas fa-kitchen-set"></i><span>Kitchen</span></div>
-        <div class="dept-item" data-dept="admin"><i class="fas fa-user-gear"></i><span>Admin</span></div>
-        <div class="dept-item" data-dept="grounds"><i class="fas fa-tree"></i><span>Grounds</span></div>
-        <div class="dept-item" data-dept="cultivation"><i class="fas fa-seedling"></i><span>Cultivation</span></div>
-        <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()"><i class="fas fa-users"></i><span>User Management</span></div>
-        <div id="notificationsMenuItem" class="dept-item hidden" data-dept="notifications" onclick="showNotifications()"><i class="fas fa-bell"></i><span>Notifications</span></div>
-      </div>
+      <div class="nav-title">Departments</div>
+      <div class="dept-item active" data-dept="dashboard" onclick="showDashboard()"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></div>
+      <div class="dept-item" data-dept="hotel" onclick="showInventory('hotel')"><i class="fas fa-hotel"></i><span>Hotel Ops</span></div>
+      <div class="dept-item" data-dept="bar" onclick="showInventory('bar')"><i class="fas fa-martini-glass-citrus"></i><span>Bar</span></div>
+      <div class="dept-item" data-dept="restaurant" onclick="showInventory('restaurant')"><i class="fas fa-utensils"></i><span>Restaurant</span></div>
+      <div class="dept-item" data-dept="kitchen" onclick="showInventory('kitchen')"><i class="fas fa-kitchen-set"></i><span>Kitchen</span></div>
+      <div class="dept-item" data-dept="admin" onclick="showInventory('admin')"><i class="fas fa-user-gear"></i><span>Admin</span></div>
+      <div class="dept-item" data-dept="grounds" onclick="showInventory('grounds')"><i class="fas fa-tree"></i><span>Grounds</span></div>
+      <div class="dept-item" data-dept="cultivation" onclick="showInventory('cultivation')"><i class="fas fa-seedling"></i><span>Cultivation</span></div>
+      <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()"><i class="fas fa-users"></i><span>User Management</span></div>
     </nav>
 
     <main class="content-area">
@@ -128,12 +149,8 @@
             <div class="action-btn" onclick="showSettings()"><i class="fas fa-gear"></i><div>Settings</div></div>
           </div>
         </div>
-        <div class="activity-list">
-          <div class="card-header"><div class="card-title">Recent Activity</div></div>
-          <div id="recentActivity"></div>
-        </div>
+        <div class="activity-list"><div class="card-header"><div class="card-title">Recent Activity</div></div><div id="recentActivity"></div></div>
       </div>
-
       <div id="actionContent" class="view-content hidden"></div>
       <div id="userManagementContent" class="view-content hidden"></div>
       <div id="notificationsContent" class="view-content hidden"></div>
@@ -141,33 +158,22 @@
   </div>
 </div>
 
-
-    <div class="keypad">
-      <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
-      <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
-      <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
-      <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
-    </div>
-    <button class="clear-btn" onclick="cancelInlinePin()">Cancel</button>
-  </div>
-</div>
-
 <script>
-/* ===== CONFIG ===== */
+/* ================= CONFIG ================= */
 const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const APP_VERSION = '1.2.4';
-const USER_ROLES = { ADMIN: 'admin', PROCESSOR: 'processor', VIEWER: 'viewer' };
+const APP_VERSION = '1.2.5';
+const USER_ROLES = { ADMIN:'admin', PROCESSOR:'processor', VIEWER:'viewer' };
 const TELEGRAM_BOT = '7960256341:AAFw_BPZRibbnBLaSYD9Lf5id5Fw3352wDC';
 const TELEGRAM_CHAT = '1212406500';
 
-/* ===== STATE ===== */
+/* ================= STATE ================= */
 let currentUser = null, currentPin = '', pendingStockOut = null;
 let state = { departments:{}, categories:{}, items:{}, stockLevels:{}, stockMovements:[], notifications:[], users:{}, version:APP_VERSION };
 let offlineQueue = [];
 
-/* ===== IndexedDB ===== */
+/* ================= INDEXEDDB ================= */
 async function initIDB(){
   return new Promise((res,rej)=>{
     const req = indexedDB.open('VanguardStockDB',4);
@@ -185,12 +191,15 @@ async function loadState(){
   try{const db=await initIDB();const req=db.transaction(['state'],'readonly').objectStore('state').get('appState');
     await new Promise(r=>{req.onsuccess=e=>{const res=e.target.result;if(res&&res.version===APP_VERSION)state=res;else initDefault();r();}});}catch{initDefault();}
 }
-async function resetApp(){try{const db=await initIDB();const tx=db.transaction(['state','offlineQueue'],'readwrite');tx.objectStore('state').clear();tx.objectStore('offlineQueue').clear();await new Promise(r=>tx.oncomplete=r);initDefault();offlineQueue=[];}catch{}}
+async function resetApp(){
+  if(!confirm('Reset will erase all data. Continue?'))return;
+  try{const db=await initIDB();const tx=db.transaction(['state','offlineQueue'],'readwrite');tx.objectStore('state').clear();tx.objectStore('offlineQueue').clear();await new Promise(r=>tx.oncomplete=r);initDefault();offlineQueue=[];saveState();location.reload();}catch{}
+}
 async function addOffline(op){try{const db=await initIDB();const tx=db.transaction(['offlineQueue'],'readwrite');tx.objectStore('offlineQueue').add(op);offlineQueue.push(op);}catch{}}
 async function loadQueue(){try{const db=await initIDB();const res=await db.transaction(['offlineQueue'],'readonly').objectStore('offlineQueue').getAll();offlineQueue=res||[];}catch{offlineQueue=[];}}
 async function clearQueue(){try{const db=await initIDB();db.transaction(['offlineQueue'],'readwrite').objectStore('offlineQueue').clear();offlineQueue.length=0;}catch{}}
 
-/* ===== Default Data ===== */
+/* ================= DEFAULT DATA ================= */
 function initDefault(){
   state={departments:{},categories:{},items:{},stockLevels:{},stockMovements:[],notifications:[],users:{},version:APP_VERSION};
   const DEPT_CFG={
@@ -225,7 +234,7 @@ function initDefault(){
   };
 }
 
-/* ===== Utility ===== */
+/* ================= CORE OPS ================= */
 const genId = () => `id_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
 const sendTG = msg => {
   if(!TELEGRAM_BOT||!TELEGRAM_CHAT)return;
@@ -234,8 +243,6 @@ const sendTG = msg => {
     body:JSON.stringify({chat_id:TELEGRAM_CHAT,text:msg,parse_mode:'Markdown'})
   }).catch(()=>{});
 };
-
-/* ===== Core Ops ===== */
 function addItem(d){
   const id=genId();
   state.items[id]={id,name:d.name,categoryId:d.categoryId,unit:d.unit,cost:+d.cost||0,minStockLevel:+d.minStockLevel||0,created_at:new Date().toISOString()};
@@ -246,7 +253,7 @@ function addItem(d){
 }
 function logMove(i,t,q,r,s=null,p=null){
   state.stockMovements.unshift({id:genId(),item_id:i,type:t,quantity:q,reason:r,user:currentUser.displayName,staff_member:s,confirmedPin:p,timestamp:new Date().toISOString()});
-  if(state.stockMovements.length>200)state.stockMovements.pop();
+  if(state.stockMovements.length>100)state.stockMovements.pop();
 }
 function adjustStock(itemId,qty,reason,staff=null,pin=null){
   const item=state.items[itemId],stock=state.stockLevels[itemId];
@@ -270,29 +277,6 @@ function adjustStock(itemId,qty,reason,staff=null,pin=null){
   }
   return true;
 }
-/* ===== Inject keypad only when issuing stock to non-admin ===== */
-function buildInlineKeypad() {
-  if (document.getElementById('inlineKeypad')) return; // already exists
-  const div = document.createElement('div');
-  div.id = 'inlineKeypad';
-  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;';
-  div.innerHTML = `
-    <div class="modal-content">
-      <h3>Confirm Receipt</h3>
-      <p id="inlineMsg">Enter your PIN to complete issuance</p>
-      <div class="pin-input">${'<input class="pin-digit" maxlength="1" readonly>'.repeat(5)}</div>
-      <div class="keypad">
-        <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
-        <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
-        <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
-        <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
-      </div>
-      <button class="clear-btn" onclick="cancelInlinePin()">Cancel</button>
-    </div>`;
-  document.body.appendChild(div);
-}
-
-/* ===== UI ===== */
 function updateDash(){
   document.getElementById('totalItems').textContent=Object.keys(state.items).length;
   document.getElementById('lowStockCount').textContent=Object.values(state.items).filter(i=>(state.stockLevels[i.id]?.quantity||0)<=i.minStockLevel).length;
@@ -313,43 +297,135 @@ function renderAct(){
   });
 }
 function switchView(view,html=''){document.querySelectorAll('.view-content').forEach(v=>v.classList.add('hidden'));const el=document.getElementById(view);if(html)el.innerHTML=html;el.classList.remove('hidden');el.style.animation='fadeIn .3s';}
-function showInventory(){
-  const rows=Object.keys(state.items).length?Object.values(state.items).map(i=>{
-    const cat=state.categories[i.categoryId],dept=cat?state.departments[cat.departmentId]:null,stock=state.stockLevels[i.id];
-    return`<tr><td>${i.name}</td><td>${cat?.name||'N/A'}</td><td>${dept?.name||'N/A'}</td><td>${stock?.quantity||0} ${i.unit}</td><td>${i.minStockLevel} ${i.unit}</td><td><button class="btn-icon" onclick="editItemForm('${i.id}')"><i class="fas fa-edit"></i></button><button class="btn-icon" onclick="deleteItemPrompt('${i.id}')"><i class="fas fa-trash"></i></button></td></tr>`;
-  }).join(''):'<tr><td colspan="6">No items</td></tr>';
-  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Inventory</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><div class="data-table-container"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept</th><th>Qty</th><th>Min</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div></div>`);}
+function showMsg(text,type){
+  const m=document.createElement('div');m.className=`message ${type} show`;m.textContent=text;document.querySelector('.content-area').prepend(m);setTimeout(()=>m.remove(),4000);
+}
+/* LOGIN */
+function clearPin(){currentPin='';document.querySelectorAll('.pin-digit').forEach(d=>{d.value='';d.classList.remove('filled');});document.querySelector('.pin-digit').focus();}
+function handleKey(k){if(currentPin.length>=5)return;const d=document.querySelectorAll('.pin-digit')[currentPin.length];d.value=k;d.classList.add('filled');currentPin+=k;if(currentPin.length===5)attemptLogin();}
+function attemptLogin(){
+  const user=Object.values(state.users).find(u=>u.password===currentPin);
+  if(user){login(user);}else{showLoginMsg('Invalid PIN','error');setTimeout(clearPin,1000);}
+}
+function login(user){
+  currentUser=user;
+  showLoginMsg(`Welcome, ${user.displayName}`,'success');
+  setTimeout(()=>{
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    document.getElementById('currentUser').textContent=`Welcome, ${user.displayName}`;
+    
+    /* ALWAYS show Franklin’s extra menus */
+    if(user.displayName==='Franklin'){
+      document.getElementById('userManagementMenuItem').classList.remove('hidden');
+      document.getElementById('notificationsMenuItem').classList.remove('hidden');
+    } else {
+      document.getElementById('userManagementMenuItem').classList.add('hidden');
+      document.getElementById('notificationsMenuItem').classList.add('hidden');
+    }
+    
+    updateDash();renderAct();updateSyncStatus();
+  },700);
+}
+function logout(){currentUser=null;clearPin();document.getElementById('mainApp').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');}
+function showLoginMsg(text,type){const m=document.getElementById('loginMessage');m.textContent=text;m.className=`message ${type} show`;}
+/* SYNC */
+async function syncData(){
+  const ind=document.createElement('div');ind.className='sync-indicator syncing';document.getElementById('syncIndicator').className='sync-indicator syncing';document.getElementById('syncStatus').textContent='Syncing…';
+  try{
+    await processOfflineQueue();
+    await pullFromSupabase();
+    await saveState();
+    updateDash();renderAct();
+    showMsg('Sync successful','success');
+  }catch(e){showMsg('Sync failed','error');}finally{ind.remove();updateSyncStatus();}
+}
+async function processOfflineQueue(){
+  if(!offlineQueue.length)return;
+  for(const op of offlineQueue){
+    switch(op.type){
+      case 'ADD_ITEM':
+        await supabase.from('items').upsert(op.data);
+        await supabase.from('stock_levels').upsert({item_id:op.data.id,quantity:op.initialQuantity});
+        break;
+      case 'UPDATE_ITEM':await supabase.from('items').update(op.data).eq('id',op.id);break;
+      case 'DELETE_ITEM':
+        await supabase.from('stock_movements').delete().eq('item_id',op.id);
+        await supabase.from('stock_levels').delete().eq('item_id',op.id);
+        await supabase.from('items').delete().eq('id',op.id);
+        break;
+      case 'STOCK_MOVEMENT':
+        await supabase.from('stock_movements').insert(op.data);
+        const {data:row}=await supabase.from('stock_levels').select('quantity').eq('item_id',op.data.item_id).single();
+        const newQty=(row?.quantity||0)+(op.data.type==='in'?op.data.quantity:-op.data.quantity);
+        await supabase.from('stock_levels').upsert({item_id:op.data.item_id,quantity:newQty});
+        break;
+    }
+  }
+  await clearQueue();
+}
+async function pullFromSupabase(){
+  const [items,levels,movements]=await Promise.all([
+    supabase.from('items').select('*'),
+    supabase.from('stock_levels').select('*'),
+    supabase.from('stock_movements').select('*').order('timestamp',{ascending:false})
+  ]);
+  items.data?.forEach(i=>state.items[i.id]=i);
+  levels.data?.forEach(l=>state.stockLevels[l.item_id]=l);
+  movements.data?.forEach(m=>{if(!state.stockMovements.find(sm=>sm.id===m.id))state.stockMovements.unshift(m);});
+  state.stockMovements=state.stockMovements.slice(0,100);
+}
+function updateSyncStatus(){
+  const ind=document.getElementById('syncIndicator');
+  const txt=document.getElementById('syncStatus');
+  if(!navigator.onLine){ind.className='sync-indicator offline';txt.textContent='Offline';return;}
+  if(offlineQueue.length){ind.className='sync-indicator';txt.textContent=`${offlineQueue.length} pending`;}
+  else{ind.className='sync-indicator';txt.textContent='Online';}
+}
+/* ACTIONS */
 function showStockIn(){
   const items=Object.values(state.items).map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
-  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Stock In</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockInForm"><div class="form-grid"><div class="form-group"><label>Item</label><select id="item" required>${items}</select></div><div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label>Reason</label><input id="reason" value="Delivery" required></div></div><div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Stock In</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><form id="stockInForm"><div class="form-grid"><div class="form-group"><label>Item</label><select id="item" required>${items}</select></div><div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div><div class="form-group"><label>Reason</label><input id="reason" value="Delivery" required></div></div><div class="form-actions"><button type="button" class="logout-btn" onclick="showDashboard()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
   document.getElementById('stockInForm').addEventListener('submit',e=>{e.preventDefault();adjustStock(item.value,+qty.value,reason.value);showDashboard();});
 }
 function showStockOut() {
-  const items = Object.values(state.items).map(i => `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`).join('');
-  const staff = Object.values(state.users).map(u => `<option value="${u.username}">${u.displayName}</option>`).join('');
+  const items = Object.values(state.items)
+    .map(i => `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`)
+    .join('');
+  const staff = Object.values(state.users)
+    .map(u => `<option value="${u.username}">${u.displayName}</option>`)
+    .join('');
+
   switchView('actionContent', `
     <div class="card">
-      <div class="card-header"><div class="card-title">Stock Out</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div>
+      <div class="card-header">
+        <div class="card-title">Stock Out</div>
+        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button>
+      </div>
       <form id="stockOutForm">
         <div class="form-grid">
-          <div class="form-group"><label>Item</label><select id="item" required>${items}</select></div>
-          <div class="form-group"><label>Qty</label><input type="number" id="qty" required min="0.01" step="any"></div>
-          <div class="form-group"><label>To</label><select id="staff" required>${staff}</select></div>
-          <div class="form-group"><label>Reason</label><input id="reason" value="Usage" required></div>
+          <div class="form-group"><label>Item</label><select id="soItem" required>${items}</select></div>
+          <div class="form-group"><label>Qty</label><input type="number" id="soQty" required min="0.01" step="any"></div>
+          <div class="form-group"><label>To</label><select id="soStaff" required>${staff}</select></div>
+          <div class="form-group"><label>Reason</label><input id="soReason" value="Usage" required></div>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+          <button type="button" class="logout-btn" onclick="showDashboard()">Cancel</button>
           <button type="submit" class="btn btn-primary">Remove</button>
         </div>
       </form>
     </div>`);
+
   document.getElementById('stockOutForm').addEventListener('submit', e => {
     e.preventDefault();
-    const itemId = item.value, qty = +document.getElementById('qty').value, staff = document.getElementById('staff').value, reason = document.getElementById('reason').value;
-    const staffUser = state.users[staff];
-    if (staffUser && staffUser.role !== USER_ROLES.ADMIN) {
+    const itemId   = document.getElementById('soItem').value;
+    const qty      = +document.getElementById('soQty').value;
+    const staff    = document.getElementById('soStaff').value;
+    const reason   = document.getElementById('soReason').value;
+    const staffObj = state.users[staff];
+
+    if (staffObj && staffObj.role !== USER_ROLES.ADMIN) {
       pendingStockOut = { itemId, qty, staff, reason };
-      buildInlineKeypad();
       openInlinePin();
     } else {
       adjustStock(itemId, -qty, reason, staff);
@@ -357,67 +433,201 @@ function showStockOut() {
     }
   });
 }
-/* ===== INLINE-PIN HELPERS ===== */
-function buildInlineKeypad() {
-  if (document.getElementById('inlineKeypad')) return; // already built
-  const div = document.createElement('div');
-  div.id = 'inlineKeypad';
-  div.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;';
-  div.innerHTML = `
+function showInventory(dept=null){
+  let rows='';
+  Object.values(state.items).forEach(i=>{
+    const cat=state.categories[i.categoryId],deptObj=cat?state.departments[cat.departmentId]:null;
+    if(dept && deptObj?.id!==`dept_${dept}`) return;
+    const stock=state.stockLevels[i.id]||{quantity:0};
+    rows+=`<tr>
+      <td>${i.name}</td><td>${cat?.name||'-'}</td><td>${deptObj?.name||'-'}</td>
+      <td>${stock.quantity} ${i.unit}</td><td>${i.minStockLevel} ${i.unit}</td>
+      <td>
+        ${currentUser?.role===USER_ROLES.ADMIN?`
+          <button class="btn-icon" onclick="editItemForm('${i.id}')"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon" onclick="deleteItemPrompt('${i.id}')"><i class="fas fa-trash"></i></button>
+        `:''}
+      </td>
+    </tr>`;
+  });
+  if(!rows) rows='<tr><td colspan="6">No items</td></tr>';
+  switchView('actionContent',`
+    <div class="card">
+      <div class="card-header"><div class="card-title">Inventory ${dept?`- ${state.departments['dept_'+dept]?.name}`:''}</div>
+        ${currentUser?.role===USER_ROLES.ADMIN?`<button class="logout-btn" onclick="showAddItem()"><i class="fas fa-plus"></i> Add</button>`:''}
+      </div>
+      <table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept</th><th>Qty</th><th>Min</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`);
+}
+function showAddItem(){
+  const cats=Object.values(state.categories).map(c=>`<option value="${c.id}">${state.departments[c.departmentId].name} - ${c.name}</option>`).join('');
+  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Add Item</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><form id="addItemForm"><div class="form-grid"><div class="form-group"><label>Name</label><input id="aiName" required></div><div class="form-group"><label>Category</label><select id="aiCat" required>${cats}</select></div><div class="form-group"><label>Unit</label><input id="aiUnit" required></div><div class="form-group"><label>Cost</label><input type="number" id="aiCost" value="0" step="any"></div><div class="form-group"><label>Initial Qty</label><input type="number" id="aiQty" value="0" step="any"></div><div class="form-group"><label>Min Stock</label><input type="number" id="aiMin" value="0" step="any"></div></div><div class="form-actions"><button type="button" class="logout-btn" onclick="showInventory()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div></form></div>`);
+  document.getElementById('addItemForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    addItem({name:aiName.value,categoryId:aiCat.value,unit:aiUnit.value,cost:+aiCost.value,initialQuantity:+aiQty.value,minStockLevel:+aiMin.value});
+    showInventory();
+  });
+}
+function editItemForm(id){
+  const i=state.items[id];if(!i)return;
+  const cats=Object.values(state.categories).map(c=>`<option value="${c.id}" ${c.id===i.categoryId?'selected':''}>${state.departments[c.departmentId].name} - ${c.name}</option>`).join('');
+  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Edit ${i.name}</div><button class="logout-btn" onclick="showInventory()"><i class="fas fa-arrow-left"></i></button></div><form id="editForm"><div class="form-grid"><div class="form-group"><label>Name</label><input id="edName" value="${i.name}" required></div><div class="form-group"><label>Category</label><select id="edCat">${cats}</select></div><div class="form-group"><label>Unit</label><input id="edUnit" value="${i.unit}" required></div><div class="form-group"><label>Cost</label><input type="number" id="edCost" value="${i.cost}" step="any"></div><div class="form-group"><label>Min Stock</label><input type="number" id="edMin" value="${i.minStockLevel}" step="any"></div></div><div class="form-actions"><button type="button" class="logout-btn" onclick="showInventory()">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div></form></div>`);
+  document.getElementById('editForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    Object.assign(i,{name:edName.value,categoryId:edCat.value,unit:edUnit.value,cost:+edCost.value,minStockLevel:+edMin.value});
+    addOffline({type:'UPDATE_ITEM',id,data:i});saveState();showInventory();
+  });
+}
+function deleteItemPrompt(id){
+  if(!confirm('Delete this item?'))return;
+  delete state.items[id];delete state.stockLevels[id];
+  state.stockMovements=state.stockMovements.filter(m=>m.item_id!==id);
+  addOffline({type:'DELETE_ITEM',id});
+  saveState();updateDash();renderAct();showInventory();
+}
+function showReports(){
+  const inStock=Object.values(state.items).filter(i=>(state.stockLevels[i.id]?.quantity||0)>i.minStockLevel).length;
+  const low=Object.values(state.items).filter(i=>{const s=state.stockLevels[i.id]?.quantity||0;return s>0&&s<=i.minStockLevel}).length;
+  const out=Object.values(state.items).length-inStock-low;
+  switchView('actionContent',`
+    <div class="card">
+      <div class="card-header"><div class="card-title">Reports</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div>
+      <div class="charts-grid">
+        <div class="chart-container"><canvas id="stockChart"></canvas></div>
+        <div class="chart-container"><canvas id="deptChart"></canvas></div>
+      </div>
+    </div>`);
+  setTimeout(()=>{
+    new Chart(document.getElementById('stockChart'),{type:'doughnut',data:{labels:['In Stock','Low','Out'],datasets:[{data:[inStock,low,out],backgroundColor:['var(--success)','var(--warning)','var(--accent)']}]}});
+    const deptVal={};Object.values(state.items).forEach(i=>{
+      const c=state.categories[i.categoryId];const d=c?state.departments[c.departmentId]:null;if(!d)return;
+      const v=(state.stockLevels[i.id]?.quantity||0)*i.cost;deptVal[d.name]=(deptVal[d.name]||0)+v;
+    });
+    new Chart(document.getElementById('deptChart'),{type:'bar',data:{labels:Object.keys(deptVal),datasets:[{label:'Value',data:Object.values(deptVal),backgroundColor:'var(--secondary)'}]}});
+  },100);
+}
+function showSettings(){
+  switchView('actionContent',`<div class="card"><div class="card-header"><div class="card-title">Settings</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><button class="key" onclick="sendTG('✅ Vanguard test')">Test Telegram</button></div>`);
+}
+function showUserManagement(){
+  const rows=Object.values(state.users).map(u=>`
+    <tr>
+      <td>${u.username}</td><td>${u.displayName}</td><td>${u.role}</td><td>${u.department}</td>
+      <td>
+        <button class="btn-icon" onclick="editUserForm('${u.username}')"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon" onclick="deleteUserPrompt('${u.username}')"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+  switchView('userManagementContent',`
+    <div class="card">
+      <div class="card-header"><div class="card-title">User Management</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button>
+        <button class="logout-btn" onclick="addUserForm()"><i class="fas fa-plus"></i> Add</button>
+      </div>
+      <table class="data-table"><thead><tr><th>Username</th><th>Display</th><th>Role</th><th>Dept</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    </div>`);
+}
+function addUserForm(){
+  const depts=Object.values(state.departments).map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  switchView('userManagementContent',`
+    <div class="card">
+      <div class="card-header"><div class="card-title">Add User</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div>
+      <form id="addUserForm">
+        <div class="form-grid">
+          <div class="form-group"><label>Username</label><input id="auUsername" required></div>
+          <div class="form-group"><label>Display Name</label><input id="auDisplay" required></div>
+          <div class="form-group"><label>Password (PIN)</label><input id="auPassword" required></div>
+          <div class="form-group"><label>Role</label><select id="auRole"><option value="admin">Admin</option><option value="processor">Processor</option><option value="viewer">Viewer</option></select></div>
+          <div class="form-group"><label>Department</label><select id="auDept"><option value="all">All</option>${depts}</select></div>
+        </div>
+        <div class="form-actions"><button type="button" class="logout-btn" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div>
+      </form>
+    </div>`);
+  document.getElementById('addUserForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const username=auUsername.value,displayName=auDisplay.value,password=auPassword.value,role=auRole.value,department=auDept.value;
+    if(state.users[username]){showMsg('User already exists','error');return;}
+    state.users[username]={username,displayName,password,role,department};
+    addOffline({type:'ADD_USER',data:state.users[username]});saveState();showUserManagement();
+  });
+}
+function editUserForm(username){
+  const u=state.users[username];if(!u)return;
+  const depts=Object.values(state.departments).map(d=>`<option value="${d.id}" ${d.id===u.department?'selected':''}>${d.name}</option>`).join('');
+  switchView('userManagementContent',`
+    <div class="card">
+      <div class="card-header"><div class="card-title">Edit ${u.displayName}</div><button class="logout-btn" onclick="showUserManagement()"><i class="fas fa-arrow-left"></i></button></div>
+      <form id="editUserForm">
+        <div class="form-grid">
+          <div class="form-group"><label>Username</label><input value="${u.username}" disabled></div>
+          <div class="form-group"><label>Display Name</label><input id="euDisplay" value="${u.displayName}" required></div>
+          <div class="form-group"><label>Password (leave blank for no change)</label><input id="euPassword" placeholder="•••••"></div>
+          <div class="form-group"><label>Role</label><select id="euRole"><option value="admin" ${u.role==='admin'?'selected':''}>Admin</option><option value="processor" ${u.role==='processor'?'selected':''}>Processor</option><option value="viewer" ${u.role==='viewer'?'selected':''}>Viewer</option></select></div>
+          <div class="form-group"><label>Department</label><select id="euDept"><option value="all" ${u.department==='all'?'selected':''}>All</option>${depts}</select></div>
+        </div>
+        <div class="form-actions"><button type="button" class="logout-btn" onclick="showUserManagement()">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+      </form>
+    </div>`);
+  document.getElementById('editUserForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    Object.assign(u,{displayName:euDisplay.value,password:euPassword.value||u.password,role:euRole.value,department:euDept.value});
+    addOffline({type:'UPDATE_USER',id:username,data:u});saveState();showUserManagement();
+  });
+}
+function deleteUserPrompt(username){
+  if(username===currentUser.username){showMsg('Cannot delete your own account','error');return;}
+  if(!confirm(`Delete user ${username}?`))return;
+  delete state.users[username];
+  addOffline({type:'DELETE_USER',id:username});
+  saveState();showUserManagement();
+}
+function showDashboard(){switchView('dashboardContent');document.querySelectorAll('.dept-item').forEach(d=>d.classList.remove('active'));document.querySelector('[data-dept="dashboard"]').classList.add('active');updateDash();renderAct();}
+function showNotifications(){
+  const rows=state.notifications.map(n=>`<tr><td>${n.message}</td><td>${new Date(n.timestamp).toLocaleString()}</td></tr>`).join('');
+  switchView('notificationsContent',`<div class="card"><div class="card-header"><div class="card-title">Notifications</div><button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button></div><table class="data-table"><thead><tr><th>Message</th><th>Time</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+}
+/* INLINE KEYPAD */
+function buildInlineKeypad(){
+  if(document.getElementById('inlineKeypad'))return;
+  const div=document.createElement('div');div.id='inlineKeypad';
+  div.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;';
+  div.innerHTML=`
     <div class="modal-content">
       <h3>Confirm Receipt</h3>
-      <p id="inlineMsg">Enter your 5-digit PIN</p>
+      <p>Enter your 5-digit PIN</p>
       <div class="pin-input">${'<input class="pin-digit" maxlength="1" readonly>'.repeat(5)}</div>
-      <div class="keypad">
-        <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
-        <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
-        <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
-        <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
-      </div>
+      <div class="keypad">${[1,2,3,4,5,6,7,8,9,'*',0,'%'].map(k=>`<button class="key" data-key="${k}">${k}</button>`).join('')}</div>
       <button class="clear-btn" onclick="cancelInlinePin()">Cancel</button>
     </div>`;
   document.body.appendChild(div);
 }
-function openInlinePin() {
+function openInlinePin(){
   buildInlineKeypad();
-  document.getElementById('inlineKeypad').style.display = 'flex';
+  document.getElementById('inlineKeypad').style.display='flex';
   clearInlinePin();
 }
-function cancelInlinePin() {
-  const k = document.getElementById('inlineKeypad');
-  if (k) k.remove();
-  pendingStockOut = null;
+function cancelInlinePin(){document.getElementById('inlineKeypad')?.remove();pendingStockOut=null;}
+function clearInlinePin(){
+  const digits=document.querySelectorAll('#inlineKeypad .pin-digit');
+  digits.forEach(d=>{d.value='';d.classList.remove('filled');});digits[0].focus();
 }
-function clearInlinePin() {
-  const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
-  digits.forEach(d => { d.value = ''; d.classList.remove('filled'); });
-  digits[0].focus();
+function confirmInlinePin(){
+  const pin=Array.from(document.querySelectorAll('#inlineKeypad .pin-digit')).map(d=>d.value).join('');
+  if(pin.length!==5){showMsg('PIN must be 5 digits','error');return;}
+  const user=state.users[pendingStockOut.staff];
+  if(!user||user.password!==pin){showMsg('Wrong PIN','error');clearInlinePin();return;}
+  adjustStock(pendingStockOut.itemId,-pendingStockOut.qty,pendingStockOut.reason,pendingStockOut.staff,pin);
+  showMsg('Stock issued successfully','success');cancelInlinePin();showDashboard();
 }
-function confirmInlinePin() {
-  const pin = Array.from(document.querySelectorAll('#inlineKeypad .pin-digit')).map(d => d.value).join('');
-  if (pin.length !== 5) { showMsg('PIN must be 5 digits', 'error'); return; }
-  const user = state.users[pendingStockOut.staff];
-  if (!user || user.password !== pin) { showMsg('Wrong PIN. Try again.', 'error'); clearInlinePin(); return; }
-  adjustStock(pendingStockOut.itemId, -pendingStockOut.qty, pendingStockOut.reason, pendingStockOut.staff, pin);
-  showMsg('Stock issued successfully', 'success');
-  cancelInlinePin();
-  showDashboard();
-}
-
-/* ===== PIN HANDLERS FOR INLINE KEYPAD ===== */
-document.addEventListener('click', e => {
-  if (!e.target.classList.contains('key') || !document.getElementById('inlineKeypad')) return;
-  const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
-  const filled = Array.from(digits).filter(d => d.value).length;
-  if (filled >= 5) return;
-  digits[filled].value = e.target.dataset.key;
-  digits[filled].classList.add('filled');
-  if (filled === 4) confirmInlinePin();
+document.addEventListener('click',e=>{
+  if(!e.target.classList.contains('key')||!document.getElementById('inlineKeypad'))return;
+  const digits=document.querySelectorAll('#inlineKeypad .pin-digit'),filled=Array.from(digits).filter(d=>d.value).length;
+  if(filled>=5)return;digits[filled].value=e.target.dataset.key;digits[filled].classList.add('filled');if(filled===4)confirmInlinePin();
 });
-
-/* ===== INIT ===== */
+/* INIT */
 document.addEventListener('DOMContentLoaded',async()=>{
   await loadState();await loadQueue();
+  document.querySelectorAll('.key').forEach(b=>b.addEventListener('click',()=>handleKey(b.dataset.key)));
+  updateSyncStatus();
   updateDash();renderAct();
 });
 </script>
