@@ -330,50 +330,88 @@ function login(user){
 function logout(){currentUser=null;clearPin();document.getElementById('mainApp').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');}
 function showLoginMsg(text,type){const m=document.getElementById('loginMessage');m.textContent=text;m.className=`message ${type} show`;}
 /* SYNC */
-async function syncData(){
-  const ind=document.createElement('div');ind.className='sync-indicator syncing';document.getElementById('syncIndicator').className='sync-indicator syncing';document.getElementById('syncStatus').textContent='Syncing…';
-  try{
+async function syncData() {
+  const ind = document.getElementById('syncIndicator');
+  const txt = document.getElementById('syncStatus');
+  ind.className = 'sync-indicator syncing';
+  txt.textContent = 'Syncing…';
+  try {
     await processOfflineQueue();
     await pullFromSupabase();
     await saveState();
-    updateDash();renderAct();
-    showMsg('Sync successful','success');
-  }catch(e){showMsg('Sync failed','error');}finally{ind.remove();updateSyncStatus();}
+    updateDash();
+    renderAct();
+    showMsg('Sync completed – all data uploaded & downloaded', 'success');
+  } catch (e) {
+    console.error(e);
+    showMsg('Sync failed: ' + e.message, 'error');
+  } finally {
+    ind.className = 'sync-indicator';
+    updateSyncStatus();
+  }
 }
-async function processOfflineQueue(){
-  if(!offlineQueue.length)return;
-  for(const op of offlineQueue){
-    switch(op.type){
-      case 'ADD_ITEM':
-        await supabase.from('items').upsert(op.data);
-        await supabase.from('stock_levels').upsert({item_id:op.data.id,quantity:op.initialQuantity});
-        break;
-      case 'UPDATE_ITEM':await supabase.from('items').update(op.data).eq('id',op.id);break;
-      case 'DELETE_ITEM':
-        await supabase.from('stock_movements').delete().eq('item_id',op.id);
-        await supabase.from('stock_levels').delete().eq('item_id',op.id);
-        await supabase.from('items').delete().eq('id',op.id);
-        break;
-      case 'STOCK_MOVEMENT':
-        await supabase.from('stock_movements').insert(op.data);
-        const {data:row}=await supabase.from('stock_levels').select('quantity').eq('item_id',op.data.item_id).single();
-        const newQty=(row?.quantity||0)+(op.data.type==='in'?op.data.quantity:-op.data.quantity);
-        await supabase.from('stock_levels').upsert({item_id:op.data.item_id,quantity:newQty});
-        break;
+async function processOfflineQueue() {
+  if (!offlineQueue.length) return;
+  for (const op of offlineQueue) {
+    try {
+      switch (op.type) {
+        case 'ADD_ITEM':
+          await supabase.from('items').insert(op.data);
+          await supabase.from('stock_levels').insert({ item_id: op.data.id, quantity: op.initialQuantity });
+          break;
+        case 'UPDATE_ITEM':
+          await supabase.from('items').update(op.data).eq('id', op.id);
+          break;
+        case 'DELETE_ITEM':
+          await supabase.from('stock_movements').delete().eq('item_id', op.id);
+          await supabase.from('stock_levels').delete().eq('item_id', op.id);
+          await supabase.from('items').delete().eq('id', op.id);
+          break;
+        case 'STOCK_MOVEMENT':
+          await supabase.from('stock_movements').insert(op.data);
+          const { data: row } = await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single();
+          let newQty = (row?.quantity || 0) + (op.data.type === 'in' ? op.data.quantity : -op.data.quantity);
+          await supabase.from('stock_levels').upsert({ item_id: op.data.item_id, quantity: newQty });
+          break;
+        case 'ADD_USER':
+          await supabase.from('users').insert(op.data);
+          break;
+        case 'UPDATE_USER':
+          await supabase.from('users').update(op.data).eq('username', op.id);
+          break;
+        case 'DELETE_USER':
+          await supabase.from('users').delete().eq('username', op.id);
+          break;
+      }
+    } catch (err) {
+      console.error('Sync error:', err);
+      throw new Error(`${op.type} failed`);
     }
   }
   await clearQueue();
 }
-async function pullFromSupabase(){
-  const [items,levels,movements]=await Promise.all([
+async function pullFromSupabase() {
+  // fetch fresh data instead of merging to guarantee consistency
+  const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
+    supabase.from('departments').select('*'),
+    supabase.from('categories').select('*'),
     supabase.from('items').select('*'),
     supabase.from('stock_levels').select('*'),
-    supabase.from('stock_movements').select('*').order('timestamp',{ascending:false})
+    supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(200),
+    supabase.from('users').select('*')
   ]);
-  items.data?.forEach(i=>state.items[i.id]=i);
-  levels.data?.forEach(l=>state.stockLevels[l.item_id]=l);
-  movements.data?.forEach(m=>{if(!state.stockMovements.find(sm=>sm.id===m.id))state.stockMovements.unshift(m);});
-  state.stockMovements=state.stockMovements.slice(0,100);
+
+  state.departments = {};
+  deptRes.data?.forEach(d => (state.departments[d.id] = { id: d.id, name: d.name }));
+  state.categories = {};
+  catRes.data?.forEach(c => (state.categories[c.id] = { id: c.id, departmentId: c.department_id, name: c.name }));
+  state.items = {};
+  itemRes.data?.forEach(i => (state.items[i.id] = { id: i.id, name: i.name, categoryId: i.category_id, unit: i.unit, cost: i.cost || 0, minStockLevel: i.min_stock_level || 0, created_at: i.created_at }));
+  state.stockLevels = {};
+  levelRes.data?.forEach(l => (state.stockLevels[l.item_id] = { item_id: l.item_id, quantity: l.quantity || 0 }));
+  state.users = {};
+  userRes.data?.forEach(u => (state.users[u.username] = { username: u.username, password: u.password, role: u.role, displayName: u.display_name, department: u.department }));
+  state.stockMovements = (moveRes.data || []).slice(0, 100);
 }
 function updateSyncStatus(){
   const ind=document.getElementById('syncIndicator');
