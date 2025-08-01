@@ -683,12 +683,19 @@ document.addEventListener('click',e=>{
   if(filled>=5)return;digits[filled].value=e.target.dataset.key;digits[filled].classList.add('filled');if(filled===4)confirmInlinePin();
 });
 /* INIT */
-// keep this single block (around line 726)
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
   await loadQueue();
-  document.querySelectorAll('.key').forEach(b => b.addEventListener('click', () => handleKey(b.dataset.key)));
-  document.querySelectorAll('.pin-digit').forEach((d, i) => d.addEventListener('click', clearPin));
+
++  // bind the keypad only after DOM is ready
++  document.addEventListener('click', e => {
++    if (!e.target.matches('.key')) return;
++    handleKey(e.target.dataset.key);
++  });
+
+  document.querySelectorAll('.pin-digit').forEach((d, i) =>
+    d.addEventListener('click', clearPin)
+  );
   updateSyncStatus();
   updateDash();
   renderAct();
