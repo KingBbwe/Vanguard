@@ -90,14 +90,19 @@
       <input type="text" class="pin-digit" maxlength="1" readonly>
     </div>
     <div class="keypad">
-      <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
-      <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
-      <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
-      <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
-    </div>
-    <button class="clear-btn" onclick="clearPin()">Clear PIN</button>
-    <button class="reset-btn" onclick="resetApp()">Reset App Data</button>
-  </div>
+  <button class="key" type="button" data-key="1">1</button>
+  <button class="key" type="button" data-key="2">2</button>
+  <button class="key" type="button" data-key="3">3</button>
+  <button class="key" type="button" data-key="4">4</button>
+  <button class="key" type="button" data-key="5">5</button>
+  <button class="key" type="button" data-key="6">6</button>
+  <button class="key" type="button" data-key="7">7</button>
+  <button class="key" type="button" data-key="8">8</button>
+  <button class="key" type="button" data-key="9">9</button>
+  <button class="key" type="button" data-key="*">*</button>
+  <button class="key" type="button" data-key="0">0</button>
+  <button class="key" type="button" data-key="%">%</button>
+</div>
 </div>
 
 <!-- MAIN APP -->
@@ -343,13 +348,6 @@ function showAppMessage(text,type){
   const m=document.createElement('div');m.className=`message ${type} show`;m.textContent=text;document.querySelector('.content-area').prepend(m);setTimeout(()=>m.remove(),4000);
 }
 
-/* ===== INIT ===== */
-document.addEventListener('DOMContentLoaded', async () => {
-  await loadState(); await loadQueue();
-  document.querySelectorAll('.key').forEach(b => b.addEventListener('click', () => handleKey(b.dataset.key)));
-  document.querySelectorAll('.pin-digit').forEach((d,i)=>d.addEventListener('click',clearPin));
-  updateSyncStatus();
-});
   /* SYNC */
 async function syncData() {
   const ind = document.getElementById('syncIndicator');
@@ -685,11 +683,15 @@ document.addEventListener('click',e=>{
   if(filled>=5)return;digits[filled].value=e.target.dataset.key;digits[filled].classList.add('filled');if(filled===4)confirmInlinePin();
 });
 /* INIT */
-document.addEventListener('DOMContentLoaded',async()=>{
-  await loadState();await loadQueue();
-  document.querySelectorAll('.key').forEach(b=>b.addEventListener('click',()=>handleKey(b.dataset.key)));
+// keep this single block (around line 726)
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadState();
+  await loadQueue();
+  document.querySelectorAll('.key').forEach(b => b.addEventListener('click', () => handleKey(b.dataset.key)));
+  document.querySelectorAll('.pin-digit').forEach((d, i) => d.addEventListener('click', clearPin));
   updateSyncStatus();
-  updateDash();renderAct();
+  updateDash();
+  renderAct();
 });
 </script>
 </body>
