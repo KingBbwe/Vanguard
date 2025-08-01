@@ -677,25 +677,39 @@ function confirmInlinePin(){
   adjustStock(pendingStockOut.itemId,-pendingStockOut.qty,pendingStockOut.reason,pendingStockOut.staff,pin);
   showMsg('Stock issued successfully','success');cancelInlinePin();showDashboard();
 }
-document.addEventListener('click',e=>{
-  if(!e.target.classList.contains('key')||!document.getElementById('inlineKeypad'))return;
-  const digits=document.querySelectorAll('#inlineKeypad .pin-digit'),filled=Array.from(digits).filter(d=>d.value).length;
-  if(filled>=5)return;digits[filled].value=e.target.dataset.key;digits[filled].classList.add('filled');if(filled===4)confirmInlinePin();
-});
 /* INIT */
 document.addEventListener('DOMContentLoaded', async () => {
   await loadState();
   await loadQueue();
 
-+  // bind the keypad only after DOM is ready
-+  document.addEventListener('click', e => {
-+    if (!e.target.matches('.key')) return;
-+    handleKey(e.target.dataset.key);
-+  });
+  // ONE delegated listener for every keypad
+  document.addEventListener('click', e => {
+    if (!e.target.matches('.key')) return;
 
-  document.querySelectorAll('.pin-digit').forEach((d, i) =>
+    const key = e.target.dataset.key;
+
+    // Login keypad
+    if (document.getElementById('loginScreen').style.display !== 'none') {
+      handleKey(key);
+      return;
+    }
+
+    // Inline keypad
+    if (document.getElementById('inlineKeypad')) {
+      const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+      const filled = Array.from(digits).filter(d => d.value).length;
+      if (filled >= 5) return;
+      digits[filled].value = key;
+      digits[filled].classList.add('filled');
+      if (filled === 4) confirmInlinePin();
+    }
+  });
+
+  // Allow clicking PIN digits to clear
+  document.querySelectorAll('#loginScreen .pin-digit').forEach(d =>
     d.addEventListener('click', clearPin)
   );
+
   updateSyncStatus();
   updateDash();
   renderAct();
