@@ -74,6 +74,7 @@
 <body>
 
 <!-- LOGIN -->
+<!-- LOGIN -->
 <div id="loginScreen" class="login-container">
   <div class="login-card">
     <div class="login-logo">
@@ -301,35 +302,53 @@ function showMsg(text,type){
   const m=document.createElement('div');m.className=`message ${type} show`;m.textContent=text;document.querySelector('.content-area').prepend(m);setTimeout(()=>m.remove(),4000);
 }
 /* LOGIN */
-function clearPin(){currentPin='';document.querySelectorAll('.pin-digit').forEach(d=>{d.value='';d.classList.remove('filled');});document.querySelector('.pin-digit').focus();}
-function handleKey(k){if(currentPin.length>=5)return;const d=document.querySelectorAll('.pin-digit')[currentPin.length];d.value=k;d.classList.add('filled');currentPin+=k;if(currentPin.length===5)attemptLogin();}
-function attemptLogin(){
-  const user=Object.values(state.users).find(u=>u.password===currentPin);
-  if(user){login(user);}else{showLoginMsg('Invalid PIN','error');setTimeout(clearPin,1000);}
+/* ===== LOGIN ===== */
+function clearPin() {
+  currentPin = '';
+  document.querySelectorAll('.pin-digit').forEach(d => { d.value = ''; d.classList.remove('filled'); });
+  document.querySelector('.pin-digit').focus();
 }
-function login(user){
-  currentUser=user;
-  showLoginMsg(`Welcome, ${user.displayName}`,'success');
-  setTimeout(()=>{
+function handleKey(k) {
+  if (currentPin.length >= 5) return;
+  const d = document.querySelectorAll('.pin-digit')[currentPin.length];
+  d.value = k;
+  d.classList.add('filled');
+  currentPin += k;
+  if (currentPin.length === 5) attemptLogin();
+}
+function attemptLogin() {
+  const user = Object.values(state.users).find(u => u.password === currentPin);
+  if (user) login(user);
+  else { showAppMessage('Invalid PIN', 'error'); setTimeout(clearPin, 1000); }
+}
+function login(user) {
+  currentUser = user;
+  showAppMessage(`Welcome, ${user.displayName}`, 'success');
+  setTimeout(() => {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
-    document.getElementById('currentUser').textContent=`Welcome, ${user.displayName}`;
-    
-    /* ALWAYS show Franklin’s extra menus */
-    if(user.displayName==='Franklin'){
-      document.getElementById('userManagementMenuItem').classList.remove('hidden');
-      document.getElementById('notificationsMenuItem').classList.remove('hidden');
-    } else {
-      document.getElementById('userManagementMenuItem').classList.add('hidden');
-      document.getElementById('notificationsMenuItem').classList.add('hidden');
-    }
-    
-    updateDash();renderAct();updateSyncStatus();
-  },700);
+    document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
+    if (user.displayName === 'Franklin') document.getElementById('userManagementMenuItem').classList.remove('hidden');
+    updateDashboardMetrics(); renderActivityFeed(); updateSyncStatus();
+  }, 700);
 }
-function logout(){currentUser=null;clearPin();document.getElementById('mainApp').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');}
-function showLoginMsg(text,type){const m=document.getElementById('loginMessage');m.textContent=text;m.className=`message ${type} show`;}
-/* SYNC */
+function logout() {
+  currentUser = null; clearPin();
+  document.getElementById('mainApp').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+function showAppMessage(text,type){
+  const m=document.createElement('div');m.className=`message ${type} show`;m.textContent=text;document.querySelector('.content-area').prepend(m);setTimeout(()=>m.remove(),4000);
+}
+
+/* ===== INIT ===== */
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadState(); await loadQueue();
+  document.querySelectorAll('.key').forEach(b => b.addEventListener('click', () => handleKey(b.dataset.key)));
+  document.querySelectorAll('.pin-digit').forEach((d,i)=>d.addEventListener('click',clearPin));
+  updateSyncStatus();
+});
+  /* SYNC */
 async function syncData() {
   const ind = document.getElementById('syncIndicator');
   const txt = document.getElementById('syncStatus');
