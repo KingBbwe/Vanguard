@@ -303,6 +303,8 @@ function showMsg(text,type){
 }
 /* LOGIN */
 /* ===== LOGIN ===== */
+let currentPin = ''; // <-- 🔑 fixes the undefined variable
+
 function clearPin() {
   currentPin = '';
   document.querySelectorAll('.pin-digit').forEach(d => { d.value = ''; d.classList.remove('filled'); });
@@ -319,17 +321,17 @@ function handleKey(k) {
 function attemptLogin() {
   const user = Object.values(state.users).find(u => u.password === currentPin);
   if (user) login(user);
-  else { showAppMessage('Invalid PIN', 'error'); setTimeout(clearPin, 1000); }
+  else { showMsg('Invalid PIN', 'error'); setTimeout(clearPin, 1000); }
 }
 function login(user) {
   currentUser = user;
-  showAppMessage(`Welcome, ${user.displayName}`, 'success');
+  showMsg(`Welcome, ${user.displayName}`, 'success');
   setTimeout(() => {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
     document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
     if (user.displayName === 'Franklin') document.getElementById('userManagementMenuItem').classList.remove('hidden');
-    updateDashboardMetrics(); renderActivityFeed(); updateSyncStatus();
+    updateDash(); renderAct(); updateSyncStatus();
   }, 700);
 }
 function logout() {
