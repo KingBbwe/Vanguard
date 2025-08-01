@@ -448,19 +448,21 @@ function showStockOut() {
           <div class="form-group"><label>Reason</label><input id="soReason" value="Usage" required></div>
         </div>
         <div class="form-actions">
-          <button type="button" class="logout-btn" onclick="showDashboard()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Remove</button>
+          <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+          <button type="button" id="stockOutBtn" class="btn btn-primary">Remove</button>
         </div>
       </form>
     </div>`);
 
-  document.getElementById('stockOutForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const itemId   = document.getElementById('soItem').value;
-    const qty      = +document.getElementById('soQty').value;
-    const staff    = document.getElementById('soStaff').value;
-    const reason   = document.getElementById('soReason').value;
+  // handle click instead of form submit
+  document.getElementById('stockOutBtn').addEventListener('click', () => {
+    const itemId = document.getElementById('soItem').value;
+    const qty    = +document.getElementById('soQty').value;
+    const staff  = document.getElementById('soStaff').value;
+    const reason = document.getElementById('soReason').value;
     const staffObj = state.users[staff];
+
+    if (!qty || qty <= 0) { showAppMessage('Enter a valid quantity', 'error'); return; }
 
     if (staffObj && staffObj.role !== USER_ROLES.ADMIN) {
       pendingStockOut = { itemId, qty, staff, reason };
