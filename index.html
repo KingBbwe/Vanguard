@@ -80,6 +80,8 @@
     .data-table tr:hover{background:var(--surface-light)}
     .btn-icon{background:transparent;border:none;color:var(--text-secondary);cursor:pointer;padding:.25rem;border-radius:4px}
     .btn-icon:hover{color:var(--secondary);background:rgba(255,255,255,.1)}
+    /* SEARCH / FILTER */
+    .search-bar{margin-bottom:1rem}.search-bar input{width:100%;padding:.5rem;border-radius:var(--radius);background:var(--surface-light);border:none;color:var(--text-primary)}
     /* ANIMATIONS */
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
     @keyframes spin{to{transform:rotate(360deg)}}@keyframes shake{0%,100%{transform:translateX(0)}10%,30%,50%,70%,90%{transform:translateX(-5px)}20%,40%,60%,80%{transform:translateX(5px)}}
@@ -87,6 +89,7 @@
   </style>
 </head>
 <body>
+
 <!-- ======== LOGIN ======== -->
 <div id="loginScreen" class="login-container">
   <div class="login-card">
@@ -100,7 +103,7 @@
       <input type="text" inputmode="none" class="pin-digit" maxlength="1" readonly>
     </div>
     <div class="keypad">
-      <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3">3</button>
+      <button class="key" data-key="1">1</button><button class="key" data-key="2">2</button><button class="key" data-key="3</button>
       <button class="key" data-key="4">4</button><button class="key" data-key="5">5</button><button class="key" data-key="6">6</button>
       <button class="key" data-key="7">7</button><button class="key" data-key="8">8</button><button class="key" data-key="9">9</button>
       <button class="key" data-key="*">*</button><button class="key" data-key="0">0</button><button class="key" data-key="%">%</button>
@@ -138,6 +141,7 @@
       <div class="dept-item" data-dept="cultivation" onclick="showInventory('cultivation')"><i class="fas fa-seedling" style="color:var(--cultivation-color)"></i><span>Cultivation</span></div>
       <div id="userManagementMenuItem" class="dept-item hidden" data-dept="users" onclick="showUserManagement()"><i class="fas fa-users" style="color:var(--admin-color)"></i><span>User Management</span></div>
       <div id="categoryManagementMenuItem" class="dept-item hidden" data-dept="categories" onclick="showCategoryManagement()"><i class="fas fa-layer-group" style="color:var(--admin-color)"></i><span>Categories</span></div>
+      <div id="departmentManagementMenuItem" class="dept-item hidden" data-dept="departments" onclick="showDepartmentManagement()"><i class="fas fa-building" style="color:var(--admin-color)"></i><span>Departments</span></div>
     </nav>
     <main class="content-area">
       <div id="dashboardContent" class="view-content">
@@ -169,7 +173,7 @@
 const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const USER_ROLES = { ADMIN:'admin', PROCESSOR:'processor', VIEWER:'viewer' };
 const TELEGRAM_BOT = '7960256341:AAFw_BPZRibbnBLaSYD9Lf3id5Fw3352wDC';
 const TELEGRAM_CHAT = '1212406500';
@@ -181,7 +185,7 @@ let offlineQueue = [];
 /* ===== IndexedDB ===== */
 async function initIDB(){
   return new Promise((res,rej)=>{
-    const req = indexedDB.open('VanguardStockDB',4);
+    const req = indexedDB.open('VanguardStockDB',5);
     req.onerror = e=>rej(e.target.error);
     req.onupgradeneeded=e=>{
       const db=e.target.result;
@@ -195,37 +199,8 @@ async function saveState(){
   try{const db=await initIDB();const tx=db.transaction(['state'],'readwrite');state.version=APP_VERSION;tx.objectStore('state').put(state,'appState');await new Promise(r=>tx.oncomplete=r);}catch{}
 }
 async function loadState(){
-  try{
-    const db=await initIDB();
-    const req=db.transaction(['state'],'readonly').objectStore('state').get('appState');
-    await new Promise(r=>{
-      req.onsuccess=e=>{
-        const res=e.target.result;
-        if(res && res.version === APP_VERSION) {
-          state = res;
-          
-          // Add timestamps to existing objects if missing
-          Object.values(state.items).forEach(item => {
-            if (!item.updated_at) item.updated_at = new Date().toISOString();
-          });
-          Object.values(state.categories).forEach(cat => {
-            if (!cat.updated_at) cat.updated_at = new Date().toISOString();
-          });
-          Object.values(state.users).forEach(user => {
-            if (!user.updated_at) user.updated_at = new Date().toISOString();
-          });
-          state.stockMovements.forEach(move => {
-            if (!move.updated_at) move.updated_at = new Date().toISOString();
-          });
-        } else {
-          initDefault();
-        }
-        r();
-      };
-    });
-  } catch {
-    initDefault();
-  }
+  try{const db=await initIDB();const req=db.transaction(['state'],'readonly').objectStore('state').get('appState');
+    await new Promise(r=>{req.onsuccess=e=>{const res=e.target.result;if(res&&res.version===APP_VERSION)state=res;else initDefault();r();}});}catch{initDefault();}
 }
 async function resetApp(){
   if(!confirm('Reset will erase all local data. Continue?')) return;
@@ -249,28 +224,28 @@ function initDefault(){
   };
   Object.keys(DEPT_CFG).forEach(k=>{
     const dId=`dept_${k}`;
-    state.departments[dId]={id:dId,name:DEPT_CFG[k].name, updated_at: new Date().toISOString()};
+    state.departments[dId]={id:dId,name:DEPT_CFG[k].name,updated_at:new Date().toISOString()};
     DEPT_CFG[k].cats.forEach(c=>{
       const cId=`cat_${k}_${c.toLowerCase().replace(/\s+/g,'')}`;
-      state.categories[cId]={id:cId,departmentId:dId,name:c, updated_at: new Date().toISOString()};
+      state.categories[cId]={id:cId,departmentId:dId,name:c,updated_at:new Date().toISOString()};
     });
   });
   state.users={
-    Kelvin:{username:'Kelvin',password:'0100*',role:USER_ROLES.ADMIN,displayName:'Kelvin',department:'all', updated_at: new Date().toISOString()},
-    Franklin:{username:'Franklin',password:'1100%',role:USER_ROLES.ADMIN,displayName:'Franklin',department:'all', updated_at: new Date().toISOString()},
-    Chisomo:{username:'Chisomo',password:'2100%',role:USER_ROLES.ADMIN,displayName:'Chisomo',department:'admin', updated_at: new Date().toISOString()},
-    Victor:{username:'Victor',password:'02000',role:USER_ROLES.ADMIN,displayName:'Victor',department:'admin', updated_at: new Date().toISOString()},
-    Boston:{username:'Boston',password:'61006',role:USER_ROLES.PROCESSOR,displayName:'Boston',department:'bar', updated_at: new Date().toISOString()},
-    Magah:{username:'Magah',password:'41004',role:USER_ROLES.PROCESSOR,displayName:'Magah',department:'bar', updated_at: new Date().toISOString()},
-    Phillip:{username:'Phillip',password:'51005',role:USER_ROLES.PROCESSOR,displayName:'Phillip',department:'bar',isSupervisor:true, updated_at: new Date().toISOString()},
-    Gift:{username:'Gift',password:'71007',role:USER_ROLES.PROCESSOR,displayName:'Gift',department:'restaurant', updated_at: new Date().toISOString()},
-    Rhodney:{username:'Rhodney',password:'81008',role:USER_ROLES.PROCESSOR,displayName:'Rhodney',department:'restaurant',isSupervisor:true, updated_at: new Date().toISOString()},
-    Mike:{username:'Mike',password:'91009',role:USER_ROLES.PROCESSOR,displayName:'Mike',department:'restaurant', updated_at: new Date().toISOString()},
-    Matias:{username:'Matias',password:'11100',role:USER_ROLES.PROCESSOR,displayName:'Matias',department:'hotel', updated_at: new Date().toISOString()},
-    Kennedy:{username:'Kennedy',password:'22202',role:USER_ROLES.PROCESSOR,displayName:'Kennedy',department:'hotel', updated_at: new Date().toISOString()},
-    Mphatso:{username:'Mphatso',password:'33303',role:USER_ROLES.PROCESSOR,displayName:'Mphatso',department:'restaurant', updated_at: new Date().toISOString()},
-    Gaven:{username:'Gaven',password:'44404',role:USER_ROLES.PROCESSOR,displayName:'Gaven',department:'grounds', updated_at: new Date().toISOString()},
-    Maya:{username:'Maya',password:'55505',role:USER_ROLES.PROCESSOR,displayName:'Maya',department:'grounds', updated_at: new Date().toISOString()}
+    Kelvin:{username:'Kelvin',password:'0100*',role:USER_ROLES.ADMIN,displayName:'Kelvin',department:'all',updated_at:new Date().toISOString()},
+    Franklin:{username:'Franklin',password:'1100%',role:USER_ROLES.ADMIN,displayName:'Franklin',department:'all',updated_at:new Date().toISOString()},
+    Chisomo:{username:'Chisomo',password:'2100%',role:USER_ROLES.ADMIN,displayName:'Chisomo',department:'admin',updated_at:new Date().toISOString()},
+    Victor:{username:'Victor',password:'02000',role:USER_ROLES.ADMIN,displayName:'Victor',department:'admin',updated_at:new Date().toISOString()},
+    Boston:{username:'Boston',password:'61006',role:USER_ROLES.PROCESSOR,displayName:'Boston',department:'bar',updated_at:new Date().toISOString()},
+    Magah:{username:'Magah',password:'41004',role:USER_ROLES.PROCESSOR,displayName:'Magah',department:'bar',updated_at:new Date().toISOString()},
+    Phillip:{username:'Phillip',password:'51005',role:USER_ROLES.PROCESSOR,displayName:'Phillip',department:'bar',isSupervisor:true,updated_at:new Date().toISOString()},
+    Gift:{username:'Gift',password:'71007',role:USER_ROLES.PROCESSOR,displayName:'Gift',department:'restaurant',updated_at:new Date().toISOString()},
+    Rhodney:{username:'Rhodney',password:'81008',role:USER_ROLES.PROCESSOR,displayName:'Rhodney',department:'restaurant',isSupervisor:true,updated_at:new Date().toISOString()},
+    Mike:{username:'Mike',password:'91009',role:USER_ROLES.PROCESSOR,displayName:'Mike',department:'restaurant',updated_at:new Date().toISOString()},
+    Matias:{username:'Matias',password:'11100',role:USER_ROLES.PROCESSOR,displayName:'Matias',department:'hotel',updated_at:new Date().toISOString()},
+    Kennedy:{username:'Kennedy',password:'22202',role:USER_ROLES.PROCESSOR,displayName:'Kennedy',department:'hotel',updated_at:new Date().toISOString()},
+    Mphatso:{username:'Mphatso',password:'33303',role:USER_ROLES.PROCESSOR,displayName:'Mphatso',department:'restaurant',updated_at:new Date().toISOString()},
+    Gaven:{username:'Gaven',password:'44404',role:USER_ROLES.PROCESSOR,displayName:'Gaven',department:'grounds',updated_at:new Date().toISOString()},
+    Maya:{username:'Maya',password:'55505',role:USER_ROLES.PROCESSOR,displayName:'Maya',department:'grounds',updated_at:new Date().toISOString()}
   };
 }
 
@@ -287,16 +262,7 @@ const sendTG = msg => {
 /* ===== CORE OPS ===== */
 function addItem(d){
   const id=genId();
-  state.items[id]={
-    id,
-    name:d.name,
-    categoryId:d.categoryId,
-    unit:d.unit,
-    cost:+d.cost||0,
-    minStockLevel:+d.minStockLevel||0,
-    createdAt:new Date().toISOString(),
-    updated_at: new Date().toISOString() // Add timestamp
-  };
+  state.items[id]={id,name:d.name,categoryId:d.categoryId,unit:d.unit,cost:+d.cost||0,minStockLevel:+d.minStockLevel||0,createdAt:new Date().toISOString(),updated_at:new Date().toISOString()};
   state.stockLevels[id]={item_id:id,quantity:+d.initialQuantity||0};
   logMove(id,'in',+d.initialQuantity,'Initial stock');
   addOffline({type:'ADD_ITEM',data:state.items[id],initialQuantity:+d.initialQuantity||0});
@@ -313,7 +279,7 @@ function logMove(i,t,q,r,s=null,p=null){
     staff_member:s,
     confirmedPin:p,
     timestamp:new Date().toISOString(),
-    updated_at: new Date().toISOString() // Add timestamp
+    updated_at:new Date().toISOString()
   };
   state.stockMovements.unshift(move);
   saveState();
@@ -324,13 +290,11 @@ function adjustStock(itemId,qty,reason,staff=null,pin=null){
   if(stock.quantity+qty<0){showMsg('Negative stock','error');return false;}
   const old=stock.quantity;
   stock.quantity+=qty;
-  
-  // Update item timestamp
-  item.updated_at = new Date().toISOString();
-  
+  item.updated_at=new Date().toISOString();
   const type=qty>0?'in':'out';
   logMove(itemId,type,Math.abs(qty),reason,staff,pin);
-  addOffline({type:'STOCK_MOVEMENT',data:{item_id:itemId,type,quantity:Math.abs(qty),reason,user:currentUser.displayName,staff_member:staff,confirmedPin:pin,timestamp:new Date().toISOString(), updated_at: new Date().toISOString()}});
+  addOffline({type:'STOCK_MOVEMENT',data:{
+    item_id:itemId,type,quantity:Math.abs(qty),reason,user:currentUser.displayName,staff_member:staff,confirmedPin:pin,timestamp:new Date().toISOString(),updated_at:new Date().toISOString()}});
   saveState();updateDash();renderAct();
   if(type==='out'){
     const staffName=staff?state.users[staff]?.displayName||staff:'Unknown';
@@ -376,10 +340,6 @@ function switchView(view,html=''){
   el.classList.remove('hidden');
   el.style.animation='fadeIn .3s';
 }
-function showMsg(text,type){
-  const m=document.createElement('div');m.className=`message ${type} show`;m.textContent=text;
-  document.querySelector('.content-area').prepend(m);setTimeout(()=>m.remove(),4000);
-}
 
 /* ===== LOGIN ===== */
 let loginScreen=document.getElementById('loginScreen');
@@ -420,6 +380,7 @@ function login(user){
   if(user.displayName==='Franklin'){
     document.getElementById('userManagementMenuItem').classList.remove('hidden');
     document.getElementById('categoryManagementMenuItem').classList.remove('hidden');
+    document.getElementById('departmentManagementMenuItem').classList.remove('hidden');
   }
   setTimeout(()=>{
     loginScreen.classList.add('hidden');
@@ -433,21 +394,15 @@ function logout(){
   loginScreen.classList.remove('hidden');
 }
 
-/* ===== SYNC (FIXED) ===== */
+/* ===== SYNC (MERGE-BASED) ===== */
 async function syncData(){
   const ind=document.getElementById('syncIndicator');
   const txt=document.getElementById('syncStatus');
   ind.className='sync-indicator syncing';txt.textContent='Syncing…';
   try{
-    // Process offline queue first (push local changes)
-    await processOfflineQueue();
-    
-    // Then pull from Supabase (fetch remote changes)
-    await pullFromSupabase();
-    
-    // Save merged state
+    await processOfflineQueue(); // push
+    await pullFromSupabase();    // pull & merge
     await saveState();
-    
     updateDash();renderAct();
     showMsg('Sync completed','success');
   }catch(e){
@@ -456,17 +411,11 @@ async function syncData(){
     ind.className='sync-indicator';updateSyncStatus();
   }
 }
-
 async function processOfflineQueue(){
   if(!offlineQueue.length)return;
   for(const op of offlineQueue){
     try{
-      // Add update timestamp to all operations
-      const updateData = {
-        ...op.data,
-        updated_at: new Date().toISOString()
-      };
-      
+      const updateData={...op.data,updated_at:new Date().toISOString()};
       switch(op.type){
         case 'ADD_ITEM':
           await supabase.from('items').insert(updateData);
@@ -494,6 +443,15 @@ async function processOfflineQueue(){
         case 'DELETE_CATEGORY':
           await supabase.from('categories').delete().eq('id',op.id);
           break;
+        case 'ADD_DEPARTMENT':
+          await supabase.from('departments').insert(updateData);
+          break;
+        case 'UPDATE_DEPARTMENT':
+          await supabase.from('departments').update(updateData).eq('id',op.id);
+          break;
+        case 'DELETE_DEPARTMENT':
+          await supabase.from('departments').delete().eq('id',op.id);
+          break;
         case 'ADD_USER':
           await supabase.from('users').insert(updateData);
           break;
@@ -504,26 +462,19 @@ async function processOfflineQueue(){
           await supabase.from('users').delete().eq('username',op.id);
           break;
       }
-    }catch(err){
-      console.error(`Offline op failed: ${op.type}`, err);
-      throw new Error(`${op.type} failed`);
-    }
+    }catch(err){throw new Error(`${op.type} failed`);}
   }
   await clearQueue();
 }
-
 async function pullFromSupabase(){
-  // Fetch data from Supabase
-  const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
+  const [deptRes,catRes,itemRes,levelRes,moveRes,userRes]=await Promise.all([
     supabase.from('departments').select('*'),
     supabase.from('categories').select('*'),
     supabase.from('items').select('*'),
     supabase.from('stock_levels').select('*'),
-    supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
+    supabase.from('stock_movements').select('*').order('timestamp',{ascending:false}).limit(1000),
     supabase.from('users').select('*')
   ]);
-
-  // Merge instead of replace
   mergeState({
     departments: deptRes.data || [],
     categories: catRes.data || [],
@@ -533,65 +484,32 @@ async function pullFromSupabase(){
     users: userRes.data || []
   });
 }
-
-function mergeState(remoteData){
-  // Helper function to merge arrays by ID with conflict resolution
-  const mergeById = (local, remote) => {
-    const merged = {...local};
-    
-    for (const remoteEntity of remote) {
-      const localEntity = local[remoteEntity.id];
-      
-      // Conflict resolution: Use most recent update
-      if (localEntity && localEntity.updated_at && remoteEntity.updated_at) {
-        if (new Date(localEntity.updated_at) > new Date(remoteEntity.updated_at)) {
-          continue; // Keep local version
-        }
-      }
-      
-      merged[remoteEntity.id] = remoteEntity;
-    }
-    return merged;
+function mergeState(remote){
+  const merge=(local,remote,key='updated_at')=>{
+    const out={...local};
+    remote.forEach(r=>{
+      const l=local[r.id];
+      if(!l || new Date(r[key]) > new Date(l[key])) out[r.id]=r;
+    });
+    return out;
   };
-
-  // Merge each data type
-  state.departments = mergeById(state.departments, remoteData.departments);
-  state.categories = mergeById(state.categories, remoteData.categories);
-  state.items = mergeById(state.items, remoteData.items);
-  
-  // Special handling for stock levels (merge quantities)
-  for (const level of remoteData.stockLevels) {
-    if (!state.stockLevels[level.item_id]) {
-      state.stockLevels[level.item_id] = level;
-    } else {
-      // Take max quantity to prevent data loss
-      state.stockLevels[level.item_id].quantity = Math.max(
-        state.stockLevels[level.item_id].quantity,
-        level.quantity
-      );
+  state.departments=merge(state.departments,remote.departments);
+  state.categories=merge(state.categories,remote.categories);
+  state.items=merge(state.items,remote.items);
+  state.users=merge(state.users,remote.users);
+  remote.stockLevels.forEach(l=>{
+    if(!state.stockLevels[l.item_id]) state.stockLevels[l.item_id]=l;
+    else {
+      const maxQty=Math.max(state.stockLevels[l.item_id].quantity,l.quantity);
+      state.stockLevels[l.item_id].quantity=maxQty;
     }
-  }
-  
-  // Merge users (prioritize remote)
-  state.users = {...state.users, ...remoteData.users.reduce((acc, user) => {
-    acc[user.username] = user;
-    return acc;
-  }, {})};
-  
-  // Merge stock movements (remove duplicates)
-  const movementIds = new Set(state.stockMovements.map(m => m.id));
-  for (const movement of remoteData.stockMovements) {
-    if (!movementIds.has(movement.id)) {
-      state.stockMovements.push(movement);
-    }
-  }
-  
-  // Sort by timestamp
-  state.stockMovements.sort((a, b) => 
-    new Date(b.timestamp) - new Date(a.timestamp)
-  );
+  });
+  const moveIds=new Set(state.stockMovements.map(m=>m.id));
+  remote.stockMovements.forEach(m=>{
+    if(!moveIds.has(m.id)) state.stockMovements.unshift(m);
+  });
+  state.stockMovements.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
 }
-
 function updateSyncStatus(){
   const ind=document.getElementById('syncIndicator');
   const txt=document.getElementById('syncStatus');
@@ -602,6 +520,7 @@ function updateSyncStatus(){
 
 /* ===== VIEWS ===== */
 function showDashboard(){switchView('dashboardContent');document.querySelectorAll('.dept-item').forEach(d=>d.classList.remove('active'));document.querySelector('[data-dept="dashboard"]').classList.add('active');updateDash();renderAct();}
+
 function showStockIn(){
   const items=Object.values(state.items).map(i=>`<option value="${i.id}">${i.name}</option>`).join('');
   switchView('actionContent',`
@@ -652,9 +571,11 @@ function showStockOut(){
 }
 function showInventory(dept=null){
   let rows='';
+  const searchTerm=(document.getElementById('inventorySearch')?.value||'').toLowerCase();
   Object.values(state.items).forEach(i=>{
     const cat=state.categories[i.categoryId],deptObj=cat?state.departments[cat.departmentId]:null;
     if(dept&&deptObj?.id!==`dept_${dept}`) return;
+    if(searchTerm&&!i.name.toLowerCase().includes(searchTerm)) return;
     const stock=state.stockLevels[i.id]||{quantity:0};
     rows+=`<tr>
       <td>${i.name}</td><td>${cat?.name||'-'}</td><td>${deptObj?.name||'-'}</td>
@@ -665,7 +586,13 @@ function showInventory(dept=null){
   if(!rows) rows='<tr><td colspan="6">No items</td></tr>';
   switchView('actionContent',`
     <div class="card">
-      <div class="card-header"><div class="card-title">Inventory ${dept?`- ${state.departments['dept_'+dept]?.name}`:''}</div>${currentUser?.role===USER_ROLES.ADMIN?`<button class="logout-btn" onclick="showAddItem()"><i class="fas fa-plus"></i> Add Item</button>`:''}</div>
+      <div class="card-header">
+        <div class="card-title">Inventory ${dept?`- ${state.departments['dept_'+dept]?.name}`:''}</div>
+        <div style="display:flex;gap:1rem;">
+          <div class="search-bar"><input id="inventorySearch" placeholder="Search items..." oninput="showInventory('${dept}')"></div>
+          ${currentUser?.role===USER_ROLES.ADMIN?`<button class="logout-btn" onclick="showAddItem()"><i class="fas fa-plus"></i> Add Item</button>`:''}
+        </div>
+      </div>
       <div class="data-table-container"><table class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Dept</th><th>Qty</th><th>Min</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
     </div>`);
 }
@@ -707,15 +634,7 @@ function editItemForm(id){
     </div>`);
   document.getElementById('editItemForm').addEventListener('submit',e=>{
     e.preventDefault();
-    // Update timestamp on edit
-    Object.assign(i,{
-      name:eiName.value,
-      categoryId:eiCat.value,
-      unit:eiUnit.value,
-      cost:+eiCost.value,
-      minStockLevel:+eiMin.value,
-      updated_at: new Date().toISOString()
-    });
+    Object.assign(i,{name:eiName.value,categoryId:eiCat.value,unit:eiUnit.value,cost:+eiCost.value,minStockLevel:+eiMin.value,updated_at:new Date().toISOString()});
     addOffline({type:'UPDATE_ITEM',id,data:i});saveState();showInventory();
   });
 }
@@ -754,26 +673,22 @@ function showSettings(){
     </div>`);
 }
 
-/* ===== CATEGORY CRUD (Admin) ===== */
-function addCategory(deptId, catName){
+/* ===== CATEGORY CRUD ===== */
+function addCategory(deptId,catName){
   const id=`cat_${deptId}_${catName.toLowerCase().replace(/\s+/g,'')}`;
   if(state.categories[id]){showMsg('Category already exists','error');return;}
-  state.categories[id]={id,departmentId:deptId,name:catName, updated_at: new Date().toISOString()};
-  addOffline({type:'ADD_CATEGORY',data:state.categories[id]});
-  saveState();showMsg('Category added','success');
+  state.categories[id]={id,departmentId:deptId,name:catName,updated_at:new Date().toISOString()};
+  addOffline({type:'ADD_CATEGORY',data:state.categories[id]});saveState();showMsg('Category added','success');
 }
 function updateCategory(id,newName){
-  state.categories[id].name=newName;
-  state.categories[id].updated_at = new Date().toISOString(); // Update timestamp
-  addOffline({type:'UPDATE_CATEGORY',id,data:state.categories[id]});
-  saveState();showMsg('Category updated','success');
+  state.categories[id].name=newName;state.categories[id].updated_at=new Date().toISOString();
+  addOffline({type:'UPDATE_CATEGORY',id,data:state.categories[id]});saveState();showMsg('Category updated','success');
 }
 function deleteCategory(id){
   const inUse=Object.values(state.items).some(i=>i.categoryId===id);
   if(inUse){showMsg('Category in use – cannot delete','error');return;}
   delete state.categories[id];
-  addOffline({type:'DELETE_CATEGORY',id});
-  saveState();showMsg('Category deleted','success');
+  addOffline({type:'DELETE_CATEGORY',id});saveState();showMsg('Category deleted','success');
 }
 function showCategoryManagement(){
   if(currentUser?.displayName!=='Franklin')return;
@@ -836,6 +751,85 @@ function editCategoryForm(id){
     showCategoryManagement();
   });
 }
+
+/* ===== DEPARTMENT CRUD ===== */
+function addDepartment(name){
+  const id=`dept_${name.toLowerCase().replace(/\s+/g,'')}`;
+  if(state.departments[id]){showMsg('Department already exists','error');return;}
+  state.departments[id]={id,name,updated_at:new Date().toISOString()};
+  addOffline({type:'ADD_DEPARTMENT',data:state.departments[id]});saveState();showMsg('Department added','success');
+}
+function updateDepartment(id,newName){
+  state.departments[id].name=newName;state.departments[id].updated_at=new Date().toISOString();
+  addOffline({type:'UPDATE_DEPARTMENT',id,data:state.departments[id]});saveState();showMsg('Department updated','success');
+}
+function deleteDepartment(id){
+  const inCat=Object.values(state.categories).some(c=>c.departmentId===id);
+  if(inCat){showMsg('Department has categories – cannot delete','error');return;}
+  delete state.departments[id];
+  addOffline({type:'DELETE_DEPARTMENT',id});saveState();showMsg('Department deleted','success');
+}
+function showDepartmentManagement(){
+  if(currentUser?.displayName!=='Franklin')return;
+  const depts=Object.values(state.departments).map(d=>`
+    <tr>
+      <td>${d.name}</td>
+      <td>
+        <button class="btn-icon" onclick="editDepartmentForm('${d.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon" onclick="deleteDepartment('${d.id}')" title="Delete"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+  switchView('actionContent',`
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Department Management</div>
+        <button class="logout-btn" onclick="showDashboard()"><i class="fas fa-arrow-left"></i></button>
+        <button class="logout-btn" onclick="addDepartmentForm()"><i class="fas fa-plus"></i> Add Department</button>
+      </div>
+      <table class="data-table"><thead><tr><th>Name</th><th></th></tr></thead><tbody>${depts}</tbody></table>
+    </div>`);
+}
+function addDepartmentForm(){
+  switchView('actionContent',`
+    <div class="card">
+      <div class="card-header"><div class="card-title">Add Department</div><button class="logout-btn" onclick="showDepartmentManagement()"><i class="fas fa-arrow-left"></i></button></div>
+      <form id="addDeptForm">
+        <div class="form-grid">
+          <div class="form-group"><label>Department Name</label><input id="adName" required></div>
+        </div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button><button type="submit" class="btn btn-primary">Add</button></div>
+      </form>
+    </div>`);
+  document.getElementById('addDeptForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    addDepartment(adName.value);
+    showDepartmentManagement();
+  });
+}
+function editDepartmentForm(id){
+  const d=state.departments[id];
+  switchView('actionContent',`
+    <div class="card">
+      <div class="card-header"><div class="card-title">Edit Department</div><button class="logout-btn" onclick="showDepartmentManagement()"><i class="fas fa-arrow-left"></i></button></div>
+      <form id="editDeptForm">
+        <div class="form-grid">
+          <div class="form-group"><label>Name</label><input id="edName" value="${d.name}" required></div>
+        </div>
+        <div class="form-actions"><button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+      </form>
+    </div>`);
+  document.getElementById('editDeptForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    updateDepartment(id,edName.value);
+    showDepartmentManagement();
+  });
+}
+function deleteDepartment(id){
+  if(!confirm('Delete this department?'))return;
+  deleteDepartment(id);
+}
+
+/* ===== USER MANAGEMENT ===== */
 function showUserManagement(){
   if(currentUser?.displayName!=='Franklin'){showMsg('Access denied','error');return;}
   const rows=Object.values(state.users).map(u=>`
@@ -876,7 +870,7 @@ function addUserForm(){
     e.preventDefault();
     const username=auUsername.value,displayName=auDisplay.value,password=auPassword.value,role=auRole.value,department=auDept.value;
     if(state.users[username]){showMsg('User already exists','error');return;}
-    state.users[username]={username,displayName,password,role,department, updated_at: new Date().toISOString()};
+    state.users[username]={username,displayName,password,role,department,updated_at:new Date().toISOString()};
     addOffline({type:'ADD_USER',data:state.users[username]});saveState();showUserManagement();
   });
 }
@@ -899,14 +893,7 @@ function editUserForm(username){
     </div>`);
   document.getElementById('editUserForm').addEventListener('submit',e=>{
     e.preventDefault();
-    // Update timestamp on edit
-    Object.assign(u,{
-      displayName:euDisplay.value,
-      password:euPassword.value||u.password,
-      role:euRole.value,
-      department:euDept.value,
-      updated_at: new Date().toISOString()
-    });
+    Object.assign(u,{displayName:euDisplay.value,password:euPassword.value||u.password,role:euRole.value,department:euDept.value,updated_at:new Date().toISOString()});
     addOffline({type:'UPDATE_USER',id:username,data:u});saveState();showUserManagement();
   });
 }
@@ -947,42 +934,24 @@ function confirmInlinePin(){
   showMsg('Stock issued successfully','success');cancelInlinePin();showDashboard();
 }
 
-/* ===== KEYPAD FIX ===== */
-function handleKeyClick(e) {
-  if (!e.target.matches('.key')) return;
-  const key = e.target.dataset.key;
-  
-  if (!document.getElementById('loginScreen').classList.contains('hidden')) {
-    handleKeyPress(key);
-    return;
-  }
-  
-  if (document.getElementById('inlineKeypad')) {
-    const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
-    const filled = Array.from(digits).filter(d => d.value).length;
-    if (filled >= 5) return;
-    digits[filled].value = key;
-    digits[filled].classList.add('filled');
-    if (filled === 4) setTimeout(confirmInlinePin, 100);
-  }
-}
-
 /* ===== INIT ===== */
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // Attach global keypad event listener
-  document.addEventListener('click', handleKeyClick);
-  
-  // Attach digit clear events
-  document.querySelectorAll('#loginScreen .pin-digit').forEach(d => 
-    d.addEventListener('click', clearPin)
-  );
-
-  // Load application state
-  await loadState();
-  await loadQueue();
-  updateSyncStatus();
-  updateDash();
-  renderAct();
+  await loadState();await loadQueue();
+  document.addEventListener('click',e=>{
+    if(!e.target.matches('.key'))return;
+    const key=e.target.dataset.key;
+    if(!document.getElementById('loginScreen').classList.contains('hidden')){handleKeyPress(key);return;}
+    if(document.getElementById('inlineKeypad')){
+      const digits=document.querySelectorAll('#inlineKeypad .pin-digit');
+      const filled=Array.from(digits).filter(d=>d.value).length;
+      if(filled>=5)return;
+      digits[filled].value=key;
+      digits[filled].classList.add('filled');
+      if(filled===4)confirmInlinePin();
+    }
+  });
+  document.querySelectorAll('#loginScreen .pin-digit').forEach(d=>d.addEventListener('click',clearPin));
+  updateSyncStatus();updateDash();renderAct();
 });
 </script>
 </body>
