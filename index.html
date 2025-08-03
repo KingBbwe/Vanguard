@@ -947,42 +947,24 @@ function confirmInlinePin(){
   showMsg('Stock issued successfully','success');cancelInlinePin();showDashboard();
 }
 
-/* ===== KEYPAD FIX ===== */
-function handleKeyClick(e) {
-  if (!e.target.matches('.key')) return;
-  const key = e.target.dataset.key;
-  
-  if (!document.getElementById('loginScreen').classList.contains('hidden')) {
-    handleKeyPress(key);
-    return;
-  }
-  
-  if (document.getElementById('inlineKeypad')) {
-    const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
-    const filled = Array.from(digits).filter(d => d.value).length;
-    if (filled >= 5) return;
-    digits[filled].value = key;
-    digits[filled].classList.add('filled');
-    if (filled === 4) setTimeout(confirmInlinePin, 100);
-  }
-}
-
 /* ===== INIT ===== */
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // Attach global keypad event listener
-  document.addEventListener('click', handleKeyClick);
-  
-  // Attach digit clear events
-  document.querySelectorAll('#loginScreen .pin-digit').forEach(d => 
-    d.addEventListener('click', clearPin)
-  );
-
-  // Load application state
-  await loadState();
-  await loadQueue();
-  updateSyncStatus();
-  updateDash();
-  renderAct();
+  await loadState();await loadQueue();
+  document.addEventListener('click',e=>{
+    if(!e.target.matches('.key'))return;
+    const key=e.target.dataset.key;
+    if(!document.getElementById('loginScreen').classList.contains('hidden')){handleKeyPress(key);return;}
+    if(document.getElementById('inlineKeypad')){
+      const digits=document.querySelectorAll('#inlineKeypad .pin-digit');
+      const filled=Array.from(digits).filter(d=>d.value).length;
+      if(filled>=5)return;
+      digits[filled].value=key;
+      digits[filled].classList.add('filled');
+      if(filled===4)confirmInlinePin();
+    }
+  });
+  document.querySelectorAll('#loginScreen .pin-digit').forEach(d=>d.addEventListener('click',clearPin));
+  updateSyncStatus();updateDash();renderAct();
 });
 </script>
 </body>
