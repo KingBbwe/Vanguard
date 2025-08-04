@@ -1275,76 +1275,71 @@
         }
 
         async function processOfflineQueue() {
-            if (!offlineQueue.length) return;
-            
-            for (const op of offlineQueue) {
-                try {
-                    switch (op.type) {
-                        case 'ADD_ITEM':
-                            await supabase.from('items').insert(op.data);
-                            await supabase.from('stock_levels').insert({ item_id: op.data.id, quantity: op.initialQuantity });
-                            break;
-                            
-                        case 'UPDATE_ITEM':
-                            await supabase.from('items').update(op.data).eq('id', op.id);
-                            break;
-                            
-                        case 'DELETE_ITEM':
-                            await supabase.from('items').delete().eq('id', op.id);
-                            await supabase.from('stock_levels').delete().eq('item_id', op.id);
-                            break;
-                            
-                        case 'STOCK_MOVEMENT':
-                            // Insert movement
-                            await supabase.from('stock_movements').insert(op.data);
-                            
-                            // Update stock levels
-                            const { data: levelData, error: levelError } = await supabase
-                                .from('stock_levels')
-                                .select('quantity')
-                                .eq('item_id', op.data.item_id)
-                                .single();
-                                
-                            let currentQty = levelData?.quantity || 0;
-                            const adjustment = op.data.type === 'in' ? op.data.quantity : -op.data.quantity;
-                            const newQty = currentQty + adjustment;
-                            
-                            await supabase.from('stock_levels')
-                                .upsert({ item_id: op.data.item_id, quantity: newQty });
-                            break;
-                            
-                        case 'ADD_CATEGORY':
-                            await supabase.from('categories').insert(op.data);
-                            break;
-                            
-                        case 'UPDATE_CATEGORY':
-                            await supabase.from('categories').update(op.data).eq('id', op.id);
-                            break;
-                            
-                        case 'DELETE_CATEGORY':
-                            await supabase.from('categories').delete().eq('id', op.id);
-                            break;
-                            
-                        case 'ADD_USER':
-                            await supabase.from('users').insert(op.data);
-                            break;
-                            
-                        case 'UPDATE_USER':
-                            await supabase.from('users').update(op.data).eq('username', op.id);
-                            break;
-                            
-                        case 'DELETE_USER':
-                            await supabase.from('users').delete().eq('username', op.id);
-                            break;
-                    }
-                } catch (err) {
-                    console.error(`Operation ${op.type} failed:`, err);
-                    throw new Error(`${op.type} failed`);
-                }
-            }
-            
-            await clearQueue();
-        }
+  if (!offlineQueue.length) return;
+
+  /* ── 1.  Tell Supabase who is doing the write ── */
+  const adminUser = currentUser?.displayName || 'anon';
+  await supabase.rpc('set_config', { setting: 'app.current_user', value: adminUser, is_local: true });
+
+  /* ── 2.  Push every offline operation ── */
+  for (const op of offlineQueue) {
+    try {
+      const updateData = { ...op.data, updated_at: new Date().toISOString() };
+
+      switch (op.type) {
+        case 'ADD_ITEM':
+          await supabase.from('items').insert(updateData);
+          await supabase.from('stock_levels').insert({ item_id: op.data.id, quantity: op.initialQuantity });
+          break;
+        case 'UPDATE_ITEM':
+          await supabase.from('items').update(updateData).eq('id', op.id);
+          break;
+        case 'DELETE_ITEM':
+          await supabase.from('items').delete().eq('id', op.id);
+          await supabase.from('stock_levels').delete().eq('item_id', op.id);
+          break;
+        case 'STOCK_MOVEMENT':
+          await supabase.from('stock_movements').insert(updateData);
+          const { data: row } = await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single();
+          let newQty = (row?.quantity || 0) + (op.data.type === 'in' ? op.data.quantity : -op.data.quantity);
+          await supabase.from('stock_levels').upsert({ item_id: op.data.item_id, quantity: newQty });
+          break;
+        case 'ADD_CATEGORY':
+          await supabase.from('categories').insert(updateData);
+          break;
+        case 'UPDATE_CATEGORY':
+          await supabase.from('categories').update(updateData).eq('id', op.id);
+          break;
+        case 'DELETE_CATEGORY':
+          await supabase.from('categories').delete().eq('id', op.id);
+          break;
+        case 'ADD_DEPARTMENT':
+          await supabase.from('departments').insert(updateData);
+          break;
+        case 'UPDATE_DEPARTMENT':
+          await supabase.from('departments').update(updateData).eq('id', op.id);
+          break;
+        case 'DELETE_DEPARTMENT':
+          await supabase.from('departments').delete().eq('id', op.id);
+          break;
+        case 'ADD_USER':
+          await supabase.from('users').insert(updateData);
+          break;
+        case 'UPDATE_USER':
+          await supabase.from('users').update(updateData).eq('username', op.id);
+          break;
+        case 'DELETE_USER':
+          await supabase.from('users').delete().eq('username', op.id);
+          break;
+      }
+    } catch (err) {
+      throw new Error(`${op.type} failed: ${err.message}`);
+    }
+  }
+
+  /* ── 3.  Flush the offline queue ── */
+  await clearQueue();
+}
 
         async function pullFromSupabase() {
             const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
