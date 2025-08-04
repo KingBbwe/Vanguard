@@ -559,6 +559,20 @@
         .pdf-btn:hover {
             background: #c0392b;
         }
+
+        /* Search / Filter */
+        .search-bar {
+            margin-bottom: 1rem;
+        }
+        
+        .search-bar input {
+            width: 100%;
+            padding: .5rem;
+            border-radius: var(--radius);
+            background: var(--surface-light);
+            border: none;
+            color: var(--text-primary);
+        }
         
         /* Animations */
         @keyframes pulse {
@@ -706,6 +720,10 @@
                 <div id="categoryManagementMenuItem" class="dept-item hidden" data-dept="categories" onclick="showCategoryManagement()">
                     <i class="fas fa-layer-group" style="color:var(--admin-color)"></i>
                     <span>Categories</span>
+                </div>
+                <div id="departmentManagementMenuItem" class="dept-item hidden" data-dept="departments" onclick="showDepartmentManagement()">
+                    <i class="fas fa-building" style="color:var(--admin-color)"></i>
+                    <span>Departments</span>
                 </div>
             </nav>
             
@@ -990,6 +1008,14 @@
             }).catch(() => {});
         };
 
+        function showMsg(text, type) {
+            const m = document.createElement('div');
+            m.className = `message ${type}`;
+            m.textContent = text;
+            document.querySelector('.content-area').prepend(m);
+            setTimeout(() => m.remove(), 4000);
+        }
+
         /* ===== CORE OPS ===== */
         function logMove(i, t, q, r, s = null, p = null, userOverride = "System") {
             const user = userOverride || (currentUser ? currentUser.displayName : "System");
@@ -1148,14 +1174,6 @@
             el.style.animation = 'fadeIn .3s';
         }
 
-        function showMsg(text, type) {
-            const m = document.createElement('div');
-            m.className = `message ${type}`;
-            m.textContent = text;
-            document.querySelector('.content-area').prepend(m);
-            setTimeout(() => m.remove(), 4000);
-        }
-
         /* ===== LOGIN ===== */
         function clearPin() {
             currentPin = '';
@@ -1181,34 +1199,14 @@
             if (currentPin.length === pinDigits.length) attemptLogin();
         }
 
-        async function attemptLogin() {
+        function attemptLogin() {
             let foundUser = null;
             
-            // First try local state
+            // Check local state for matching PIN
             for (const username in state.users) {
                 if (state.users[username].password === currentPin) {
                     foundUser = state.users[username];
                     break;
-                }
-            }
-            
-            // If not found locally and online, try Supabase
-            if (!foundUser && navigator.onLine) {
-                try {
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('password', currentPin)
-                        .single();
-                        
-                    if (data && !error) {
-                        foundUser = data;
-                        // Add to local state
-                        state.users[foundUser.username] = foundUser;
-                        saveState();
-                    }
-                } catch (e) {
-                    console.error('Supabase user lookup error:', e);
                 }
             }
             
@@ -1233,6 +1231,7 @@
             if (user.role === USER_ROLES.ADMIN) {
                 document.getElementById('userManagementMenuItem').classList.remove('hidden');
                 document.getElementById('categoryManagementMenuItem').classList.remove('hidden');
+                document.getElementById('departmentManagementMenuItem').classList.remove('hidden');
             }
             
             setTimeout(() => {
@@ -1275,71 +1274,71 @@
         }
 
         async function processOfflineQueue() {
-  if (!offlineQueue.length) return;
+            if (!offlineQueue.length) return;
 
-  /* ── 1.  Tell Supabase who is doing the write ── */
-  const adminUser = currentUser?.displayName || 'anon';
-  await supabase.rpc('set_config', { setting: 'app.current_user', value: adminUser, is_local: true });
+            // Set current user in Supabase
+            const adminUser = currentUser?.displayName || 'anon';
+            await supabase.rpc('set_config', { setting: 'app.current_user', value: adminUser, is_local: true });
 
-  /* ── 2.  Push every offline operation ── */
-  for (const op of offlineQueue) {
-    try {
-      const updateData = { ...op.data, updated_at: new Date().toISOString() };
+            // Process each offline operation
+            for (const op of offlineQueue) {
+                try {
+                    const updateData = { ...op.data, updated_at: new Date().toISOString() };
 
-      switch (op.type) {
-        case 'ADD_ITEM':
-          await supabase.from('items').insert(updateData);
-          await supabase.from('stock_levels').insert({ item_id: op.data.id, quantity: op.initialQuantity });
-          break;
-        case 'UPDATE_ITEM':
-          await supabase.from('items').update(updateData).eq('id', op.id);
-          break;
-        case 'DELETE_ITEM':
-          await supabase.from('items').delete().eq('id', op.id);
-          await supabase.from('stock_levels').delete().eq('item_id', op.id);
-          break;
-        case 'STOCK_MOVEMENT':
-          await supabase.from('stock_movements').insert(updateData);
-          const { data: row } = await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single();
-          let newQty = (row?.quantity || 0) + (op.data.type === 'in' ? op.data.quantity : -op.data.quantity);
-          await supabase.from('stock_levels').upsert({ item_id: op.data.item_id, quantity: newQty });
-          break;
-        case 'ADD_CATEGORY':
-          await supabase.from('categories').insert(updateData);
-          break;
-        case 'UPDATE_CATEGORY':
-          await supabase.from('categories').update(updateData).eq('id', op.id);
-          break;
-        case 'DELETE_CATEGORY':
-          await supabase.from('categories').delete().eq('id', op.id);
-          break;
-        case 'ADD_DEPARTMENT':
-          await supabase.from('departments').insert(updateData);
-          break;
-        case 'UPDATE_DEPARTMENT':
-          await supabase.from('departments').update(updateData).eq('id', op.id);
-          break;
-        case 'DELETE_DEPARTMENT':
-          await supabase.from('departments').delete().eq('id', op.id);
-          break;
-        case 'ADD_USER':
-          await supabase.from('users').insert(updateData);
-          break;
-        case 'UPDATE_USER':
-          await supabase.from('users').update(updateData).eq('username', op.id);
-          break;
-        case 'DELETE_USER':
-          await supabase.from('users').delete().eq('username', op.id);
-          break;
-      }
-    } catch (err) {
-      throw new Error(`${op.type} failed: ${err.message}`);
-    }
-  }
+                    switch (op.type) {
+                        case 'ADD_ITEM':
+                            await supabase.from('items').insert(updateData);
+                            await supabase.from('stock_levels').insert({ item_id: op.data.id, quantity: op.initialQuantity });
+                            break;
+                        case 'UPDATE_ITEM':
+                            await supabase.from('items').update(updateData).eq('id', op.id);
+                            break;
+                        case 'DELETE_ITEM':
+                            await supabase.from('items').delete().eq('id', op.id);
+                            await supabase.from('stock_levels').delete().eq('item_id', op.id);
+                            break;
+                        case 'STOCK_MOVEMENT':
+                            await supabase.from('stock_movements').insert(updateData);
+                            const { data: row } = await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single();
+                            let newQty = (row?.quantity || 0) + (op.data.type === 'in' ? op.data.quantity : -op.data.quantity);
+                            await supabase.from('stock_levels').upsert({ item_id: op.data.item_id, quantity: newQty });
+                            break;
+                        case 'ADD_CATEGORY':
+                            await supabase.from('categories').insert(updateData);
+                            break;
+                        case 'UPDATE_CATEGORY':
+                            await supabase.from('categories').update(updateData).eq('id', op.id);
+                            break;
+                        case 'DELETE_CATEGORY':
+                            await supabase.from('categories').delete().eq('id', op.id);
+                            break;
+                        case 'ADD_DEPARTMENT':
+                            await supabase.from('departments').insert(updateData);
+                            break;
+                        case 'UPDATE_DEPARTMENT':
+                            await supabase.from('departments').update(updateData).eq('id', op.id);
+                            break;
+                        case 'DELETE_DEPARTMENT':
+                            await supabase.from('departments').delete().eq('id', op.id);
+                            break;
+                        case 'ADD_USER':
+                            await supabase.from('users').insert(updateData);
+                            break;
+                        case 'UPDATE_USER':
+                            await supabase.from('users').update(updateData).eq('username', op.id);
+                            break;
+                        case 'DELETE_USER':
+                            await supabase.from('users').delete().eq('username', op.id);
+                            break;
+                    }
+                } catch (err) {
+                    throw new Error(`${op.type} failed: ${err.message}`);
+                }
+            }
 
-  /* ── 3.  Flush the offline queue ── */
-  await clearQueue();
-}
+            // Clear offline queue
+            await clearQueue();
+        }
 
         async function pullFromSupabase() {
             const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
@@ -1512,12 +1511,14 @@
 
         function showInventory(dept = null) {
             let rows = '';
+            const searchTerm = (document.getElementById('inventorySearch')?.value || '').toLowerCase();
             
             Object.values(state.items).forEach(i => {
                 const cat = state.categories[i.categoryId];
                 const deptObj = cat ? state.departments[cat.departmentId] : null;
                 
                 if (dept && deptObj?.id !== `dept_${dept}`) return;
+                if (searchTerm && !i.name.toLowerCase().includes(searchTerm)) return;
                 
                 const stock = state.stockLevels[i.id] || { quantity: 0 };
                 const isLowStock = stock.quantity <= i.minStockLevel;
@@ -1553,11 +1554,16 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Inventory - ${deptName}</div>
-                        ${currentUser?.role === USER_ROLES.ADMIN ? `
-                            <button class="logout-btn" onclick="showAddItem()">
-                                <i class="fas fa-plus"></i> Add Item
-                            </button>
-                        ` : ''}
+                        <div style="display:flex;gap:1rem;">
+                            <div class="search-bar">
+                                <input id="inventorySearch" placeholder="Search items..." oninput="showInventory('${dept}')">
+                            </div>
+                            ${currentUser?.role === USER_ROLES.ADMIN ? `
+                                <button class="logout-btn" onclick="showAddItem()">
+                                    <i class="fas fa-plus"></i> Add Item
+                                </button>
+                            ` : ''}
+                        </div>
                         <button class="logout-btn" onclick="showDashboard()">
                             <i class="fas fa-arrow-left"></i> Back
                         </button>
@@ -2140,6 +2146,152 @@
             });
         }
 
+        /* ===== DEPARTMENT MANAGEMENT ===== */
+        function addDepartment(name) {
+            const id = `dept_${name.toLowerCase().replace(/\s+/g, '')}`;
+            if (state.departments[id]) {
+                showMsg('Department already exists', 'error');
+                return;
+            }
+            
+            state.departments[id] = { id, name, updated_at: new Date().toISOString() };
+            addOffline({ type: 'ADD_DEPARTMENT', data: state.departments[id] });
+            saveState();
+            showMsg('Department added', 'success');
+        }
+
+        function updateDepartment(id, newName) {
+            state.departments[id].name = newName;
+            state.departments[id].updated_at = new Date().toISOString();
+            addOffline({ type: 'UPDATE_DEPARTMENT', id, data: state.departments[id] });
+            saveState();
+            showMsg('Department updated', 'success');
+        }
+
+        function deleteDepartment(id) {
+            const inCat = Object.values(state.categories).some(c => c.departmentId === id);
+            if (inCat) {
+                showMsg('Department has categories – cannot delete', 'error');
+                return;
+            }
+            
+            delete state.departments[id];
+            addOffline({ type: 'DELETE_DEPARTMENT', id });
+            saveState();
+            showMsg('Department deleted', 'success');
+        }
+
+        function showDepartmentManagement() {
+            if (currentUser?.role !== USER_ROLES.ADMIN) {
+                showMsg('Access denied', 'error');
+                return;
+            }
+            
+            const depts = Object.values(state.departments).map(d => `
+                <tr>
+                    <td>${d.name}</td>
+                    <td>
+                        <button class="btn-icon" onclick="editDepartmentForm('${d.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon" onclick="deleteDepartment('${d.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`
+            ).join('');
+            
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Department Management</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="logout-btn" onclick="addDepartmentForm()">
+                                <i class="fas fa-plus"></i> Add Department
+                            </button>
+                            <button class="logout-btn" onclick="showDashboard()">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                        </div>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${depts || '<tr><td colspan="2" style="text-align:center;padding:1.5rem">No departments found</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `);
+        }
+
+        function addDepartmentForm() {
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Add New Department</div>
+                        <button class="logout-btn" onclick="showDepartmentManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="addDeptForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Department Name</label>
+                                <input id="adName" required placeholder="Enter department name">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Department</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('addDeptForm').addEventListener('submit', e => {
+                e.preventDefault();
+                addDepartment(document.getElementById('adName').value);
+                showDepartmentManagement();
+            });
+        }
+
+        function editDepartmentForm(id) {
+            const d = state.departments[id];
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Edit Department</div>
+                        <button class="logout-btn" onclick="showDepartmentManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="editDeptForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input id="edName" value="${d.name}" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('editDeptForm').addEventListener('submit', e => {
+                e.preventDefault();
+                updateDepartment(id, document.getElementById('edName').value);
+                showDepartmentManagement();
+            });
+        }
+
         /* ===== USER MANAGEMENT ===== */
         function showUserManagement() {
             if (currentUser?.role !== USER_ROLES.ADMIN) {
@@ -2154,10 +2306,10 @@
                     <td>${u.role}</td>
                     <td>${u.department}</td>
                     <td>
-                        <button class="btn-icon" onclick="editUserForm('${u.username}')">
+                        <button class="btn-icon" onclick="editUserForm('${u.username}')" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-icon" onclick="deleteUserPrompt('${u.username}')">
+                        <button class="btn-icon" onclick="deleteUserPrompt('${u.username}')" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
