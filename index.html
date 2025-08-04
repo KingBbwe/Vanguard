@@ -1016,16 +1016,8 @@
             setTimeout(() => m.remove(), 4000);
         }
 
-        /**
-         * NEW FUNCTION
-         * Placement: Add this new function right after your other utility functions (e.g., after showMsg).
-         * Purpose: Centralizes the logic for showing or hiding UI elements based on the current user's role.
-         * This prevents repetitive code and ensures UI visibility is handled consistently.
-         */
         function updateUIVisibility() {
             const isAdmin = currentUser && currentUser.role === USER_ROLES.ADMIN;
-            
-            // Use classList.toggle for cleaner show/hide logic
             document.getElementById('userManagementMenuItem').classList.toggle('hidden', !isAdmin);
             document.getElementById('categoryManagementMenuItem').classList.toggle('hidden', !isAdmin);
             document.getElementById('departmentManagementMenuItem').classList.toggle('hidden', !isAdmin);
@@ -1146,6 +1138,7 @@
 
         function renderAct() {
             const feed = document.getElementById('recentActivity');
+            if (!feed) return;
             feed.innerHTML = '';
             
             if (!state.stockMovements.length) {
@@ -1217,7 +1210,6 @@
         function attemptLogin() {
             let foundUser = null;
             
-            // Check local state for matching PIN
             for (const username in state.users) {
                 if (state.users[username].password === currentPin) {
                     foundUser = state.users[username];
@@ -1239,39 +1231,23 @@
             }
         }
 
-        /**
-         * REPLACEMENT for the login function
-         * Placement: Replace your entire existing `login` function with this one.
-         * Purpose: Removes the direct DOM manipulation for admin items and instead calls the new
-         * `updateUIVisibility` function. This ensures the UI is updated correctly *after* the user is set.
-         * The problematic `setTimeout` has also been removed for more direct execution.
-         */
         function login(user) {
             currentUser = user;
             document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
             
-            // Centralized UI update based on role
             updateUIVisibility(); 
             
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('mainApp').classList.remove('hidden');
             
-            // Update the dashboard and other components now that the user is logged in
             updateDash();
             renderAct();
             updateSyncStatus();
         }
 
-        /**
-         * REPLACEMENT for the logout function
-         * Placement: Replace your entire existing `logout` function with this one.
-         * Purpose: Calls `updateUIVisibility` to ensure that when an admin logs out,
-         * the admin-only menu items are correctly hidden.
-         */
         function logout() {
             currentUser = null;
             
-            // Hide admin elements upon logout
             updateUIVisibility(); 
             
             clearPin();
@@ -1305,11 +1281,9 @@
         async function processOfflineQueue() {
             if (!offlineQueue.length) return;
 
-            // Set current user in Supabase
             const adminUser = currentUser?.displayName || 'anon';
             await supabase.rpc('set_config', { setting: 'app.current_user', value: adminUser, is_local: true });
 
-            // Process each offline operation
             for (const op of offlineQueue) {
                 try {
                     const updateData = { ...op.data, updated_at: new Date().toISOString() };
@@ -1365,7 +1339,6 @@
                 }
             }
 
-            // Clear offline queue
             await clearQueue();
         }
 
@@ -1882,16 +1855,13 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Title
             doc.setFontSize(18);
             doc.text('Vanguard Stock Report', 105, 15, { align: 'center' });
             
-            // Date
             const date = new Date().toLocaleDateString();
             doc.setFontSize(11);
             doc.text(`Date: ${date}`, 10, 25);
             
-            // Summary
             doc.setFontSize(14);
             doc.text('Summary', 10, 35);
             
@@ -1912,7 +1882,6 @@
             doc.text(`Low Stock: ${low}`, 10, 65);
             doc.text(`Out of Stock: ${out}`, 10, 75);
             
-            // Low stock items table
             doc.setFontSize(14);
             doc.text('Low Stock Items', 10, 85);
             
@@ -1940,7 +1909,6 @@
                 headStyles: { fillColor: [52, 152, 219] }
             });
             
-            // Stock movements table
             doc.addPage();
             doc.setFontSize(14);
             doc.text('Recent Stock Movements', 105, 15, { align: 'center' });
@@ -1966,7 +1934,6 @@
                 headStyles: { fillColor: [46, 204, 113] }
             });
             
-            // Save the PDF
             doc.save('vanguard-stock-report.pdf');
         }
 
@@ -2525,7 +2492,7 @@
         }
 
         function deleteUserPrompt(username) {
-            if (username === currentUser.username) {
+            if (currentUser.username === username) {
                 showMsg('Cannot delete yourself', 'error');
                 return;
             }
@@ -2642,15 +2609,7 @@
             showDashboard();
         }
 
-        
         /* ===== INITIALIZATION ===== */
-        /**
-         * REPLACEMENT for the 'DOMContentLoaded' event listener
-         * Placement: Replace your entire `document.addEventListener('DOMContentLoaded', ...)` block at the very end of the script with this.
-         * Purpose: This creates a structured, asynchronous initialization function `initializeApp`.
-         * It guarantees that `loadState()` and `loadQueue()` complete *before* any UI setup occurs,
-         * which is the core fix for the race condition.
-         */
         async function initializeApp() {
             // 1. Load all necessary data from IndexedDB first. This is the crucial step.
             await loadState();
@@ -2707,11 +2666,6 @@
 
         // This kicks everything off once the page structure is ready.
         document.addEventListener('DOMContentLoaded', initializeApp);
-                }
-        });
-
-        });
-        
     </script>
 </body>
 </html>
