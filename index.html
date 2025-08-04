@@ -1016,6 +1016,21 @@
             setTimeout(() => m.remove(), 4000);
         }
 
+        /**
+         * NEW FUNCTION
+         * Placement: Add this new function right after your other utility functions (e.g., after showMsg).
+         * Purpose: Centralizes the logic for showing or hiding UI elements based on the current user's role.
+         * This prevents repetitive code and ensures UI visibility is handled consistently.
+         */
+        function updateUIVisibility() {
+            const isAdmin = currentUser && currentUser.role === USER_ROLES.ADMIN;
+            
+            // Use classList.toggle for cleaner show/hide logic
+            document.getElementById('userManagementMenuItem').classList.toggle('hidden', !isAdmin);
+            document.getElementById('categoryManagementMenuItem').classList.toggle('hidden', !isAdmin);
+            document.getElementById('departmentManagementMenuItem').classList.toggle('hidden', !isAdmin);
+        }
+
         /* ===== CORE OPS ===== */
         function logMove(i, t, q, r, s = null, p = null, userOverride = "System") {
             const user = userOverride || (currentUser ? currentUser.displayName : "System");
@@ -1174,7 +1189,7 @@
             el.style.animation = 'fadeIn .3s';
         }
 
-        /* ===== LOGIN ===== */
+         /* ===== LOGIN ===== */
         function clearPin() {
             currentPin = '';
             pinDigits.forEach(d => {
@@ -1224,27 +1239,41 @@
             }
         }
 
+        /**
+         * REPLACEMENT for the login function
+         * Placement: Replace your entire existing `login` function with this one.
+         * Purpose: Removes the direct DOM manipulation for admin items and instead calls the new
+         * `updateUIVisibility` function. This ensures the UI is updated correctly *after* the user is set.
+         * The problematic `setTimeout` has also been removed for more direct execution.
+         */
         function login(user) {
             currentUser = user;
             document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
             
-            if (user.role === USER_ROLES.ADMIN) {
-                document.getElementById('userManagementMenuItem').classList.remove('hidden');
-                document.getElementById('categoryManagementMenuItem').classList.remove('hidden');
-                document.getElementById('departmentManagementMenuItem').classList.remove('hidden');
-            }
+            // Centralized UI update based on role
+            updateUIVisibility(); 
             
-            setTimeout(() => {
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                updateDash();
-                renderAct();
-                updateSyncStatus();
-            }, 500);
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            // Update the dashboard and other components now that the user is logged in
+            updateDash();
+            renderAct();
+            updateSyncStatus();
         }
 
+        /**
+         * REPLACEMENT for the logout function
+         * Placement: Replace your entire existing `logout` function with this one.
+         * Purpose: Calls `updateUIVisibility` to ensure that when an admin logs out,
+         * the admin-only menu items are correctly hidden.
+         */
         function logout() {
             currentUser = null;
+            
+            // Hide admin elements upon logout
+            updateUIVisibility(); 
+            
             clearPin();
             document.getElementById('mainApp').classList.add('hidden');
             document.getElementById('loginScreen').classList.remove('hidden');
@@ -2613,16 +2642,22 @@
             showDashboard();
         }
 
-        /* ===== INITIALIZATION ===== */
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize state
+        * ===== INITIALIZATION ===== */
+        /**
+         * REPLACEMENT for the 'DOMContentLoaded' event listener
+         * Placement: Replace your entire `document.addEventListener('DOMContentLoaded', ...)` block at the very end of the script with this.
+         * Purpose: This creates a structured, asynchronous initialization function `initializeApp`.
+         * It guarantees that `loadState()` and `loadQueue()` complete *before* any UI setup occurs,
+         * which is the core fix for the race condition.
+         */
+        async function initializeApp() {
+            // 1. Load all necessary data from IndexedDB first. This is the crucial step.
             await loadState();
             await loadQueue();
-            
-            // Setup keypad
+
+            // 2. Setup DOM elements and listeners that don't depend on loaded state.
             pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
             
-            // Add event listeners for all keypad buttons
             document.addEventListener('click', e => {
                 if (!e.target.matches('.key')) return;
                 const key = e.target.dataset.key;
@@ -2647,24 +2682,31 @@
                 }
             });
             
-            // Setup pin digit click to clear
             pinDigits.forEach(d => {
                 d.addEventListener('click', clearPin);
             });
-            
-            // Initial UI updates
+
+            // 3. Perform initial UI updates.
+            // This ensures admin items are hidden by default before anyone logs in.
+            updateUIVisibility(); 
             updateSyncStatus();
-            updateDash();
-            renderAct();
             
-            // Network status monitoring
+            // 4. Setup network monitoring
             window.addEventListener('online', updateSyncStatus);
             window.addEventListener('offline', updateSyncStatus);
             
-            // Add PDF button to reports view
+            // 5. Setup other global listeners
             document.addEventListener('click', e => {
                 if (e.target.id === 'generatePdfBtn') {
                     generatePDFReport();
+                }
+            });
+
+            console.log("Vanguard App Initialized Safely.");
+        }
+
+        // This kicks everything off once the page structure is ready.
+        document.addEventListener('DOMContentLoaded', initializeApp);
                 }
             });
         });
