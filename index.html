@@ -173,7 +173,8 @@
 const SUPABASE_URL = 'https://pylxzlryqrhlpnkkwyjf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5bHh6bHJ5cXJobHBua2t3eWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1OTcxNDUsImV4cCI6MjA2OTE3MzE0NX0.1dlDfWCkpsAvX7FmCt_nlq2nxCONxCqBL4yd8eBCtYI';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+/* ⬅ ⬅  ONE-TIME CONTEXT SET ⬅ ⬅ */
+await supabase.rpc('set_config', { setting: 'app.current_user', value: (currentUser?.displayName || 'anon'), is_local: true });
 const APP_VERSION = '1.5.0';
 const USER_ROLES = { ADMIN:'admin', PROCESSOR:'processor', VIEWER:'viewer' };
 const TELEGRAM_BOT = '7960256341:AAFw_BPZRibbnBLaSYD9Lf3id5Fw3352wDC';
