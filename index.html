@@ -2643,6 +2643,7 @@
         }
 
         
+        /* ===== INITIALIZATION ===== */
         /**
          * REPLACEMENT for the 'DOMContentLoaded' event listener
          * Placement: Replace your entire `document.addEventListener('DOMContentLoaded', ...)` block at the very end of the script with this.
@@ -2658,27 +2659,33 @@
             // 2. Setup DOM elements and listeners that don't depend on loaded state.
             pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
             
+            // Central event listener for all key presses to avoid attaching multiple listeners
             document.addEventListener('click', e => {
-                if (!e.target.matches('.key')) return;
-                const key = e.target.dataset.key;
-                
-                // Handle login screen keypad
-                if (!document.getElementById('loginScreen').classList.contains('hidden')) {
-                    handleKeyPress(key);
-                } 
-                // Handle inline keypad (stock out confirmation)
-                else if (document.getElementById('inlineKeypad')) {
-                    const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
-                    const filled = Array.from(digits).filter(d => d.value).length;
+                // Handle keypad clicks
+                if (e.target.matches('.key')) {
+                    const key = e.target.dataset.key;
                     
-                    if (filled >= 5) return;
-                    
-                    digits[filled].value = key;
-                    digits[filled].classList.add('filled');
-                    
-                    if (filled === 4) {
-                        setTimeout(confirmInlinePin, 200);
+                    // Route key press to the correct handler based on context
+                    if (!document.getElementById('loginScreen').classList.contains('hidden')) {
+                        handleKeyPress(key);
+                    } else if (document.getElementById('inlineKeypad')) {
+                        const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+                        const filled = Array.from(digits).filter(d => d.value).length;
+                        
+                        if (filled >= 5) return;
+                        
+                        digits[filled].value = key;
+                        digits[filled].classList.add('filled');
+                        
+                        if (filled === 4) {
+                            setTimeout(confirmInlinePin, 200);
+                        }
                     }
+                }
+
+                // Handle PDF generation button click
+                if (e.target.id === 'generatePdfBtn') {
+                    generatePDFReport();
                 }
             });
             
@@ -2695,13 +2702,6 @@
             window.addEventListener('online', updateSyncStatus);
             window.addEventListener('offline', updateSyncStatus);
             
-            // 5. Setup other global listeners
-            document.addEventListener('click', e => {
-                if (e.target.id === 'generatePdfBtn') {
-                    generatePDFReport();
-                }
-            });
-
             console.log("Vanguard App Initialized Safely.");
         }
 
