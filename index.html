@@ -182,6 +182,9 @@ let currentUser = null, currentPin = '', pendingStockOut = null;
 let state = { departments:{}, categories:{}, items:{}, stockLevels:{}, stockMovements:[], notifications:[], users:{}, version:APP_VERSION };
 let offlineQueue = [];
 
+ window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+supabase.auth.setAuth(currentUser?.displayName || 'anon');   // sets the context
+  
 /* ===== IndexedDB ===== */
 async function initIDB(){
   return new Promise((res,rej)=>{
