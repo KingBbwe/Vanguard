@@ -853,12 +853,13 @@
                 await new Promise(resolve => {
                     req.onsuccess = e => {
                         const res = e.target.result;
-                        if (res && res.version === APP_VERSION) {
+                        if (res && res.version === APP_VERSION && res.users) {
                             state = res;
                             Object.values(state.items).forEach(item => {
                                 if (!item.updated_at) item.updated_at = new Date().toISOString();
                             });
                         } else {
+                            console.log('State not found, version mismatch, or missing users - initializing default');
                             initDefault();
                             saveState();
                         }
