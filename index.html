@@ -863,7 +863,7 @@
         const TELEGRAM_BOT = '7960256341:AAFw_BPZRibbnBlaSYD9Lf3id5Fw33S2wDc';
         const TELEGRAM_CHAT = '1212406500';
 
-        let currentUser = null, currentPin = '', pendingStockOut = null;
+        let currentUser = null, currentPin = '', pendingStockOut = null, pendingAdminVerification = null;
         let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], notifications: [], users: {}, version: APP_VERSION };
         let offlineQueue = [];
         let pinDigits = [];
@@ -1032,32 +1032,18 @@
                 Gaven: { username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', updated_at: new Date().toISOString(), version: 1 },
                 Maya: { username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', updated_at: new Date().toISOString(), version: 1 }
             };
-            
         }
 
-/* ===== UTILS ===== */
-function generateUUID() {
-  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-  );
-}
+        /* ===== UTILS ===== */
+        function generateUUID() {
+            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        }
 
-// Generate a new UUID for itemId
-const itemId = generateUUID();
-
-// Set a default value for type
-const type = 'default_type'; // Default value
-
-const newItemId = generateUUID();
-
-// Function to generate unique IDs
-function genId() {
-  return generateUUID();
-}
-
-// Example usage of genId
-const uniqueId = genId();
-
+        function genId() {
+            return generateUUID();
+        }
 
         const sendTG = msg => {
             if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
@@ -1136,123 +1122,63 @@ const uniqueId = genId();
         }
 
         /* ===== CORE OPS ===== */
-        function logMove(i, t, q, r, s = null, p = null, userOverride = "System") {
-    const user = userOverride || (currentUser ? currentUser.displayName : "System");
-    
-    // Generate IDs and set default values
-    const itemId = i;
-    const newItemId = generateUUID();
-    const type = t;
-    const quantity = q;
-    const reason = r;
-    const userName = user;
-    const staffMember = s;
-    const timestamp = new Date().toISOString();
-    const userId = currentUser?.username || "system";
-    const updated_at = new Date().toISOString();
-    const version = 1;
-    const verifiedBy = currentUser?.username || null;
-    const verificationTimestamp = p ? new Date().toISOString() : null;
-    const verificationNote = p ? "Verified with PIN" : null;
-    const confirmedPin = p;
-
-    // Prepare the values array with all defined variables
-    const values = [
-        newItemId,
-        itemId,
-        type,
-        quantity,
-        reason,
-        userName,
-        staffMember,
-        timestamp,
-        userId,
-        updated_at,
-        version,
-        verifiedBy,
-        verificationTimestamp,
-        verificationNote,
-        confirmedPin
-    ];
-
-    const insertQuery = `
-  INSERT INTO stock_movements (legacy_id, item_id, type, quantity, reason, user_name, staff_member, timestamp, "user", updated_at, version, verified_by, verification_timestamp, verification_note, confirmed_pin)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-`;
-
-    // Add to local state
-    state.stockMovements.unshift({
-        id: newItemId,
-        item_id: i,
-        type: t,
-        quantity: q,
-        reason: r,
-        user: user,
-        staff_member: s,
-        confirmedPin: p,
-        timestamp: timestamp,
-        updated_at: updated_at,
-        version: 1
-    });
-    
-    // Add to offline queue for syncing
-    addOffline({
-        type: 'STOCK_MOVEMENT',
-        data: {
-            id: newItemId,
-            item_id: i,
-            type: t,
-            quantity: q,
-            reason: r,
-            user_name: user,
-            staff_member: s,
-            confirmed_pin: p,
-            timestamp: timestamp,
-            updated_at: updated_at,
-            version: 1
+        function logMove(itemId, moveType, quantity, reason, staff = null, pin = null, userOverride = "System") {
+            const user = userOverride || (currentUser ? currentUser.displayName : "System");
+            
+            state.stockMovements.unshift({
+                id: genId(),
+                item_id: itemId,
+                type: moveType,
+                quantity: quantity,
+                reason: reason,
+                user: user,
+                staff_member: staff,
+                confirmedPin: pin,
+                timestamp: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                version: 1
+            });
+            saveState();
         }
-    });
-    
-    saveState();
-}
-// Example SQL update query
-const newQuantity = 10; // Example value for new quantity
-const newReason = 'Restock'; // Example reason for the update
-const legacyId = generateUUID(); // Ensure legacyId is a valid UUID
 
-const updateValues = [
-  newQuantity,
-  newReason,
-  legacyId // The UUID of the record to update
-];
+        function addItem(data) {
+            const id = genId();
+            const newItem = {
+                id: id,
+                name: data.name,
+                categoryId: data.categoryId,
+                unit: data.unit,
+                cost: +data.cost || 0,
+                minStockLevel: +data.minStockLevel || 0,
+                createdAt: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                version: 1
+            };
+            
+            state.items[id] = newItem;
+            state.stockLevels[id] = { 
+                item_id: id, 
+                quantity: +data.initialQuantity || 0,
+                updated_at: new Date().toISOString()
+            };
+            
+            if (+data.initialQuantity > 0) {
+                logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
+            }
+            
+            addOffline({ 
+                type: 'ADD_ITEM', 
+                data: newItem, 
+                initialQuantity: +data.initialQuantity || 0 
+            });
+            
+            saveState();
+            updateDash();
+            renderAct();
+            return id;
+        }
 
-const updateQuery = `
-  UPDATE stock_movements
-  SET quantity = $1, reason = $2
-  WHERE legacy_id = $3
-`;
-
-async function updateStockMovement() {
-  try {
-    const { data, error } = await supabase
-      .from('stock_movements')
-      .update({ quantity: newQuantity, reason: newReason })
-      .eq('legacy_id', legacyId);
-
-    if (error) {
-      console.error('Error updating stock movement:', error);
-    } else {
-      console.log('Stock movement updated successfully:', data);
-    }
-  } catch (err) {
-    console.error('Error executing update query:', err);
-  }
-}
-
-// Call the function to update the stock movement
-updateStockMovement();
-
-        function adjustStock(itemId, quantity, reason, staff = null, pin = null) {
+        function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
             if (!state.stockLevels[itemId]) {
                 state.stockLevels[itemId] = { item_id: itemId, quantity: 0 };
             }
@@ -1260,28 +1186,32 @@ updateStockMovement();
             state.stockLevels[itemId].quantity += quantity;
             state.stockLevels[itemId].updated_at = new Date().toISOString();
             
-            logMove(
-                itemId,
-                quantity > 0 ? 'in' : 'out',
-                Math.abs(quantity),
-                reason,
-                staff,
-                pin,
-                currentUser?.displayName
-            );
+            const movementData = {
+                id: genId(),
+                item_id: itemId,
+                type: quantity > 0 ? 'in' : 'out',
+                quantity: Math.abs(quantity),
+                reason: reason,
+                user: currentUser?.displayName || 'System',
+                staff_member: staff,
+                confirmedPin: pin,
+                timestamp: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                version: 1
+            };
+            
+            // Add verification info if this was verified by an admin
+            if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
+                movementData.verified_by = currentUser.username;
+                movementData.verification_timestamp = new Date().toISOString();
+                movementData.verification_note = verificationNote;
+            }
+            
+            state.stockMovements.unshift(movementData);
             
             addOffline({
                 type: 'STOCK_MOVEMENT',
-                data: {
-                    item_id: itemId,
-                    type: quantity > 0 ? 'in' : 'out',
-                    quantity: Math.abs(quantity),
-                    reason: reason,
-                    user: currentUser?.displayName || 'System',
-                    staff_member: staff,
-                    confirmedPin: pin,
-                    timestamp: new Date().toISOString()
-                }
+                data: movementData
             });
             
             saveState();
@@ -1354,6 +1284,16 @@ updateStockMovement();
                 const staff = m.staff_member ? state.users[m.staff_member]?.displayName || m.staff_member : 'Unknown';
                 const time = new Date(m.timestamp).toLocaleString();
                 
+                // Add verification badge if verified
+                const verifiedBadge = m.verified_by ? `
+                    <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <i class="fas fa-check-circle" style="color: var(--success); font-size: 12px;"></i>
+                        <span style="font-size: 12px; color: var(--success);">
+                            Verified by ${state.users[m.verified_by]?.displayName || m.verified_by}
+                        </span>
+                    </div>
+                ` : '';
+                
                 feed.innerHTML += `
                     <div class="activity-item" style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--surface-light);">
                         <div class="activity-avatar" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: ${color}20; margin-right: 1rem;">
@@ -1366,6 +1306,7 @@ updateStockMovement();
                                 ${m.type === 'out' ? ` to ${staff}` : ''}
                             </div>
                             <div class="activity-time" style="font-size: 0.8rem; color: var(--text-secondary);">${time}</div>
+                            ${verifiedBadge}
                         </div>
                     </div>`;
             });
@@ -1552,230 +1493,230 @@ updateStockMovement();
         }
 
         async function processOfflineQueue() {
-    if (!offlineQueue.length) return;
+            if (!offlineQueue.length) return;
 
-    let failedOperations = [];
+            let failedOperations = [];
+            
+            for (const op of offlineQueue) {
+                try {
+                    const updateData = { ...op.data, updated_at: new Date().toISOString() };
 
-    for (const op of offlineQueue) {
-        try {
-            const updateData = { ...op.data, updated_at: new Date().toISOString() };
+                    switch (op.type) {
+                        case 'ADD_ITEM':
+                            const itemResult = await supabase
+                                .from('items')
+                                .insert({
+                                    id: op.data.id,
+                                    name: op.data.name,
+                                    category_id: op.data.categoryId,
+                                    unit: op.data.unit,
+                                    cost: op.data.cost || 0,
+                                    min_stock_level: op.data.minStockLevel || 0,
+                                    created_at: op.data.createdAt || new Date().toISOString(),
+                                    updated_at: updateData.updated_at,
+                                    version: op.data.version || 1
+                                });
+                            
+                            if (itemResult.error) throw itemResult.error;
+                            
+                            const stockResult = await supabase
+                                .from('stock_levels')
+                                .insert({
+                                    item_id: op.data.id,
+                                    quantity: op.initialQuantity || 0,
+                                    updated_at: updateData.updated_at
+                                });
+                            
+                            if (stockResult.error) throw stockResult.error;
+                            break;
 
-            switch (op.type) {
-                case 'ADD_ITEM':
-                    const itemResult = await supabase
-                        .from('items')
-                        .insert({
-                            id: updateData.id,
-                            name: updateData.name,
-                            category_id: updateData.categoryId,
-                            unit: updateData.unit,
-                            cost: updateData.cost || 0,
-                            min_stock_level: updateData.minStockLevel || 0,
-                            created_at: updateData.createdAt || new Date().toISOString(),
-                            updated_at: updateData.updated_at,
-                            version: updateData.version || 1
-                        });
+                        case 'UPDATE_ITEM':
+                            const updateResult = await supabase
+                                .from('items')
+                                .update({
+                                    name: op.data.name,
+                                    category_id: op.data.categoryId,
+                                    unit: op.data.unit,
+                                    cost: op.data.cost || 0,
+                                    min_stock_level: op.data.minStockLevel || 0,
+                                    updated_at: updateData.updated_at,
+                                    version: (op.data.version || 1) + 1
+                                })
+                                .eq('id', op.id);
+                            
+                            if (updateResult.error) throw updateResult.error;
+                            break;
 
-                    if (itemResult.error) throw itemResult.error;
+                        case 'DELETE_ITEM':
+                            const deleteResult = await supabase
+                                .from('items')
+                                .delete()
+                                .eq('id', op.id);
+                            
+                            if (deleteResult.error) throw deleteResult.error;
+                            break;
 
-                    const stockResult = await supabase
-                        .from('stock_levels')
-                        .insert({
-                            item_id: updateData.id,
-                            quantity: updateData.initialQuantity || 0,
-                            updated_at: updateData.updated_at
-                        });
+                        case 'STOCK_MOVEMENT':
+                            const movementResult = await supabase
+                                .from('stock_movements')
+                                .insert({
+                                    id: op.data.id,
+                                    item_id: op.data.item_id,
+                                    type: op.data.type,
+                                    quantity: op.data.quantity,
+                                    reason: op.data.reason || '',
+                                    user_name: op.data.user || 'Unknown',
+                                    staff_member: op.data.staff_member,
+                                    confirmed_pin: op.data.confirmedPin,
+                                    timestamp: op.data.timestamp,
+                                    updated_at: updateData.updated_at,
+                                    version: 1
+                                });
+                            
+                            if (movementResult.error) throw movementResult.error;
+                            break;
 
-                    if (stockResult.error) throw stockResult.error;
-                    break;
+                        case 'ADD_CATEGORY':
+                            const categoryResult = await supabase
+                                .from('categories')
+                                .insert({
+                                    id: op.data.id,
+                                    department_id: op.data.departmentId,
+                                    name: op.data.name,
+                                    created_at: op.data.created_at || new Date().toISOString(),
+                                    updated_at: updateData.updated_at,
+                                    version: 1
+                                });
+                            
+                            if (categoryResult.error) throw categoryResult.error;
+                            break;
 
-                case 'UPDATE_ITEM':
-                    const updateItemResult = await supabase
-                        .from('items')
-                        .update({
-                            name: updateData.name,
-                            category_id: updateData.categoryId,
-                            unit: updateData.unit,
-                            cost: updateData.cost || 0,
-                            min_stock_level: updateData.minStockLevel || 0,
-                            updated_at: updateData.updated_at,
-                            version: (updateData.version || 1) + 1
-                        })
-                        .eq('id', op.id);
+                        case 'UPDATE_CATEGORY':
+                            const updateCatResult = await supabase
+                                .from('categories')
+                                .update({
+                                    name: op.data.name,
+                                    department_id: op.data.departmentId,
+                                    updated_at: updateData.updated_at,
+                                    version: (op.data.version || 1) + 1
+                                })
+                                .eq('id', op.id);
+                            
+                            if (updateCatResult.error) throw updateCatResult.error;
+                            break;
 
-                    if (updateItemResult.error) throw updateItemResult.error;
-                    break;
+                        case 'DELETE_CATEGORY':
+                            const deleteCatResult = await supabase
+                                .from('categories')
+                                .delete()
+                                .eq('id', op.id);
+                            
+                            if (deleteCatResult.error) throw deleteCatResult.error;
+                            break;
 
-                case 'DELETE_ITEM':
-                    const deleteItemResult = await supabase
-                        .from('items')
-                        .delete()
-                        .eq('id', op.id);
+                        case 'ADD_DEPARTMENT':
+                            const deptResult = await supabase
+                                .from('departments')
+                                .insert({
+                                    id: op.data.id,
+                                    name: op.data.name,
+                                    created_at: op.data.created_at || new Date().toISOString(),
+                                    updated_at: updateData.updated_at,
+                                    version: 1
+                                });
+                            
+                            if (deptResult.error) throw deptResult.error;
+                            break;
 
-                    if (deleteItemResult.error) throw deleteItemResult.error;
-                    break;
+                        case 'UPDATE_DEPARTMENT':
+                            const updateDeptResult = await supabase
+                                .from('departments')
+                                .update({
+                                    name: op.data.name,
+                                    updated_at: updateData.updated_at,
+                                    version: (op.data.version || 1) + 1
+                                })
+                                .eq('id', op.id);
+                            
+                            if (updateDeptResult.error) throw updateDeptResult.error;
+                            break;
 
-                case 'STOCK_MOVEMENT':
-                    const movementResult = await supabase
-                        .from('stock_movements')
-                        .insert({
-                            id: updateData.id, // Ensure this is a valid UUID
-                            item_id: updateData.item_id, // Ensure this is a valid UUID
-                            type: updateData.type,
-                            quantity: updateData.quantity,
-                            reason: updateData.reason || '',
-                            user_name: updateData.user || 'Unknown',
-                            staff_member: updateData.staff_member,
-                            confirmed_pin: updateData.confirmedPin,
-                            timestamp: updateData.timestamp,
-                            updated_at: updateData.updated_at,
-                            version: 1
-                        });
+                        case 'DELETE_DEPARTMENT':
+                            const deleteDeptResult = await supabase
+                                .from('departments')
+                                .delete()
+                                .eq('id', op.id);
+                            
+                            if (deleteDeptResult.error) throw deleteDeptResult.error;
+                            break;
 
-                    if (movementResult.error) throw movementResult.error;
-                    break;
+                        case 'ADD_USER':
+                            const userResult = await supabase
+                                .from('users')
+                                .insert({
+                                    username: op.data.username,
+                                    display_name: op.data.displayName,
+                                    password: op.data.password,
+                                    role: op.data.role,
+                                    department: op.data.department,
+                                    is_supervisor: op.data.isSupervisor || false,
+                                    created_at: op.data.created_at || new Date().toISOString(),
+                                    updated_at: updateData.updated_at,
+                                    version: 1
+                                });
+                            
+                            if (userResult.error) throw userResult.error;
+                            break;
 
-                case 'ADD_CATEGORY':
-                    const categoryResult = await supabase
-                        .from('categories')
-                        .insert({
-                            id: updateData.id,
-                            department_id: updateData.departmentId,
-                            name: updateData.name,
-                            created_at: updateData.created_at || new Date().toISOString(),
-                            updated_at: updateData.updated_at,
-                            version: 1
-                        });
+                        case 'UPDATE_USER':
+                            const updateUserResult = await supabase
+                                .from('users')
+                                .update({
+                                    display_name: op.data.displayName,
+                                    password: op.data.password,
+                                    role: op.data.role,
+                                    department: op.data.department,
+                                    is_supervisor: op.data.isSupervisor || false,
+                                    updated_at: updateData.updated_at,
+                                    version: (op.data.version || 1) + 1
+                                })
+                                .eq('username', op.id);
+                            
+                            if (updateUserResult.error) throw updateUserResult.error;
+                            break;
 
-                    if (categoryResult.error) throw categoryResult.error;
-                    break;
+                        case 'DELETE_USER':
+                            const deleteUserResult = await supabase
+                                .from('users')
+                                .delete()
+                                .eq('username', op.id);
+                            
+                            if (deleteUserResult.error) throw deleteUserResult.error;
+                            break;
 
-                case 'UPDATE_CATEGORY':
-                    const updateCategoryResult = await supabase
-                        .from('categories')
-                        .update({
-                            name: updateData.name,
-                            department_id: updateData.departmentId,
-                            updated_at: updateData.updated_at,
-                            version: (updateData.version || 1) + 1
-                        })
-                        .eq('id', op.id);
+                        default:
+                            console.warn('Unknown operation type:', op.type);
+                            break;
+                    }
 
-                    if (updateCategoryResult.error) throw updateCategoryResult.error;
-                    break;
+                    console.log(`Successfully synced operation: ${op.type}`);
 
-                case 'DELETE_CATEGORY':
-                    const deleteCategoryResult = await supabase
-                        .from('categories')
-                        .delete()
-                        .eq('id', op.id);
-
-                    if (deleteCategoryResult.error) throw deleteCategoryResult.error;
-                    break;
-
-                case 'ADD_DEPARTMENT':
-                    const departmentResult = await supabase
-                        .from('departments')
-                        .insert({
-                            id: updateData.id,
-                            name: updateData.name,
-                            created_at: updateData.created_at || new Date().toISOString(),
-                            updated_at: updateData.updated_at,
-                            version: 1
-                        });
-
-                    if (departmentResult.error) throw departmentResult.error;
-                    break;
-
-                case 'UPDATE_DEPARTMENT':
-                    const updateDepartmentResult = await supabase
-                        .from('departments')
-                        .update({
-                            name: updateData.name,
-                            updated_at: updateData.updated_at,
-                            version: (updateData.version || 1) + 1
-                        })
-                        .eq('id', op.id);
-
-                    if (updateDepartmentResult.error) throw updateDepartmentResult.error;
-                    break;
-
-                case 'DELETE_DEPARTMENT':
-                    const deleteDepartmentResult = await supabase
-                        .from('departments')
-                        .delete()
-                        .eq('id', op.id);
-
-                    if (deleteDepartmentResult.error) throw deleteDepartmentResult.error;
-                    break;
-
-                case 'ADD_USER':
-                    const userResult = await supabase
-                        .from('users')
-                        .insert({
-                            username: updateData.username,
-                            display_name: updateData.displayName,
-                            password: updateData.password,
-                            role: updateData.role,
-                            department: updateData.department,
-                            is_supervisor: updateData.isSupervisor || false,
-                            created_at: updateData.created_at || new Date().toISOString(),
-                            updated_at: updateData.updated_at,
-                            version: 1
-                        });
-
-                    if (userResult.error) throw userResult.error;
-                    break;
-
-                case 'UPDATE_USER':
-                    const updateUserResult = await supabase
-                        .from('users')
-                        .update({
-                            display_name: updateData.displayName,
-                            password: updateData.password,
-                            role: updateData.role,
-                            department: updateData.department,
-                            is_supervisor: updateData.isSupervisor || false,
-                            updated_at: updateData.updated_at,
-                            version: (updateData.version || 1) + 1
-                        })
-                        .eq('username', op.id);
-
-                    if (updateUserResult.error) throw updateUserResult.error;
-                    break;
-
-                case 'DELETE_USER':
-                    const deleteUserResult = await supabase
-                        .from('users')
-                        .delete()
-                        .eq('username', op.id);
-
-                    if (deleteUserResult.error) throw deleteUserResult.error;
-                    break;
-
-                default:
-                    console.warn('Unknown operation type:', op.type);
-                    break;
+                } catch (err) {
+                    console.error(`Failed to sync operation ${op.type}:`, err);
+                    failedOperations.push(op);
+                }
             }
 
-            console.log(`Successfully synced operation: ${op.type}`);
-
-        } catch (err) {
-            console.error(`Failed to sync operation ${op.type}:`, err);
-            failedOperations.push(op);
+            // Clear successful operations from the queue
+            await clearQueue();
+            
+            // Re-queue failed operations
+            if (failedOperations.length > 0) {
+                console.log(`${failedOperations.length} operations failed, will retry later`);
+                offlineQueue = failedOperations;
+                await saveQueue();
+            }
         }
-    }
-
-    // Clear successful operations from the queue
-    await clearQueue();
-    
-    // Re-queue failed operations
-    if (failedOperations.length > 0) {
-        console.log(`${failedOperations.length} operations failed, will retry later`);
-        offlineQueue = failedOperations;
-        await saveQueue();
-    }
-}
 
         async function saveQueue() {
             try {
@@ -2122,6 +2063,9 @@ updateStockMovement();
                 `<option value="${u.username}">${u.displayName}</option>`
             ).join('');
             
+            // Check if current user is an admin who can verify
+            const isVerifyingAdmin = ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username);
+            
             switchView('actionContent', `
                 <div class="card">
                     <div class="card-header">
@@ -2148,6 +2092,12 @@ updateStockMovement();
                                 <label>Reason</label>
                                 <input id="soReason" value="Department usage" required>
                             </div>
+                            ${isVerifyingAdmin ? `
+                            <div class="form-group">
+                                <label>Verification Note</label>
+                                <input id="soVerificationNote" placeholder="Optional verification details">
+                            </div>
+                            ` : ''}
                         </div>
                         <div class="form-actions">
                             <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
@@ -2162,6 +2112,7 @@ updateStockMovement();
                 const qty = +document.getElementById('soQty').value;
                 const staff = document.getElementById('soStaff').value;
                 const reason = document.getElementById('soReason').value;
+                const verificationNote = document.getElementById('soVerificationNote')?.value || '';
                 const staffObj = state.users[staff];
                 
                 if (!qty || qty <= 0) {
@@ -2170,7 +2121,14 @@ updateStockMovement();
                 }
                 
                 if (staffObj && staffObj.role !== USER_ROLES.ADMIN) {
-                    pendingStockOut = { itemId, qty, staff, reason };
+                    pendingStockOut = { 
+                        itemId, 
+                        qty, 
+                        staff, 
+                        reason,
+                        needsVerification: ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser.username),
+                        verificationNote
+                    };
                     openInlinePin();
                 } else {
                     adjustStock(itemId, -qty, reason, staff);
@@ -3273,29 +3231,108 @@ updateStockMovement();
                 showMsg('Wrong PIN', 'error');
                 const keypad = document.getElementById('inlineKeypad');
                 if (keypad) {
-                     keypad.querySelector('.modal-content').style.animation = 'shake .5s';
-                     setTimeout(() => {
+                    keypad.querySelector('.modal-content').style.animation = 'shake .5s';
+                    setTimeout(() => {
                         keypad.querySelector('.modal-content').style.animation = '';
                         const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
                         clearInlinePin(digits);
-                     }, 600);
+                    }, 600);
                 }
                 return;
             }
             
-            adjustStock(
-                pendingStockOut.itemId,
-                -pendingStockOut.qty,
-                pendingStockOut.reason,
-                pendingStockOut.staff,
-                pin
-            );
-            
-            showMsg('Stock issued successfully', 'success');
-            cancelInlinePin();
-            showInventory();
+            // If this needs admin verification and current user is an admin, proceed with verification
+            if (pendingStockOut.needsVerification && ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
+                // Store the admin verification note
+                pendingStockOut.adminPin = pin;
+                
+                // Show verification note input
+                showVerificationNoteInput();
+            } else {
+                // Complete the stock out with the recipient's pin
+                adjustStock(
+                    pendingStockOut.itemId,
+                    -pendingStockOut.qty,
+                    pendingStockOut.reason,
+                    pendingStockOut.staff,
+                    pin,
+                    pendingStockOut.verificationNote || ''
+                );
+                
+                showMsg('Stock issued successfully', 'success');
+                cancelInlinePin();
+                showInventory();
+            }
         }
 
+        function showVerificationNoteInput() {
+            // Remove the existing keypad
+            const keypad = document.getElementById('inlineKeypad');
+            if (keypad) keypad.remove();
+
+            // Create the note-input modal
+            const div = document.createElement('div');
+            div.id = 'verificationNoteModal';
+            div.className = 'modal-backdrop';
+            Object.assign(div.style, {
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1000
+            });
+
+            div.innerHTML = `
+                <div class="modal-content" style="background: var(--surface); padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px;">
+                    <h3 style="margin-bottom: 1rem; text-align: center;">Verification Details</h3>
+                    <p style="margin-bottom: 1.5rem; text-align: center;">Add any notes for this verified transaction.</p>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <textarea id="verificationNoteInput"
+                                  style="width: 100%; padding: 0.75rem; border-radius: var(--radius); background: var(--primary); color: var(--text-primary); border: 1px solid var(--surface-light); min-height: 100px;"
+                                  placeholder="Optional verification notes"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="clear-btn" style="flex: 1;" onclick="cancelVerificationNote()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="btn btn-primary" style="flex: 1;" onclick="completeVerifiedStockOut()">
+                            <i class="fas fa-check"></i> Confirm
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(div);
+        }
+
+        function cancelVerificationNote() {
+            const modal = document.getElementById('verificationNoteModal');
+            if (modal) modal.remove();
+            pendingStockOut = null;
+        }
+
+        function completeVerifiedStockOut() {
+            const note = document.getElementById('verificationNoteInput')?.value || '';
+            if (pendingStockOut) {
+                adjustStock(
+                    pendingStockOut.itemId,
+                    -pendingStockOut.qty,
+                    pendingStockOut.reason,
+                    pendingStockOut.staff,
+                    pendingStockOut.adminPin,
+                    note
+                );
+                showMsg('Stock issued & verified', 'success');
+            }
+            const modal = document.getElementById('verificationNoteModal');
+            if (modal) modal.remove();
+            pendingStockOut = null;
+            showInventory();
+        }
+        
         /* ===== INITIALIZATION ===== */
         async function initializeApp() {
             try {
@@ -3331,6 +3368,8 @@ updateStockMovement();
                             handleKeyPress(key);
                         } else if (document.getElementById('inlineKeypad')) {
                             handleInlineKeyPress(key);
+                        } else if (document.getElementById('adminVerificationKeypad')) {
+                            handleAdminVerificationKeyPress(key);
                         }
                     }
 
