@@ -863,11 +863,11 @@
         const TELEGRAM_BOT = '7960256341:AAFw_BPZRibbnBlaSYD9Lf3id5Fw33S2wDc';
         const TELEGRAM_CHAT = '1212406500';
 
-        let currentUser = null, currentPin = '', pendingStockOut = null;
-        let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], notifications: [], users: {}, version: APP_VERSION };
-        let offlineQueue = [];
-        let pinDigits = [];
-        let realtimeChannel = null;
+        let currentUser = null, currentPin = '', pendingStockOut = null, pendingAdminVerification = null;
+let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], notifications: [], users: {}, version: APP_VERSION };
+let offlineQueue = [];
+let pinDigits = [];
+let realtimeChannel = null;
 
         /* ===== IndexedDB ===== */
         async function initIDB() {
