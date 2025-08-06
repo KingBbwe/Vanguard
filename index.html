@@ -846,7 +846,7 @@
                         </div>
                     </div>
                 </div>
-                
+                <input id="typeInput" type="text" placeholder="Enter Type">
                 <div id="actionContent" class="view-content hidden"></div>
                 <div id="userManagementContent" class="view-content hidden"></div>
             </main>
@@ -1047,6 +1047,10 @@ function generateUUID() {
 // Generate a new UUID for itemId
 const itemId = generateUUID();
 
+// Example: Fetching type from an input field
+const typeInput = document.getElementById('typeInput');
+const type = typeInput ? typeInput.value : 'default_type'; // Provide a default value if not defined
+
 const newItemId = generateUUID();
 const insertQuery = `
   INSERT INTO stock_movements (legacy_id, item_id, type, quantity, reason, user_name, staff_member, timestamp, "user", updated_at, version, verified_by, verification_timestamp, verification_note, confirmed_pin)
@@ -1055,7 +1059,7 @@ const insertQuery = `
 const values = [
   newItemId,
   itemId, // Use the generated itemId
-  type,
+  type, // Ensure type is defined here
   quantity,
   reason,
   userName,
