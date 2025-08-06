@@ -3224,21 +3224,37 @@ let realtimeChannel = null;
         showMsg('Wrong PIN', 'error');
         const keypad = document.getElementById('inlineKeypad');
         if (keypad) {
-             keypad.querySelector('.modal-content').style.animation = 'shake .5s';
-             setTimeout(() => {
+            keypad.querySelector('.modal-content').style.animation = 'shake .5s';
+            setTimeout(() => {
                 keypad.querySelector('.modal-content').style.animation = '';
                 const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
                 clearInlinePin(digits);
-             }, 600);
+            }, 600);
         }
         return;
     }
     
-    // If this needs admin verification, show admin verification modal
-    if (pendingStockOut.needsVerification) {
-        showAdminVerificationModal(pendingStockOut, pin);
+    // If this needs admin verification and current user is an admin, proceed with verification
+    if (pendingStockOut.needsVerification && ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
+        // Store the admin verification note
+        pendingStockOut.adminPin = pin;
+        
+        // Show verification note input
+        showVerificationNoteInput();
     } else {
-        completeStockOut(pendingStockOut, pin);
+        // Complete the stock out with the recipient's pin
+        adjustStock(
+            pendingStockOut.itemId,
+            -pendingStockOut.qty,
+            pendingStockOut.reason,
+            pendingStockOut.staff,
+            pin,
+            pendingStockOut.verificationNote || ''
+        );
+        
+        showMsg('Stock issued successfully', 'success');
+        cancelInlinePin();
+        showInventory();
     }
 }
 
