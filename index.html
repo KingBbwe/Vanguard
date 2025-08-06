@@ -1148,7 +1148,9 @@ const newItemId = generateUUID();
     const verificationTimestamp = p ? new Date().toISOString() : null;
     const verificationNote = p ? "Verified with PIN" : null;
     const confirmedPin = p;
-
+const newQuantity = 10; // Example value for new quantity
+const newReason = 'Restock'; // Example reason for the update
+const legacyId = 'some-uuid'; // Example UUID for the record to update
     // Prepare the values array with all defined variables
     const values = [
         newItemId,
