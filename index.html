@@ -1550,25 +1550,24 @@
                             break;
 
                         case 'STOCK_MOVEMENT':
-                            const movementResult = await supabase
-                                .from('stock_movements')
-                                .insert({
-                                    id: op.data.id || genId(),
-                                    item_id: op.data.item_id,
-                                    type: op.data.type,
-                                    quantity: op.data.quantity,
-                                    reason: op.data.reason || '',
-                                    user_name: op.data.user || 'Unknown',
-                                    staff_member: op.data.staff_member,
-                                    confirmed_pin: op.data.confirmedPin,
-                                    timestamp: op.data.timestamp,
-                                    updated_at: updateData.updated_at,
-                                    version: 1
-                                });
-                            
-                            if (movementResult.error) throw movementResult.error;
-                            
-                            break;
+    const movementResult = await supabase
+        .from('stock_movements')
+        .insert({
+            id: op.data.id, // This will now match the column type
+            item_id: op.data.item_id,
+            type: op.data.type,
+            quantity: op.data.quantity,
+            reason: op.data.reason || '',
+            user_name: op.data.user || 'Unknown',
+            staff_member: op.data.staff_member,
+            confirmed_pin: op.data.confirmedPin,
+            timestamp: op.data.timestamp,
+            updated_at: updateData.updated_at,
+            version: 1
+        });
+    
+    if (movementResult.error) throw movementResult.error;
+    break;
 
                         case 'ADD_CATEGORY':
                             const categoryResult = await supabase
