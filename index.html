@@ -1276,21 +1276,25 @@ const messageStyles = document.createElement('style');
         }
 
         function handleKeyPress(key) {
-            const msg = document.getElementById('loginMessage');
-            msg.className = 'message';
-            msg.textContent = '';
-            
-            if (currentPin.length >= pinDigits.length) return;
-            
-            const currentDigit = pinDigits[currentPin.length];
-            currentDigit.value = key;
-            currentDigit.classList.add('filled');
-            currentPin += key;
-            
-            if (currentPin.length === pinDigits.length) {
-                attemptLogin();
-            }
-        }
+    const msg = document.getElementById('loginMessage');
+    if (msg) {  // Only proceed if element exists
+        msg.className = 'message';
+        msg.textContent = '';
+    }
+    
+    if (currentPin.length >= pinDigits.length) return;
+    
+    const currentDigit = pinDigits[currentPin.length];
+    if (currentDigit) {  // Also add safety check here
+        currentDigit.value = key;
+        currentDigit.classList.add('filled');
+    }
+    currentPin += key;
+    
+    if (currentPin.length === pinDigits.length) {
+        attemptLogin();
+    }
+}
 
         function attemptLogin() {
             // Find a user whose password (PIN) matches the entered PIN.
