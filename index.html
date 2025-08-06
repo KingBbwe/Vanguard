@@ -1171,49 +1171,53 @@
             return id;
         }
 
-        function adjustStock(itemId, quantity, reason, staff = null, pin = null) {
-            if (!state.stockLevels[itemId]) {
-                state.stockLevels[itemId] = { item_id: itemId, quantity: 0 };
-            }
-            
-            state.stockLevels[itemId].quantity += quantity;
-            state.stockLevels[itemId].updated_at = new Date().toISOString();
-            
-            logMove(
-                itemId,
-                quantity > 0 ? 'in' : 'out',
-                Math.abs(quantity),
-                reason,
-                staff,
-                pin,
-                currentUser?.displayName
-            );
-            
-            addOffline({
-                type: 'STOCK_MOVEMENT',
-                data: {
-                    item_id: itemId,
-                    type: quantity > 0 ? 'in' : 'out',
-                    quantity: Math.abs(quantity),
-                    reason: reason,
-                    user: currentUser?.displayName || 'System',
-                    staff_member: staff,
-                    confirmedPin: pin,
-                    timestamp: new Date().toISOString()
-                }
-            });
-            
-            saveState();
-            updateDash();
-            renderAct();
-            
-            // Check for low stock
-            const item = state.items[itemId];
-            if (item && state.stockLevels[itemId].quantity <= item.minStockLevel) {
-                const msg = `Low stock alert: ${item.name} (${state.stockLevels[itemId].quantity} ${item.unit} remaining)`;
-                sendTG(msg);
-            }
-        }
+        function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
+    if (!state.stockLevels[itemId]) {
+        state.stockLevels[itemId] = { item_id: itemId, quantity: 0 };
+    }
+    
+    state.stockLevels[itemId].quantity += quantity;
+    state.stockLevels[itemId].updated_at = new Date().toISOString();
+    
+    const movementData = {
+        id: genId(),
+        item_id: itemId,
+        type: quantity > 0 ? 'in' : 'out',
+        quantity: Math.abs(quantity),
+        reason: reason,
+        user: currentUser?.displayName || 'System',
+        staff_member: staff,
+        confirmedPin: pin,
+        timestamp: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        version: 1
+    };
+    
+    // Add verification info if this was verified by an admin
+    if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username) {
+        movementData.verified_by = currentUser.username;
+        movementData.verification_timestamp = new Date().toISOString();
+        movementData.verification_note = verificationNote;
+    }
+    
+    state.stockMovements.unshift(movementData);
+    
+    addOffline({
+        type: 'STOCK_MOVEMENT',
+        data: movementData
+    });
+    
+    saveState();
+    updateDash();
+    renderAct();
+    
+    // Check for low stock
+    const item = state.items[itemId];
+    if (item && state.stockLevels[itemId].quantity <= item.minStockLevel) {
+        const msg = `Low stock alert: ${item.name} (${state.stockLevels[itemId].quantity} ${item.unit} remaining)`;
+        sendTG(msg);
+    }
+}
 
         async function testSupabaseConnection() {
             try {
@@ -1255,40 +1259,51 @@
         }
 
         function renderAct() {
-            const feed = document.getElementById('recentActivity');
-            if (!feed) return;
-            feed.innerHTML = '';
-            
-            if (!state.stockMovements.length) {
-                feed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:2rem">No recent activity.</p>';
-                return;
-            }
-            
-            state.stockMovements.slice(0, 5).forEach(m => {
-                const item = state.items[m.item_id];
-                if (!item) return;
-                
-                const icon = m.type === 'in' ? 'fa-arrow-down' : 'fa-arrow-up';
-                const color = m.type === 'in' ? 'var(--success)' : 'var(--accent)';
-                const staff = m.staff_member ? state.users[m.staff_member]?.displayName || m.staff_member : 'Unknown';
-                const time = new Date(m.timestamp).toLocaleString();
-                
-                feed.innerHTML += `
-                    <div class="activity-item" style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--surface-light);">
-                        <div class="activity-avatar" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: ${color}20; margin-right: 1rem;">
-                            <i class="fas ${icon}" style="color:${color};"></i>
-                        </div>
-                        <div class="activity-content" style="flex: 1;">
-                            <div class="activity-text" style="margin-bottom: 0.25rem;">
-                                ${m.user} ${m.type === 'in' ? 'stocked in' : 'issued'} 
-                                ${m.quantity} ${item.unit} of ${item.name}
-                                ${m.type === 'out' ? ` to ${staff}` : ''}
-                            </div>
-                            <div class="activity-time" style="font-size: 0.8rem; color: var(--text-secondary);">${time}</div>
-                        </div>
-                    </div>`;
-            });
-        }
+    const feed = document.getElementById('recentActivity');
+    if (!feed) return;
+    feed.innerHTML = '';
+    
+    if (!state.stockMovements.length) {
+        feed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:2rem">No recent activity.</p>';
+        return;
+    }
+    
+    state.stockMovements.slice(0, 5).forEach(m => {
+        const item = state.items[m.item_id];
+        if (!item) return;
+        
+        const icon = m.type === 'in' ? 'fa-arrow-down' : 'fa-arrow-up';
+        const color = m.type === 'in' ? 'var(--success)' : 'var(--accent)';
+        const staff = m.staff_member ? state.users[m.staff_member]?.displayName || m.staff_member : 'Unknown';
+        const time = new Date(m.timestamp).toLocaleString();
+        
+        // Add verification badge if verified
+        const verifiedBadge = m.verified_by ? `
+            <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                <i class="fas fa-check-circle" style="color: var(--success); font-size: 12px;"></i>
+                <span style="font-size: 12px; color: var(--success);">
+                    Verified by ${state.users[m.verified_by]?.displayName || m.verified_by}
+                </span>
+            </div>
+        ` : '';
+        
+        feed.innerHTML += `
+            <div class="activity-item" style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--surface-light);">
+                <div class="activity-avatar" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: ${color}20; margin-right: 1rem;">
+                    <i class="fas ${icon}" style="color:${color};"></i>
+                </div>
+                <div class="activity-content" style="flex: 1;">
+                    <div class="activity-text" style="margin-bottom: 0.25rem;">
+                        ${m.user} ${m.type === 'in' ? 'stocked in' : 'issued'} 
+                        ${m.quantity} ${item.unit} of ${item.name}
+                        ${m.type === 'out' ? ` to ${staff}` : ''}
+                    </div>
+                    <div class="activity-time" style="font-size: 0.8rem; color: var(--text-secondary);">${time}</div>
+                    ${verifiedBadge}
+                </div>
+            </div>`;
+    });
+}
 
         function switchView(view, html = '') {
             document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
@@ -2034,70 +2049,87 @@
         }
 
         function showStockOut() {
-            const items = Object.values(state.items).map(i => 
-                `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`
-            ).join('');
-            
-            const staff = Object.values(state.users).map(u => 
-                `<option value="${u.username}">${u.displayName}</option>`
-            ).join('');
-            
-            switchView('actionContent', `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Stock Out</div>
-                        <button class="logout-btn" onclick="showDashboard()">
-                            <i class="fas fa-arrow-left"></i> Back
-                        </button>
+    const items = Object.values(state.items).map(i => 
+        `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`
+    ).join('');
+    
+    const staff = Object.values(state.users).map(u => 
+        `<option value="${u.username}">${u.displayName}</option>`
+    ).join('');
+    
+    // Check if current user is an admin who can verify
+    const isVerifyingAdmin = ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username);
+    
+    switchView('actionContent', `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Stock Out</div>
+                <button class="logout-btn" onclick="showDashboard()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+            <form id="stockOutForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Item</label>
+                        <select id="soItem" required>${items}</select>
                     </div>
-                    <form id="stockOutForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Item</label>
-                                <select id="soItem" required>${items}</select>
-                            </div>
-                            <div class="form-group">
-                                <label>Quantity</label>
-                                <input type="number" id="soQty" required min="0.01" step="any">
-                            </div>
-                            <div class="form-group">
-                                <label>Issued To</label>
-                                <select id="soStaff" required>${staff}</select>
-                            </div>
-                            <div class="form-group">
-                                <label>Reason</label>
-                                <input id="soReason" value="Department usage" required>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
-                            <button type="button" id="soBtn" class="btn btn-primary">Remove Stock</button>
-                        </div>
-                    </form>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <input type="number" id="soQty" required min="0.01" step="any">
+                    </div>
+                    <div class="form-group">
+                        <label>Issued To</label>
+                        <select id="soStaff" required>${staff}</select>
+                    </div>
+                    <div class="form-group">
+                        <label>Reason</label>
+                        <input id="soReason" value="Department usage" required>
+                    </div>
+                    ${isVerifyingAdmin ? `
+                    <div class="form-group">
+                        <label>Verification Note</label>
+                        <input id="soVerificationNote" placeholder="Optional verification details">
+                    </div>
+                    ` : ''}
                 </div>
-            `);
-            
-            document.getElementById('soBtn').addEventListener('click', () => {
-                const itemId = document.getElementById('soItem').value;
-                const qty = +document.getElementById('soQty').value;
-                const staff = document.getElementById('soStaff').value;
-                const reason = document.getElementById('soReason').value;
-                const staffObj = state.users[staff];
-                
-                if (!qty || qty <= 0) {
-                    showMsg('Enter valid quantity', 'error');
-                    return;
-                }
-                
-                if (staffObj && staffObj.role !== USER_ROLES.ADMIN) {
-                    pendingStockOut = { itemId, qty, staff, reason };
-                    openInlinePin();
-                } else {
-                    adjustStock(itemId, -qty, reason, staff);
-                    showDashboard();
-                }
-            });
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+                    <button type="button" id="soBtn" class="btn btn-primary">Remove Stock</button>
+                </div>
+            </form>
+        </div>
+    `);
+    
+    document.getElementById('soBtn').addEventListener('click', () => {
+        const itemId = document.getElementById('soItem').value;
+        const qty = +document.getElementById('soQty').value;
+        const staff = document.getElementById('soStaff').value;
+        const reason = document.getElementById('soReason').value;
+        const verificationNote = document.getElementById('soVerificationNote')?.value || '';
+        const staffObj = state.users[staff];
+        
+        if (!qty || qty <= 0) {
+            showMsg('Enter valid quantity', 'error');
+            return;
         }
+        
+        if (staffObj && staffObj.role !== USER_ROLES.ADMIN) {
+            pendingStockOut = { 
+                itemId, 
+                qty, 
+                staff, 
+                reason,
+                needsVerification: ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser.username),
+                verificationNote
+            };
+            openInlinePin();
+        } else {
+            adjustStock(itemId, -qty, reason, staff);
+            showDashboard();
+        }
+    });
+}
 
         function showInventory(dept = null) {
             let rows = '';
@@ -3185,125 +3217,257 @@
         }
 
         function confirmInlinePin(pin) {
-            if (!pendingStockOut) return;
-            
-            const user = state.users[pendingStockOut.staff];
-            
-            if (!user || user.password !== pin) {
-                showMsg('Wrong PIN', 'error');
-                const keypad = document.getElementById('inlineKeypad');
-                if (keypad) {
-                     keypad.querySelector('.modal-content').style.animation = 'shake .5s';
-                     setTimeout(() => {
-                        keypad.querySelector('.modal-content').style.animation = '';
-                        const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
-                        clearInlinePin(digits);
-                     }, 600);
-                }
-                return;
-            }
-            
-            adjustStock(
-                pendingStockOut.itemId,
-                -pendingStockOut.qty,
-                pendingStockOut.reason,
-                pendingStockOut.staff,
-                pin
-            );
-            
-            showMsg('Stock issued successfully', 'success');
-            cancelInlinePin();
-            showInventory();
+    if (!pendingStockOut) return;
+    
+    const user = state.users[pendingStockOut.staff];
+    
+    if (!user || user.password !== pin) {
+        showMsg('Wrong PIN', 'error');
+        const keypad = document.getElementById('inlineKeypad');
+        if (keypad) {
+             keypad.querySelector('.modal-content').style.animation = 'shake .5s';
+             setTimeout(() => {
+                keypad.querySelector('.modal-content').style.animation = '';
+                const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+                clearInlinePin(digits);
+             }, 600);
         }
+        return;
+    }
+    
+    // If this needs admin verification, show admin verification modal
+    if (pendingStockOut.needsVerification) {
+        showAdminVerificationModal(pendingStockOut, pin);
+    } else {
+        completeStockOut(pendingStockOut, pin);
+    }
+}
 
+function showAdminVerificationModal(stockOutData, recipientPin) {
+    buildAdminVerificationKeypad();
+    const digits = document.querySelectorAll('#adminVerificationKeypad .pin-digit');
+    clearInlinePin(digits);
+    
+    // Store the pending data with the recipient's pin
+    pendingAdminVerification = {
+        ...stockOutData,
+        recipientPin
+    };
+}
+
+        function buildAdminVerificationKeypad() {
+    if (document.getElementById('adminVerificationKeypad')) return;
+    
+    const div = document.createElement('div');
+    div.id = 'adminVerificationKeypad';
+    div.className = 'modal-backdrop';
+    div.style.position = 'fixed';
+    div.style.top = '0';
+    div.style.left = '0';
+    div.style.width = '100%';
+    div.style.height = '100%';
+    div.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    div.style.display = 'flex';
+    div.style.justifyContent = 'center';
+    div.style.alignItems = 'center';
+    div.style.zIndex = '1000';
+    
+    div.innerHTML = `
+        <div class="modal-content" style="background: var(--surface); padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px;">
+            <h3 style="margin-bottom: 1rem; text-align: center;">Admin Verification</h3>
+            <p style="margin-bottom: 1.5rem; text-align: center;">
+                ${pendingAdminVerification.staff} has received stock. 
+                Please enter your admin PIN to verify.
+            </p>
+            
+            <div class="pin-input" style="margin-bottom: 1.5rem;">
+                ${'<input type="text" class="pin-digit" maxlength="1" readonly>'.repeat(5)}
+            </div>
+            
+            <div class="keypad">
+                ${[1,2,3,4,5,6,7,8,9,'*',0,'%'].map(k => 
+                    `<button class="key" data-key="${k}">${k}</button>`
+                ).join('')}
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="clear-btn" style="flex: 1;" onclick="cancelAdminVerification()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(div);
+}
+
+function handleAdminVerificationKeyPress(key) {
+    const digits = document.querySelectorAll('#adminVerificationKeypad .pin-digit');
+    let currentPin = '';
+    
+    for(let i = 0; i < digits.length; i++) {
+        if (!digits[i].value) {
+            digits[i].value = key;
+            digits[i].classList.add('filled');
+            break;
+        }
+    }
+    
+    currentPin = Array.from(digits).map(d => d.value).join('');
+    if (currentPin.length === 5) {
+        verifyAdminPin(currentPin);
+    }
+}
+
+function verifyAdminPin(pin) {
+    // Check if the pin belongs to an admin (Franklin, Kelvin, or Chisomo)
+    const adminUser = Object.values(state.users).find(user => 
+        ['Franklin', 'Kelvin', 'Chisomo'].includes(user.username) && 
+        user.password === pin
+    );
+    
+    if (!adminUser) {
+        showMsg('Invalid admin PIN', 'error');
+        const keypad = document.getElementById('adminVerificationKeypad');
+        if (keypad) {
+             keypad.querySelector('.modal-content').style.animation = 'shake .5s';
+             setTimeout(() => {
+                keypad.querySelector('.modal-content').style.animation = '';
+                const digits = document.querySelectorAll('#adminVerificationKeypad .pin-digit');
+                clearInlinePin(digits);
+             }, 600);
+        }
+        return;
+    }
+    
+    // Complete the stock out with both recipient and admin verification
+    completeStockOut(
+        pendingAdminVerification,
+        pendingAdminVerification.recipientPin,
+        pin
+    );
+    
+    // Clean up
+    const keypad = document.getElementById('adminVerificationKeypad');
+    if (keypad) keypad.remove();
+    pendingAdminVerification = null;
+}
+
+function cancelAdminVerification() {
+    const keypad = document.getElementById('adminVerificationKeypad');
+    if (keypad) keypad.remove();
+    pendingAdminVerification = null;
+    // Go back to recipient PIN entry
+    openInlinePin();
+}
+
+        
+function completeStockOut(stockOutData, pin, adminPin = null) {
+    adjustStock(
+        stockOutData.itemId,
+        -stockOutData.qty,
+        stockOutData.reason,
+        stockOutData.staff,
+        adminPin || pin, // Use admin pin if available
+        stockOutData.verificationNote
+    );
+    
+    showMsg('Stock issued successfully', 'success');
+    cancelInlinePin();
+    showInventory();
+}
+
+        
         /* ===== INITIALIZATION ===== */
-        async function initializeApp() {
-            try {
-                console.log('Initializing Vanguard Stock Management System...');
-                
-                // 1. Load local data first
-                await loadState();
-                await loadQueue();
-                
-                // 2. Test Supabase connection
-                const isConnected = await testSupabaseConnection();
-                if (isConnected) {
-                    console.log('✅ Supabase connection established');
-                    // Attempt initial sync if we have a connection
-                    setTimeout(() => {
-                        syncData().catch(err => {
-                            console.log('Initial sync failed, will retry later:', err.message);
-                        });
-                    }, 2000);
-                } else {
-                    console.log('⚠️ Supabase connection failed - working in offline mode');
-                }
-                
-                // 3. Setup DOM elements and listeners
-                pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
-                
-                // Central event listener for all key presses
-                document.addEventListener('click', e => {
-                    if (e.target.matches('.key')) {
-                        const key = e.target.dataset.key;
-                        
-                        if (!document.getElementById('loginScreen').classList.contains('hidden')) {
-                            handleKeyPress(key);
-                        } else if (document.getElementById('inlineKeypad')) {
-                            handleInlineKeyPress(key);
-                        }
-                    }
-
-                    if (e.target.id === 'generatePdfBtn') {
-                        generatePDFReport();
-                    }
+async function initializeApp() {
+    try {
+        console.log('Initializing Vanguard Stock Management System...');
+        
+        // 1. Load local data first
+        await loadState();
+        await loadQueue();
+        
+        // 2. Test Supabase connection
+        const isConnected = await testSupabaseConnection();
+        if (isConnected) {
+            console.log('✅ Supabase connection established');
+            // Attempt initial sync if we have a connection
+            setTimeout(() => {
+                syncData().catch(err => {
+                    console.log('Initial sync failed, will retry later:', err.message);
                 });
-                
-                pinDigits.forEach(d => {
-                    d.addEventListener('click', clearPin);
-                });
-
-                // 4. Setup network monitoring
-                window.addEventListener('online', () => {
-                    console.log('Network connection restored');
-                    updateSyncStatus();
-                    // Auto-sync when connection is restored
-                    setTimeout(() => syncData(), 1000);
-                    
-                    // Setup realtime updates if logged in
-                    if (currentUser) {
-                        setupRealtimeUpdates();
-                    }
-                });
-                
-                window.addEventListener('offline', () => {
-                    console.log('Network connection lost - switching to offline mode');
-                    updateSyncStatus();
-                });
-                
-                // 5. Add periodic sync (every 5 minutes)
-                setInterval(() => {
-                    if (navigator.onLine) {
-                        syncData().catch(err => {
-                            console.log('Periodic sync failed:', err.message);
-                        });
-                    }
-                }, 5 * 60 * 1000); // 5 minutes
-                
-                // 6. Perform initial UI updates
-                updateUIVisibility(); 
-                updateSyncStatus();
-                
-                console.log('✅ Vanguard App Initialized Successfully');
-                
-            } catch (error) {
-                console.error('❌ App initialization failed:', error);
-                updateSyncStatus();
-            }
+            }, 2000);
+        } else {
+            console.log('⚠️ Supabase connection failed - working in offline mode');
         }
+        
+        // 3. Setup DOM elements and listeners
+        pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
+        
+        // Central event listener for all key presses
+        document.addEventListener('click', e => {
+            if (e.target.matches('.key')) {
+                const key = e.target.dataset.key;
+                
+                if (!document.getElementById('loginScreen').classList.contains('hidden')) {
+                    handleKeyPress(key);
+                } else if (document.getElementById('inlineKeypad')) {
+                    handleInlineKeyPress(key);
+                } else if (document.getElementById('adminVerificationKeypad')) {
+                    handleAdminVerificationKeyPress(key);
+                }
+            }
 
-        // Start the application
-        document.addEventListener('DOMContentLoaded', initializeApp);
+            if (e.target.id === 'generatePdfBtn') {
+                generatePDFReport();
+            }
+        });
+        
+        pinDigits.forEach(d => {
+            d.addEventListener('click', clearPin);
+        });
+
+        // 4. Setup network monitoring
+        window.addEventListener('online', () => {
+            console.log('Network connection restored');
+            updateSyncStatus();
+            // Auto-sync when connection is restored
+            setTimeout(() => syncData(), 1000);
+            
+            // Setup realtime updates if logged in
+            if (currentUser) {
+                setupRealtimeUpdates();
+            }
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('Network connection lost - switching to offline mode');
+            updateSyncStatus();
+        });
+        
+        // 5. Add periodic sync (every 5 minutes)
+        setInterval(() => {
+            if (navigator.onLine) {
+                syncData().catch(err => {
+                    console.log('Periodic sync failed:', err.message);
+                });
+            }
+        }, 5 * 60 * 1000); // 5 minutes
+        
+        // 6. Perform initial UI updates
+        updateUIVisibility(); 
+        updateSyncStatus();
+        
+        console.log('✅ Vanguard App Initialized Successfully');
+        
+    } catch (error) {
+        console.error('❌ App initialization failed:', error);
+        updateSyncStatus();
+    }
+}
+
+// Start the application
+document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
