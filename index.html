@@ -1020,13 +1020,52 @@
             }).catch(() => {});
         };
 
-        function showMsg(text, type) {
-            const m = document.createElement('div');
-            m.className = `message ${type}`;
-            m.textContent = text;
-            document.querySelector('.content-area').prepend(m);
-            setTimeout(() => m.remove(), 4000);
+        function showMsg(text, type = 'info') {
+    // Remove any existing messages
+    const existingMessages = document.querySelectorAll('.message');
+    existingMessages.forEach(msg => msg.remove());
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius);
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        max-width: 400px;
+        box-shadow: var(--shadow);
+        background: ${type === 'success' ? 'var(--success)' : 
+                    type === 'error' ? 'var(--accent)' : 
+                    type === 'warning' ? 'var(--warning)' : 'var(--secondary)'};
+        animation: slideIn 0.3s ease;
+    `;
+    
+    messageDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                          type === 'error' ? 'fa-exclamation-triangle' : 
+                          type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+            <span>${text}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => messageDiv.remove(), 300);
         }
+    }, 4000);
+}
+
+// Add CSS animations for messages
+const messageStyles = document.createElement('style');
 
         function updateUIVisibility() {
             const isAdmin = currentUser && currentUser.role === USER_ROLES.ADMIN;
@@ -1054,81 +1093,111 @@
             saveState();
         }
 
-        function addItem(d) {
-            const id = genId();
-            state.items[id] = {
-                id,
-                name: d.name,
-                categoryId: d.categoryId,
-                unit: d.unit,
-                cost: +d.cost || 0,
-                minStockLevel: +d.minStockLevel || 0,
-                createdAt: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-            state.stockLevels[id] = { item_id: id, quantity: +d.initialQuantity || 0 };
-            logMove(id, 'in', +d.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
-            addOffline({ type: 'ADD_ITEM', data: state.items[id], initialQuantity: +d.initialQuantity || 0 });
-            saveState();
-            updateDash();
-            renderAct();
-            return id;
+        function addItem(data) {
+    const id = genId();
+    const newItem = {
+        id: id,
+        name: data.name,
+        categoryId: data.categoryId,
+        unit: data.unit,
+        cost: +data.cost || 0,
+        minStockLevel: +data.minStockLevel || 0,
+        createdAt: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+    
+    // Add to local state
+    state.items[id] = newItem;
+    state.stockLevels[id] = { 
+        item_id: id, 
+        quantity: +data.initialQuantity || 0,
+        updated_at: new Date().toISOString()
+    };
+    
+    // Log initial stock movement if quantity > 0
+    if (+data.initialQuantity > 0) {
+        logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
+    }
+    
+    // Add to offline queue
+    addOffline({ 
+        type: 'ADD_ITEM', 
+        data: newItem, 
+        initialQuantity: +data.initialQuantity || 0 
+    });
+    
+    saveState();
+    updateDash();
+    renderAct();
+    return id;
+}
+
+
+        async function syncData() {
+    const indicator = document.getElementById('syncIndicator');
+    const statusText = document.getElementById('syncStatus');
+    
+    if (!indicator || !statusText) return;
+    
+    indicator.className = 'sync-indicator syncing';
+    statusText.textContent = 'Syncing…';
+
+    try {
+        console.log('Starting sync process...');
+        
+        // Test connection first
+        const { data: testData, error: testError } = await supabase
+            .from('departments')
+            .select('count')
+            .limit(1);
+            
+        if (testError) {
+            throw new Error(`Connection test failed: ${testError.message}`);
         }
 
-        function adjustStock(itemId, qty, reason, staff = null, pin = null) {
-            const item = state.items[itemId];
-            const stock = state.stockLevels[itemId];
-            
-            if (!item || !stock) {
-                showMsg('Item not found', 'error');
-                return false;
-            }
-            
-            if (stock.quantity + qty < 0) {
-                showMsg('Negative stock', 'error');
-                return false;
-            }
-            
-            const old = stock.quantity;
-            stock.quantity += qty;
-            item.updated_at = new Date().toISOString();
-            const type = qty > 0 ? 'in' : 'out';
-            logMove(itemId, type, Math.abs(qty), reason, staff, pin, currentUser?.displayName);
-            
-            addOffline({
-                type: 'STOCK_MOVEMENT',
-                data: {
-                    item_id: itemId,
-                    type,
-                    quantity: Math.abs(qty),
-                    reason,
-                    user: currentUser ? currentUser.displayName : "System",
-                    staff_member: staff,
-                    confirmedPin: pin,
-                    timestamp: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                }
-            });
-            
-            saveState();
-            updateDash();
-            renderAct();
-            
-            if (type === 'out') {
-                const staffName = staff ? state.users[staff]?.displayName || staff : 'Unknown';
-                sendTG(`✅ **STOCK ISSUED**\n\nItem: **${item.name}**\nQty: **${Math.abs(qty)} ${item.unit}**\nTo: **${staffName}**\nPIN: **${pin || 'Admin'}**`);
-                
-                if (old > item.minStockLevel && stock.quantity <= item.minStockLevel) {
-                    const msg = `🚨 **LOW STOCK**\n\nItem: **${item.name}**\nQty: **${stock.quantity}/${item.minStockLevel} ${item.unit}**`;
-                    sendTG(msg);
-                    state.notifications.unshift({ id: genId(), message: msg, timestamp: new Date().toISOString(), read: false });
-                    saveState();
-                }
-            }
-            
-            return true;
-        }
+        // Process offline queue first
+        await processOfflineQueue();
+        
+        // Then pull latest data from Supabase
+        await pullFromSupabase();
+        
+        // Save the updated state
+        await saveState();
+        
+        // Update UI
+        updateDash();
+        renderAct();
+        
+        console.log('Sync completed successfully');
+        showMsg('Sync completed successfully', 'success');
+        
+    } catch (error) {
+        console.error('Sync error:', error);
+        showMsg(`Sync failed: ${error.message}`, 'error');
+    } finally {
+        updateSyncStatus();
+    }
+}
 
+        async function testSupabaseConnection() {
+    try {
+        const { data, error } = await supabase
+            .from('departments')
+            .select('id')
+            .limit(1);
+            
+        if (error) {
+            console.error('Supabase connection test failed:', error);
+            return false;
+        }
+        
+        console.log('Supabase connection test successful');
+        return true;
+    } catch (err) {
+        console.error('Supabase connection test error:', err);
+        return false;
+    }
+}
         function updateDash() {
             document.getElementById('totalItems').textContent = Object.keys(state.items).length;
             
@@ -1275,141 +1344,394 @@
 
         /* ===== SYNC ===== */
         async function syncData() {
-            const ind = document.getElementById('syncIndicator');
-            const txt = document.getElementById('syncStatus');
-            ind.className = 'sync-indicator syncing';
-            txt.textContent = 'Syncing…';
+    const indicator = document.getElementById('syncIndicator');
+    const statusText = document.getElementById('syncStatus');
+    
+    if (!indicator || !statusText) return;
+    
+    indicator.className = 'sync-indicator syncing';
+    statusText.textContent = 'Syncing…';
+
+    try {
+        console.log('Starting sync process...');
+        
+        // Test connection first
+        const { data: testData, error: testError } = await supabase
+            .from('departments')
+            .select('count')
+            .limit(1);
             
-            try {
-                await processOfflineQueue();
-                await pullFromSupabase();
-                await saveState();
-                updateDash();
-                renderAct();
-                showMsg('Sync completed', 'success');
-            } catch (e) {
-                console.error('Sync error:', e);
-                showMsg('Sync failed: ' + e.message, 'error');
-            } finally {
-                updateSyncStatus();
-            }
+        if (testError) {
+            throw new Error(`Connection test failed: ${testError.message}`);
         }
+
+        // Process offline queue first
+        await processOfflineQueue();
+        
+        // Then pull latest data from Supabase
+        await pullFromSupabase();
+        
+        // Save the updated state
+        await saveState();
+        
+        // Update UI
+        updateDash();
+        renderAct();
+        
+        console.log('Sync completed successfully');
+        showMsg('Sync completed successfully', 'success');
+        
+    } catch (error) {
+        console.error('Sync error:', error);
+        showMsg(`Sync failed: ${error.message}`, 'error');
+    } finally {
+        updateSyncStatus();
+    }
+}
 
         async function processOfflineQueue() {
-            if (!offlineQueue.length) return;
+    if (!offlineQueue.length) return;
 
-            const adminUser = currentUser?.displayName || 'anon';
-            await supabase.rpc('set_config', { setting: 'app.current_user', value: adminUser, is_local: true });
+    let failedOperations = [];
+    
+    for (const op of offlineQueue) {
+        try {
+            const updateData = { ...op.data, updated_at: new Date().toISOString() };
 
-            let failedOperations = [];
-            for (const op of offlineQueue) {
-                try {
-                    const updateData = { ...op.data, updated_at: new Date().toISOString() };
+            switch (op.type) {
+                case 'ADD_ITEM':
+                    // Insert item
+                    const itemResult = await supabase
+                        .from('items')
+                        .insert({
+                            id: op.data.id,
+                            name: op.data.name,
+                            category_id: op.data.categoryId, // Note: snake_case for DB
+                            unit: op.data.unit,
+                            cost: op.data.cost || 0,
+                            min_stock_level: op.data.minStockLevel || 0,
+                            created_at: op.data.createdAt || new Date().toISOString(),
+                            updated_at: updateData.updated_at
+                        });
+                    
+                    if (itemResult.error) throw itemResult.error;
+                    
+                    // Insert initial stock level
+                    const stockResult = await supabase
+                        .from('stock_levels')
+                        .insert({
+                            item_id: op.data.id,
+                            quantity: op.initialQuantity || 0,
+                            updated_at: updateData.updated_at
+                        });
+                    
+                    if (stockResult.error) throw stockResult.error;
+                    break;
 
-                    switch (op.type) {
-                        case 'ADD_ITEM':
-                            await supabase.from('items').insert(updateData);
-                            await supabase.from('stock_levels').insert({ item_id: op.data.id, quantity: op.initialQuantity });
-                            break;
-                        case 'UPDATE_ITEM':
-                            await supabase.from('items').update(updateData).eq('id', op.id);
-                            break;
-                        case 'DELETE_ITEM':
-                            await supabase.from('items').delete().eq('id', op.id);
-                            await supabase.from('stock_levels').delete().eq('item_id', op.id);
-                            break;
-                        case 'STOCK_MOVEMENT':
-                            await supabase.from('stock_movements').insert(updateData);
-                            const { data: row } = await supabase.from('stock_levels').select('quantity').eq('item_id', op.data.item_id).single();
-                            let newQty = (row?.quantity || 0) + (op.data.type === 'in' ? op.data.quantity : -op.data.quantity);
-                            await supabase.from('stock_levels').upsert({ item_id: op.data.item_id, quantity: newQty });
-                            break;
-                        case 'ADD_CATEGORY':
-                            await supabase.from('categories').insert(updateData);
-                            break;
-                        case 'UPDATE_CATEGORY':
-                            await supabase.from('categories').update(updateData).eq('id', op.id);
-                            break;
-                        case 'DELETE_CATEGORY':
-                            await supabase.from('categories').delete().eq('id', op.id);
-                            break;
-                        case 'ADD_DEPARTMENT':
-                            await supabase.from('departments').insert(updateData);
-                            break;
-                        case 'UPDATE_DEPARTMENT':
-                            await supabase.from('departments').update(updateData).eq('id', op.id);
-                            break;
-                        case 'DELETE_DEPARTMENT':
-                            await supabase.from('departments').delete().eq('id', op.id);
-                            break;
-                        case 'ADD_USER':
-                            await supabase.from('users').insert(updateData);
-                            break;
-                        case 'UPDATE_USER':
-                            await supabase.from('users').update(updateData).eq('username', op.id);
-                            break;
-                        case 'DELETE_USER':
-                            await supabase.from('users').delete().eq('username', op.id);
-                            break;
-                    }
-                } catch (err) {
-                    console.error(`Offline op ${op.type} failed:`, err);
-                    failedOperations.push(op);
-                }
+                case 'UPDATE_ITEM':
+                    const updateResult = await supabase
+                        .from('items')
+                        .update({
+                            name: op.data.name,
+                            category_id: op.data.categoryId,
+                            unit: op.data.unit,
+                            cost: op.data.cost || 0,
+                            min_stock_level: op.data.minStockLevel || 0,
+                            updated_at: updateData.updated_at
+                        })
+                        .eq('id', op.id);
+                    
+                    if (updateResult.error) throw updateResult.error;
+                    break;
+
+                case 'DELETE_ITEM':
+                    // Delete item (cascades to stock_levels and stock_movements)
+                    const deleteResult = await supabase
+                        .from('items')
+                        .delete()
+                        .eq('id', op.id);
+                    
+                    if (deleteResult.error) throw deleteResult.error;
+                    break;
+
+                case 'STOCK_MOVEMENT':
+                    // Insert stock movement
+                    const movementResult = await supabase
+                        .from('stock_movements')
+                        .insert({
+                            id: op.data.id || `id_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                            item_id: op.data.item_id,
+                            type: op.data.type,
+                            quantity: op.data.quantity,
+                            reason: op.data.reason || '',
+                            user_name: op.data.user || 'Unknown',
+                            staff_member: op.data.staff_member,
+                            confirmed_pin: op.data.confirmedPin,
+                            timestamp: op.data.timestamp,
+                            updated_at: updateData.updated_at
+                        });
+                    
+                    if (movementResult.error) throw movementResult.error;
+                    
+                    // The trigger will automatically update stock_levels
+                    break;
+
+                case 'ADD_CATEGORY':
+                    const categoryResult = await supabase
+                        .from('categories')
+                        .insert({
+                            id: op.data.id,
+                            department_id: op.data.departmentId,
+                            name: op.data.name,
+                            created_at: op.data.created_at || new Date().toISOString(),
+                            updated_at: updateData.updated_at
+                        });
+                    
+                    if (categoryResult.error) throw categoryResult.error;
+                    break;
+
+                case 'UPDATE_CATEGORY':
+                    const updateCatResult = await supabase
+                        .from('categories')
+                        .update({
+                            name: op.data.name,
+                            department_id: op.data.departmentId,
+                            updated_at: updateData.updated_at
+                        })
+                        .eq('id', op.id);
+                    
+                    if (updateCatResult.error) throw updateCatResult.error;
+                    break;
+
+                case 'DELETE_CATEGORY':
+                    const deleteCatResult = await supabase
+                        .from('categories')
+                        .delete()
+                        .eq('id', op.id);
+                    
+                    if (deleteCatResult.error) throw deleteCatResult.error;
+                    break;
+
+                case 'ADD_DEPARTMENT':
+                    const deptResult = await supabase
+                        .from('departments')
+                        .insert({
+                            id: op.data.id,
+                            name: op.data.name,
+                            created_at: op.data.created_at || new Date().toISOString(),
+                            updated_at: updateData.updated_at
+                        });
+                    
+                    if (deptResult.error) throw deptResult.error;
+                    break;
+
+                case 'UPDATE_DEPARTMENT':
+                    const updateDeptResult = await supabase
+                        .from('departments')
+                        .update({
+                            name: op.data.name,
+                            updated_at: updateData.updated_at
+                        })
+                        .eq('id', op.id);
+                    
+                    if (updateDeptResult.error) throw updateDeptResult.error;
+                    break;
+
+                case 'DELETE_DEPARTMENT':
+                    const deleteDeptResult = await supabase
+                        .from('departments')
+                        .delete()
+                        .eq('id', op.id);
+                    
+                    if (deleteDeptResult.error) throw deleteDeptResult.error;
+                    break;
+
+                case 'ADD_USER':
+                    const userResult = await supabase
+                        .from('users')
+                        .insert({
+                            username: op.data.username,
+                            display_name: op.data.displayName,
+                            password: op.data.password,
+                            role: op.data.role,
+                            department: op.data.department,
+                            is_supervisor: op.data.isSupervisor || false,
+                            created_at: op.data.created_at || new Date().toISOString(),
+                            updated_at: updateData.updated_at
+                        });
+                    
+                    if (userResult.error) throw userResult.error;
+                    break;
+
+                case 'UPDATE_USER':
+                    const updateUserResult = await supabase
+                        .from('users')
+                        .update({
+                            display_name: op.data.displayName,
+                            password: op.data.password,
+                            role: op.data.role,
+                            department: op.data.department,
+                            is_supervisor: op.data.isSupervisor || false,
+                            updated_at: updateData.updated_at
+                        })
+                        .eq('username', op.id);
+                    
+                    if (updateUserResult.error) throw updateUserResult.error;
+                    break;
+
+                case 'DELETE_USER':
+                    const deleteUserResult = await supabase
+                        .from('users')
+                        .delete()
+                        .eq('username', op.id);
+                    
+                    if (deleteUserResult.error) throw deleteUserResult.error;
+                    break;
+
+                default:
+                    console.warn('Unknown operation type:', op.type);
+                    break;
             }
 
-            await clearQueue();
-            if (failedOperations.length > 0) {
-                offlineQueue = failedOperations;
-                await saveQueue(); // A new function to save the remaining queue
-            }
+            console.log(`Successfully synced operation: ${op.type}`);
+
+        } catch (err) {
+            console.error(`Failed to sync operation ${op.type}:`, err);
+            failedOperations.push(op);
         }
+    }
+
+    // Clear successful operations from the queue
+    await clearQueue();
+    
+    // Re-queue failed operations
+    if (failedOperations.length > 0) {
+        console.log(`${failedOperations.length} operations failed, will retry later`);
+        offlineQueue = failedOperations;
+        await saveQueue();
+    }
+}
+
 
         async function saveQueue() {
-            try {
-                const db = await initIDB();
-                const tx = db.transaction(['offlineQueue'], 'readwrite');
-                const store = tx.objectStore('offlineQueue');
-                store.clear();
-                for (const op of offlineQueue) {
-                    store.add(op);
-                }
-                await new Promise(resolve => tx.oncomplete = resolve);
-            } catch (err) {
-                console.error('Error saving remaining queue:', err);
-            }
+    try {
+        const db = await initIDB();
+        const tx = db.transaction(['offlineQueue'], 'readwrite');
+        const store = tx.objectStore('offlineQueue');
+        
+        // Clear existing queue
+        await new Promise((resolve, reject) => {
+            const clearReq = store.clear();
+            clearReq.onsuccess = () => resolve();
+            clearReq.onerror = (e) => reject(e.target.error);
+        });
+        
+        // Add current queue items
+        for (const op of offlineQueue) {
+            await new Promise((resolve, reject) => {
+                const addReq = store.add(op);
+                addReq.onsuccess = () => resolve();
+                addReq.onerror = (e) => reject(e.target.error);
+            });
         }
-
+        
+        console.log(`Saved ${offlineQueue.length} operations to offline queue`);
+    } catch (err) {
+        console.error('Error saving offline queue:', err);
+    }
+}
 
         async function pullFromSupabase() {
-            const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
-                supabase.from('departments').select('*'),
-                supabase.from('categories').select('*'),
-                supabase.from('items').select('*'),
-                supabase.from('stock_levels').select('*'),
-                supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
-                supabase.from('users').select('*')
-            ]);
+    try {
+        console.log('Pulling data from Supabase...');
+        
+        // Fetch all data from Supabase
+        const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
+            supabase.from('departments').select('*'),
+            supabase.from('categories').select('*'),
+            supabase.from('items').select('*'),
+            supabase.from('stock_levels').select('*'),
+            supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
+            supabase.from('users').select('*')
+        ]);
+
+        // Check for errors
+        if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
+        if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
+        if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
+        if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
+        if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
+        if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
+
+        // Merge data, preferring local state if it's newer
+        const mergeData = (localObj, remoteArray, keyField, transform = null) => {
+            if (!remoteArray) return;
             
-            // Merge data, preferring local state if it's newer
-            const merge = (local, remote, key) => {
-                remote.data?.forEach(r => {
-                    const l = local[r[key]];
-                    if (!l || new Date(r.updated_at) > new Date(l.updated_at)) {
-                        local[r[key]] = r;
-                    }
-                });
-            };
+            remoteArray.forEach(remote => {
+                const key = remote[keyField];
+                const local = localObj[key];
+                
+                // Transform remote data if needed (e.g., snake_case to camelCase)
+                const transformedRemote = transform ? transform(remote) : remote;
+                
+                if (!local || new Date(remote.updated_at) > new Date(local.updated_at || '1970-01-01')) {
+                    localObj[key] = transformedRemote;
+                }
+            });
+        };
 
-            merge(state.departments, deptRes, 'id');
-            merge(state.categories, catRes, 'id');
-            merge(state.items, itemRes, 'id');
-            merge(state.users, userRes, 'username');
+        // Transform functions to convert snake_case to camelCase for consistency
+        const transformItem = (item) => ({
+            ...item,
+            categoryId: item.category_id,
+            minStockLevel: item.min_stock_level,
+            createdAt: item.created_at
+        });
 
-            // For levels and movements, remote data is authoritative
-            levelRes.data?.forEach(l => state.stockLevels[l.item_id] = l);
-            state.stockMovements = moveRes.data || [];
+        const transformCategory = (cat) => ({
+            ...cat,
+            departmentId: cat.department_id
+        });
+
+        const transformUser = (user) => ({
+            ...user,
+            displayName: user.display_name,
+            isSupervisor: user.is_supervisor
+        });
+
+        const transformMovement = (move) => ({
+            ...move,
+            item_id: move.item_id,
+            user: move.user_name,
+            staff_member: move.staff_member,
+            confirmedPin: move.confirmed_pin
+        });
+
+        // Merge all data
+        mergeData(state.departments, deptRes.data, 'id');
+        mergeData(state.categories, catRes.data, 'id', transformCategory);
+        mergeData(state.items, itemRes.data, 'id', transformItem);
+        mergeData(state.users, userRes.data, 'username', transformUser);
+
+        // For stock levels, remote data is authoritative
+        if (levelRes.data) {
+            levelRes.data.forEach(level => {
+                state.stockLevels[level.item_id] = level;
+            });
         }
+
+        // For stock movements, remote data is authoritative
+        if (moveRes.data) {
+            state.stockMovements = moveRes.data.map(transformMovement);
+        }
+
+        console.log('Data pulled successfully from Supabase');
+
+    } catch (error) {
+        console.error('Error pulling from Supabase:', error);
+        throw error;
+    }
+}
 
         function updateSyncStatus() {
             const ind = document.getElementById('syncIndicator');
@@ -2572,6 +2894,26 @@
             document.body.appendChild(div);
         }
 
+        function handleInlineKeyPress(key) {
+    const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+    let currentInlinePin = '';
+    
+    // Find first empty digit and fill it
+    for(let i = 0; i < digits.length; i++) {
+        if (!digits[i].value) {
+            digits[i].value = key;
+            digits[i].classList.add('filled');
+            break;
+        }
+    }
+    
+    // Check if PIN is complete
+    currentInlinePin = Array.from(digits).map(d => d.value).join('');
+    if (currentInlinePin.length === 5) {
+        setTimeout(() => confirmInlinePin(currentInlinePin), 200);
+    }
+}
+
         function clearInlinePin(digits) {
             digits.forEach(d => {
                 d.value = '';
@@ -2626,59 +2968,76 @@
 
         /* ===== INITIALIZATION ===== */
         async function initializeApp() {
-            // 1. Load all necessary data from IndexedDB first. This is the crucial step.
-            await loadState();
-            await loadQueue();
-
-            // 2. Setup DOM elements and listeners that don't depend on loaded state.
-            pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
-            
-            // Central event listener for all key presses to avoid attaching multiple listeners
-            document.addEventListener('click', e => {
-                if (e.target.matches('.key')) {
-                    const key = e.target.dataset.key;
-                    
-                    if (!document.getElementById('loginScreen').classList.contains('hidden')) {
-                        handleKeyPress(key);
-                    } else if (document.getElementById('inlineKeypad')) {
-                        const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
-                        let currentInlinePin = '';
-                        for(let i = 0; i < digits.length; i++) {
-                            if (!digits[i].value) {
-                                digits[i].value = key;
-                                digits[i].classList.add('filled');
-                                break;
-                            }
-                        }
-                        currentInlinePin = Array.from(digits).map(d => d.value).join('');
-                        if (currentInlinePin.length === 5) {
-                            setTimeout(() => confirmInlinePin(currentInlinePin), 200);
-                        }
-                    }
-                }
-
-                if (e.target.id === 'generatePdfBtn') {
-                    generatePDFReport();
-                }
-            });
-            
-            pinDigits.forEach(d => {
-                d.addEventListener('click', clearPin);
-            });
-
-            // 3. Perform initial UI updates.
-            updateUIVisibility(); 
-            updateSyncStatus();
-            
-            // 4. Setup network monitoring
-            window.addEventListener('online', () => {
-                updateSyncStatus();
-                syncData(); // Attempt to sync when connection is restored
-            });
-            window.addEventListener('offline', updateSyncStatus);
-            
-            console.log("Vanguard App Initialized Safely.");
+    try {
+        console.log('Initializing Vanguard Stock Management System...');
+        
+        // 1. Load local data first
+        await loadState();
+        await loadQueue();
+        
+        // 2. Test Supabase connection
+        const isConnected = await testSupabaseConnection();
+        if (isConnected) {
+            console.log('✅ Supabase connection established');
+            // Attempt initial sync if we have a connection
+            setTimeout(() => {
+                syncData().catch(err => {
+                    console.log('Initial sync failed, will retry later:', err.message);
+                });
+            }, 2000);
+        } else {
+            console.log('⚠️ Supabase connection failed - working in offline mode');
         }
+        
+        // 3. Setup DOM elements and listeners
+        pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
+        
+        // Central event listener for all key presses
+        document.addEventListener('click', e => {
+            if (e.target.matches('.key')) {
+                const key = e.target.dataset.key;
+                
+                if (!document.getElementById('loginScreen').classList.contains('hidden')) {
+                    handleKeyPress(key);
+                } else if (document.getElementById('inlineKeypad')) {
+                    handleInlineKeyPress(key);
+                }
+            }
+
+            if (e.target.id === 'generatePdfBtn') {
+                generatePDFReport();
+            }
+        });
+        
+        pinDigits.forEach(d => {
+            d.addEventListener('click', clearPin);
+        });
+
+        // 4. Setup network monitoring
+        window.addEventListener('online', () => {
+            console.log('Network connection restored');
+            updateSyncStatus();
+            // Auto-sync when connection is restored
+            setTimeout(() => syncData(), 1000);
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('Network connection lost - switching to offline mode');
+            updateSyncStatus();
+        });
+        
+        // 5. Perform initial UI updates
+        updateUIVisibility(); 
+        updateSyncStatus();
+        
+        console.log('✅ Vanguard App Initialized Successfully');
+        
+    } catch (error) {
+        console.error('❌ App initialization failed:', error);
+        // Even if initialization fails, try to show the login screen
+        updateSyncStatus();
+    }
+}
 
         // This kicks everything off once the page structure is ready.
         document.addEventListener('DOMContentLoaded', initializeApp);
