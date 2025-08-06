@@ -1148,9 +1148,7 @@ const newItemId = generateUUID();
     const verificationTimestamp = p ? new Date().toISOString() : null;
     const verificationNote = p ? "Verified with PIN" : null;
     const confirmedPin = p;
-const newQuantity = 10; // Example value for new quantity
-const newReason = 'Restock'; // Example reason for the update
-const legacyId = 'some-uuid'; // Example UUID for the record to update
+
     // Prepare the values array with all defined variables
     const values = [
         newItemId,
@@ -1210,16 +1208,49 @@ const legacyId = 'some-uuid'; // Example UUID for the record to update
     
     saveState();
 }
-const updateQuery = `
-  UPDATE stock_movements
-  SET quantity = $1, reason = $2
-  WHERE legacy_id = $3
-`;
+const newQuantity = 10; // Example value for new quantity
+const newReason = 'Restock'; // Example reason for the update
+const legacyId = 'some-uuid'; // Example UUID for the record to update
+
+// Use the defined variables in the updateValues array
 const updateValues = [
   newQuantity,
   newReason,
   legacyId // The UUID of the record to update
 ];
+
+// Example SQL update query (assuming you are using a SQL database)
+const updateQuery = `
+  UPDATE stock_movements
+  SET quantity = $1, reason = $2
+  WHERE legacy_id = $3
+`;
+
+// Call the function to update the stock movement
+updateStockMovement();       
+        
+const updateValues = [
+  newQuantity,
+  newReason,
+  legacyId // The UUID of the record to update
+];
+
+ async function updateStockMovement() {
+  try {
+    const { data, error } = await supabase
+      .from('stock_movements')
+      .update({ quantity: newQuantity, reason: newReason })
+      .eq('legacy_id', legacyId);
+
+    if (error) {
+      console.error('Error updating stock movement:', error);
+    } else {
+      console.log('Stock movement updated successfully:', data);
+    }
+  } catch (err) {
+    console.error('Error executing update query:', err);
+  }
+}
 
         function adjustStock(itemId, quantity, reason, staff = null, pin = null) {
             if (!state.stockLevels[itemId]) {
