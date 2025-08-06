@@ -1043,13 +1043,11 @@ function generateUUID() {
   );
 }
 
-// Example: Fetching itemId from an input field
 // Generate a new UUID for itemId
 const itemId = generateUUID();
 
-// Example: Fetching type from an input field
-const typeInput = document.getElementById('typeInput');
-const type = typeInput ? typeInput.value : 'default_type'; // Provide a default value if not defined
+// Set a default value for type
+const type = 'default_type'; // Default value
 
 const newItemId = generateUUID();
 const insertQuery = `
@@ -1059,7 +1057,7 @@ const insertQuery = `
 const values = [
   newItemId,
   itemId, // Use the generated itemId
-  type, // Ensure type is defined here
+  type, // Use the default value for type
   quantity,
   reason,
   userName,
