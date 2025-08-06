@@ -3288,37 +3288,37 @@ function handleAdminVerificationKeyPress(key) {
         verifyAdminPin(currentPin);
     }
 }
+/* ===== VERIFICATION NOTE INPUT ===== */
 function showVerificationNoteInput() {
     // Remove the existing keypad
     const keypad = document.getElementById('inlineKeypad');
     if (keypad) keypad.remove();
-    
-    // Create verification note modal
+
+    // Create the note-input modal
     const div = document.createElement('div');
     div.id = 'verificationNoteModal';
     div.className = 'modal-backdrop';
-    div.style.position = 'fixed';
-    div.style.top = '0';
-    div.style.left = '0';
-    div.style.width = '100%';
-    div.style.height = '100%';
-    div.style.backgroundColor = 'rgba(0,0,0,0.7)';
-    div.style.display = 'flex';
-    div.style.justifyContent = 'center';
-    div.style.alignItems = 'center';
-    div.style.zIndex = '1000';
-    
+    Object.assign(div.style, {
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000
+    });
+
     div.innerHTML = `
         <div class="modal-content" style="background: var(--surface); padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px;">
             <h3 style="margin-bottom: 1rem; text-align: center;">Verification Details</h3>
-            <p style="margin-bottom: 1.5rem; text-align: center;">
-                Please add any verification notes for this transaction.
-            </p>
-            
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <textarea id="verificationNoteInput" style="width: 100%; padding: 0.75rem; border-radius: var(--radius); background: var(--primary); color: var(--text-primary); border: 1px solid var(--surface-light); min-height: 100px;" placeholder="Optional verification details"></textarea>
+            <p style="margin-bottom: 1.5rem; text-align: center;">Add any notes for this verified transaction.</p>
+
+            <div style="margin-bottom: 1.5rem;">
+                <textarea id="verificationNoteInput"
+                          style="width: 100%; padding: 0.75rem; border-radius: var(--radius); background: var(--primary); color: var(--text-primary); border: 1px solid var(--surface-light); min-height: 100px;"
+                          placeholder="Optional verification notes"></textarea>
             </div>
-            
+
             <div style="display: flex; gap: 1rem;">
                 <button class="clear-btn" style="flex: 1;" onclick="cancelVerificationNote()">
                     <i class="fas fa-times"></i> Cancel
@@ -3329,19 +3329,17 @@ function showVerificationNoteInput() {
             </div>
         </div>
     `;
-    
     document.body.appendChild(div);
 }
-        function cancelVerificationNote() {
+
+function cancelVerificationNote() {
     const modal = document.getElementById('verificationNoteModal');
     if (modal) modal.remove();
     pendingStockOut = null;
 }
 
 function completeVerifiedStockOut() {
-    const noteInput = document.getElementById('verificationNoteInput');
-    const verificationNote = noteInput ? noteInput.value : '';
-    
+    const note = document.getElementById('verificationNoteInput')?.value || '';
     if (pendingStockOut) {
         adjustStock(
             pendingStockOut.itemId,
@@ -3349,75 +3347,16 @@ function completeVerifiedStockOut() {
             pendingStockOut.reason,
             pendingStockOut.staff,
             pendingStockOut.adminPin,
-            verificationNote
+            note
         );
-        
-        showMsg('Stock issued and verified successfully', 'success');
+        showMsg('Stock issued & verified', 'success');
     }
-    
     const modal = document.getElementById('verificationNoteModal');
     if (modal) modal.remove();
     pendingStockOut = null;
-    
     showInventory();
 }
-function verifyAdminPin(pin) {
-    // Check if the pin belongs to an admin (Franklin, Kelvin, or Chisomo)
-    const adminUser = Object.values(state.users).find(user => 
-        ['Franklin', 'Kelvin', 'Chisomo'].includes(user.username) && 
-        user.password === pin
-    );
-    
-    if (!adminUser) {
-        showMsg('Invalid admin PIN', 'error');
-        const keypad = document.getElementById('adminVerificationKeypad');
-        if (keypad) {
-             keypad.querySelector('.modal-content').style.animation = 'shake .5s';
-             setTimeout(() => {
-                keypad.querySelector('.modal-content').style.animation = '';
-                const digits = document.querySelectorAll('#adminVerificationKeypad .pin-digit');
-                clearInlinePin(digits);
-             }, 600);
-        }
-        return;
-    }
-    
-    // Complete the stock out with both recipient and admin verification
-    completeStockOut(
-        pendingAdminVerification,
-        pendingAdminVerification.recipientPin,
-        pin
-    );
-    
-    // Clean up
-    const keypad = document.getElementById('adminVerificationKeypad');
-    if (keypad) keypad.remove();
-    pendingAdminVerification = null;
-}
-
-function cancelAdminVerification() {
-    const keypad = document.getElementById('adminVerificationKeypad');
-    if (keypad) keypad.remove();
-    pendingAdminVerification = null;
-    // Go back to recipient PIN entry
-    openInlinePin();
-}
-
         
-function completeStockOut(stockOutData, pin, adminPin = null) {
-    adjustStock(
-        stockOutData.itemId,
-        -stockOutData.qty,
-        stockOutData.reason,
-        stockOutData.staff,
-        adminPin || pin, // Use admin pin if available
-        stockOutData.verificationNote
-    );
-    
-    showMsg('Stock issued successfully', 'success');
-    cancelInlinePin();
-    showInventory();
-}
 
         
         /* ===== INITIALIZATION ===== */
