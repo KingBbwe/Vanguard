@@ -1035,8 +1035,7 @@
             
         }
 
-        /* ===== UTILS ===== */
-                /* ===== UTILS ===== */
+/* ===== UTILS ===== */
 function generateUUID() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
@@ -1050,6 +1049,14 @@ const itemId = generateUUID();
 const type = 'default_type'; // Default value
 
 const newItemId = generateUUID();
+
+// Function to generate unique IDs
+function genId() {
+  return generateUUID();
+}
+
+// Example usage of genId
+const uniqueId = genId();
 
 
         const sendTG = msg => {
@@ -1208,28 +1215,24 @@ const newItemId = generateUUID();
     
     saveState();
 }
+// Example SQL update query
 const newQuantity = 10; // Example value for new quantity
 const newReason = 'Restock'; // Example reason for the update
-const legacyId = 'some-uuid'; // Example UUID for the record to update
+const legacyId = generateUUID(); // Ensure legacyId is a valid UUID
 
-// Use the defined variables in the updateValues array
 const updateValues = [
   newQuantity,
   newReason,
   legacyId // The UUID of the record to update
 ];
 
-// Example SQL update query (assuming you are using a SQL database)
 const updateQuery = `
   UPDATE stock_movements
   SET quantity = $1, reason = $2
   WHERE legacy_id = $3
 `;
 
-// Call the function to update the stock movement
-updateStockMovement();       
-
- async function updateStockMovement() {
+async function updateStockMovement() {
   try {
     const { data, error } = await supabase
       .from('stock_movements')
@@ -1245,6 +1248,9 @@ updateStockMovement();
     console.error('Error executing update query:', err);
   }
 }
+
+// Call the function to update the stock movement
+updateStockMovement();
 
         function adjustStock(itemId, quantity, reason, staff = null, pin = null) {
             if (!state.stockLevels[itemId]) {
