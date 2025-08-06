@@ -984,28 +984,7 @@
                 Maya: { username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', updated_at: new Date().toISOString() }
             };
             
-            const sampleItems = [
-                { name: 'Linen Sheets', categoryId: 'cat_hotel_linens', unit: 'set', cost: 25.99, minStockLevel: 50, initialQuantity: 45 },
-                { name: 'Toilet Paper', categoryId: 'cat_hotel_toiletries', unit: 'roll', cost: 0.99, minStockLevel: 200, initialQuantity: 150 },
-                { name: 'Whiskey', categoryId: 'cat_bar_spirits', unit: 'bottle', cost: 32.50, minStockLevel: 20, initialQuantity: 18 },
-                { name: 'Wine Glass', categoryId: 'cat_bar_glassware', unit: 'piece', cost: 8.75, minStockLevel: 50, initialQuantity: 42 }
-            ];
             
-            sampleItems.forEach(item => {
-                const id = `item_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-                state.items[id] = {
-                    id,
-                    name: item.name,
-                    categoryId: item.categoryId,
-                    unit: item.unit,
-                    cost: item.cost,
-                    minStockLevel: item.minStockLevel,
-                    createdAt: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-                state.stockLevels[id] = { item_id: id, quantity: item.initialQuantity };
-                logMove(id, 'in', item.initialQuantity, 'Initial stock', null, null, "System");
-            });
         }
 
         /* ===== UTILS ===== */
