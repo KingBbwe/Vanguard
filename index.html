@@ -1036,8 +1036,40 @@ let realtimeChannel = null;
         }
 
         /* ===== UTILS ===== */
-        const genId = () => `id_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        const newItemId = generateUUID();
+const insertQuery = `
+  INSERT INTO stock_movements (legacy_id, item_id, type, quantity, reason, user_name, staff_member, timestamp, "user", updated_at, version, verified_by, verification_timestamp, verification_note, confirmed_pin)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+`;
+const values = [
+  newItemId,
+  itemId,
+  type,
+  quantity,
+  reason,
+  userName,
+  staffMember,
+  timestamp,
+  userId,
+  updated_at,
+  version,
+  verifiedBy,
+  verificationTimestamp,
+  verificationNote,
+  confirmedPin
+];
+        const updateQuery = `
+  UPDATE stock_movements
+  SET quantity = $1, reason = $2
+  WHERE legacy_id = $3
+`;
+const updateValues = [
+  newQuantity,
+  newReason,
+  legacyId // The UUID of the record to update
+];
 
+        
         const sendTG = msg => {
             if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
             fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
