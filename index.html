@@ -1194,7 +1194,7 @@
     };
     
     // Add verification info if this was verified by an admin
-    if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username) {
+    if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
         movementData.verified_by = currentUser.username;
         movementData.verification_timestamp = new Date().toISOString();
         movementData.verification_note = verificationNote;
