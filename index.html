@@ -1050,37 +1050,7 @@ const itemId = generateUUID();
 const type = 'default_type'; // Default value
 
 const newItemId = generateUUID();
-const insertQuery = `
-  INSERT INTO stock_movements (legacy_id, item_id, type, quantity, reason, user_name, staff_member, timestamp, "user", updated_at, version, verified_by, verification_timestamp, verification_note, confirmed_pin)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-`;
-const values = [
-  newItemId,
-  itemId, // Use the generated itemId
-  type, // Use the default value for type
-  quantity,
-  reason,
-  userName,
-  staffMember,
-  timestamp,
-  userId,
-  updated_at,
-  version,
-  verifiedBy,
-  verificationTimestamp,
-  verificationNote,
-  confirmedPin
-];
-const updateQuery = `
-  UPDATE stock_movements
-  SET quantity = $1, reason = $2
-  WHERE legacy_id = $3
-`;
-const updateValues = [
-  newQuantity,
-  newReason,
-  legacyId // The UUID of the record to update
-];
+
 
         const sendTG = msg => {
             if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
@@ -1160,60 +1130,94 @@ const updateValues = [
 
         /* ===== CORE OPS ===== */
         function logMove(i, t, q, r, s = null, p = null, userOverride = "System") {
-            const user = userOverride || (currentUser ? currentUser.displayName : "System");
-            
-            state.stockMovements.unshift({
-                id: genId(),
-                item_id: i,
-                type: t,
-                quantity: q,
-                reason: r,
-                user: user,
-                staff_member: s,
-                confirmedPin: p,
-                timestamp: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                version: 1
-            });
-            saveState();
-        }
+    const user = userOverride || (currentUser ? currentUser.displayName : "System");
+    
+    // Generate IDs and set default values
+    const itemId = i;
+    const newItemId = generateUUID();
+    const type = t;
+    const quantity = q;
+    const reason = r;
+    const userName = user;
+    const staffMember = s;
+    const timestamp = new Date().toISOString();
+    const userId = currentUser?.username || "system";
+    const updated_at = new Date().toISOString();
+    const version = 1;
+    const verifiedBy = currentUser?.username || null;
+    const verificationTimestamp = p ? new Date().toISOString() : null;
+    const verificationNote = p ? "Verified with PIN" : null;
+    const confirmedPin = p;
 
-        function addItem(data) {
-            const id = genId();
-            const newItem = {
-                id: id,
-                name: data.name,
-                categoryId: data.categoryId,
-                unit: data.unit,
-                cost: +data.cost || 0,
-                minStockLevel: +data.minStockLevel || 0,
-                createdAt: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                version: 1
-            };
-            
-            state.items[id] = newItem;
-            state.stockLevels[id] = { 
-                item_id: id, 
-                quantity: +data.initialQuantity || 0,
-                updated_at: new Date().toISOString()
-            };
-            
-            if (+data.initialQuantity > 0) {
-                logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
-            }
-            
-            addOffline({ 
-                type: 'ADD_ITEM', 
-                data: newItem, 
-                initialQuantity: +data.initialQuantity || 0 
-            });
-            
-            saveState();
-            updateDash();
-            renderAct();
-            return id;
+    // Prepare the values array with all defined variables
+    const values = [
+        newItemId,
+        itemId,
+        type,
+        quantity,
+        reason,
+        userName,
+        staffMember,
+        timestamp,
+        userId,
+        updated_at,
+        version,
+        verifiedBy,
+        verificationTimestamp,
+        verificationNote,
+        confirmedPin
+    ];
+
+    const insertQuery = `
+        INSERT INTO stock_movements (legacy_id, item_id, type, quantity, reason, user_name, staff_member, timestamp, "user", updated_at, version, verified_by, verification_timestamp, verification_note, confirmed_pin)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    `;
+
+    // Add to local state
+    state.stockMovements.unshift({
+        id: newItemId,
+        item_id: i,
+        type: t,
+        quantity: q,
+        reason: r,
+        user: user,
+        staff_member: s,
+        confirmedPin: p,
+        timestamp: timestamp,
+        updated_at: updated_at,
+        version: 1
+    });
+    
+    // Add to offline queue for syncing
+    addOffline({
+        type: 'STOCK_MOVEMENT',
+        data: {
+            id: newItemId,
+            item_id: i,
+            type: t,
+            quantity: q,
+            reason: r,
+            user_name: user,
+            staff_member: s,
+            confirmed_pin: p,
+            timestamp: timestamp,
+            updated_at: updated_at,
+            version: 1
         }
+    });
+    
+    saveState();
+}
+const updateQuery = `
+  UPDATE stock_movements
+  SET quantity = $1, reason = $2
+  WHERE legacy_id = $3
+`;
+const updateValues = [
+  newQuantity,
+  newReason,
+  legacyId // The UUID of the record to update
+];
 
         function adjustStock(itemId, quantity, reason, staff = null, pin = null) {
             if (!state.stockLevels[itemId]) {
