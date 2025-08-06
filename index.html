@@ -1043,6 +1043,10 @@ function generateUUID() {
   );
 }
 
+// Example: Fetching itemId from an input field
+const itemIdInput = document.getElementById('itemIdInput');
+const itemId = itemIdInput ? itemIdInput.value : 'default_value'; // Provide a default value if not defined
+
 const newItemId = generateUUID();
 const insertQuery = `
   INSERT INTO stock_movements (legacy_id, item_id, type, quantity, reason, user_name, staff_member, timestamp, "user", updated_at, version, verified_by, verification_timestamp, verification_note, confirmed_pin)
@@ -1050,7 +1054,7 @@ const insertQuery = `
 `;
 const values = [
   newItemId,
-  itemId,
+  itemId, // Ensure itemId is defined here
   type,
   quantity,
   reason,
