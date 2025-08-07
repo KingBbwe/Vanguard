@@ -1808,12 +1808,12 @@
                 console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
                 
                 if (retryCount >= MAX_RETRIES) {
-                    console.error('Max retries reached, adding to failed operations');
-                    failedOperations.push(op);
-                } else {
-                    // Exponential backoff before retry
-                    await new Promise(resolve => 
-                        setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+    console.error('Max retries reached, adding to failed operations');
+    failedOperations.push(op);
+} else {
+    // Exponential backoff before retry
+    await new Promise(resolve => 
+        setTimeout(resolve, 1000 * Math.pow(2, retryCount));
                 }
             }
         }
