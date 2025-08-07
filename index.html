@@ -1037,6 +1037,8 @@
         /* ===== UTILS ===== */
 import { v4 as uuidv4 } from 'uuid';
 
+// Rest of your code...
+
 function generateUUID() {
     return uuidv4();
 }
@@ -1044,6 +1046,8 @@ function generateUUID() {
 function genId() {
     return generateUUID();
 }
+
+// Other functions and code...
         const sendTG = msg => {
             if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
             fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
