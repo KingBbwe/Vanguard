@@ -2657,11 +2657,12 @@ const itemValue = formatCurrency(1250.5); // Returns "K1,250.50"
             doc.text('Low Stock Items', 10, 85);
 
             const reportData = items.map(item => {
-        return [
-            item.name,
-            item.quantity,
-            'K' + (item.quantity * item.cost).toFixed(2)
-        ];
+    return [
+        item.name,
+        item.quantity,
+        'K' + (item.quantity * item.cost).toFixed(2)
+    ];
+// Missing closing }); and 'items' is undefined
             const lowStockItems = Object.values(state.items).filter(i => {
                 const stock = state.stockLevels[i.id] || { quantity: 0 };
                 return stock.quantity > 0 && stock.quantity <= i.minStockLevel;
