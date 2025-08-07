@@ -1035,15 +1035,15 @@
         }
 
         /* ===== UTILS ===== */
-        function generateUUID() {
-    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-    );
-}
-        function genId() {
-            return generateUUID();
-        }
+        import { v4 as uuidv4 } from 'uuid';
 
+function generateUUID() {
+    return uuidv4();
+}
+
+function genId() {
+    return generateUUID();
+}
         const sendTG = msg => {
             if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
             fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
