@@ -1803,7 +1803,7 @@
                 
                 success = true; // Mark operation as successful
                 
-            } catch (err) {
+                        } catch (err) {
                 retryCount++;
                 console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
                 
@@ -1812,8 +1812,8 @@
                     failedOperations.push(op);
                 } else {
                     // Exponential backoff before retry
-                    await new Promise(resolve => 
-                        setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+                    const delay = 1000 * Math.pow(2, retryCount);
+                    await new Promise(resolve => setTimeout(resolve, delay))
                         .catch(e => console.error('Retry delay failed:', e));
                 }
             }
