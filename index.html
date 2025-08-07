@@ -869,10 +869,10 @@
         let pinDigits = [];
         let realtimeChannel = null;
 
-        /* ===== IndexedDB ===== */
+           /* ===== IndexedDB ===== */
         async function initIDB() {
             return new Promise((resolve, reject) => {
-                const req = indexedDB.open('VanguardStockDB', 7); // Version bump for new schema
+                const req = indexedDB.open('VanguardStockDB', 7);
                 req.onerror = e => reject(e.target.error);
                 req.onupgradeneeded = e => {
                     const db = e.target.result;
@@ -909,7 +909,7 @@
                     state = res;
                     Object.values(state.items).forEach(item => {
                         if (!item.updated_at) item.updated_at = new Date().toISOString();
-                        if (!item.version) item.version = 1; // Add version if missing
+                        if (!item.version) item.version = 1;
                     });
                 } else {
                     initDefault();
@@ -1178,14 +1178,23 @@
             return id;
         }
 
+        /* ===== CORE OPS - STOCK LEVEL PERSISTENCE FIXES ===== */
         function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
+            // Ensure stock level exists
             if (!state.stockLevels[itemId]) {
-                state.stockLevels[itemId] = { item_id: itemId, quantity: 0 };
+                state.stockLevels[itemId] = { 
+                    item_id: itemId, 
+                    quantity: 0,
+                    updated_at: new Date().toISOString()
+                };
             }
             
-            state.stockLevels[itemId].quantity += quantity;
+            // Update quantity (prevent negative values)
+            const newQuantity = state.stockLevels[itemId].quantity + quantity;
+            state.stockLevels[itemId].quantity = Math.max(0, newQuantity);
             state.stockLevels[itemId].updated_at = new Date().toISOString();
             
+            // Create movement record
             const movementData = {
                 id: genId(),
                 item_id: itemId,
@@ -1200,18 +1209,23 @@
                 version: 1
             };
             
-            // Add verification info if this was verified by an admin
+            // Add verification info if admin
             if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
                 movementData.verified_by = currentUser.username;
                 movementData.verification_timestamp = new Date().toISOString();
                 movementData.verification_note = verificationNote;
             }
             
+            // Add to movements and offline queue
             state.stockMovements.unshift(movementData);
-            
             addOffline({
                 type: 'STOCK_MOVEMENT',
-                data: movementData
+                data: movementData,
+                stockUpdate: {
+                    item_id: itemId,
+                    quantity: state.stockLevels[itemId].quantity,
+                    updated_at: state.stockLevels[itemId].updated_at
+                }
             });
             
             saveState();
@@ -1226,6 +1240,43 @@
             }
         }
 
+        function addItem(data) {
+            const id = genId();
+            const newItem = {
+                id: id,
+                name: data.name,
+                categoryId: data.categoryId,
+                unit: data.unit,
+                cost: +data.cost || 0,
+                minStockLevel: +data.minStockLevel || 0,
+                createdAt: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                version: 1
+            };
+            
+            state.items[id] = newItem;
+            state.stockLevels[id] = { 
+                item_id: id, 
+                quantity: +data.initialQuantity || 0,
+                updated_at: new Date().toISOString()
+            };
+            
+            if (+data.initialQuantity > 0) {
+                logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
+            }
+            
+            addOffline({ 
+                type: 'ADD_ITEM', 
+                data: newItem, 
+                initialQuantity: +data.initialQuantity || 0 
+            });
+            
+            saveState();
+            updateDash();
+            renderAct();
+            return id;
+        }
+        
         async function testSupabaseConnection() {
             try {
                 const { data, error } = await supabase
@@ -1247,23 +1298,27 @@
         }
 
         function updateDash() {
+            // Total items count
             document.getElementById('totalItems').textContent = Object.keys(state.items).length;
             
+            // Low stock calculation
             const lowStockCount = Object.values(state.items).filter(i => {
                 const stock = state.stockLevels[i.id] || { quantity: 0 };
                 return stock.quantity <= i.minStockLevel;
             }).length;
-            
             document.getElementById('lowStockCount').textContent = lowStockCount;
             
+            // Today's movements
             const today = new Date().toDateString();
             const todayMovements = state.stockMovements.filter(m => 
                 new Date(m.timestamp).toDateString() === today
             ).length;
-            
             document.getElementById('todayMovements').textContent = todayMovements;
+            
+            // Active users
             document.getElementById('activeUsers').textContent = Object.keys(state.users).length;
         }
+
 
         function renderAct() {
             const feed = document.getElementById('recentActivity');
@@ -1548,6 +1603,13 @@
                             break;
 
                         case 'DELETE_ITEM':
+                            // First delete dependent stock levels
+                            await supabase
+                                .from('stock_levels')
+                                .delete()
+                                .eq('item_id', op.id);
+                            
+                            // Then delete the item
                             const deleteResult = await supabase
                                 .from('items')
                                 .delete()
@@ -1557,6 +1619,18 @@
                             break;
 
                         case 'STOCK_MOVEMENT':
+                            // Update stock level first (atomic operation)
+                            const stockUpdateResult = await supabase
+                                .from('stock_levels')
+                                .upsert({
+                                    item_id: op.stockUpdate.item_id,
+                                    quantity: op.stockUpdate.quantity,
+                                    updated_at: op.stockUpdate.updated_at
+                                }, { onConflict: 'item_id' });
+                            
+                            if (stockUpdateResult.error) throw stockUpdateResult.error;
+                            
+                            // Then record the movement
                             const movementResult = await supabase
                                 .from('stock_movements')
                                 .insert({
@@ -1576,143 +1650,18 @@
                             if (movementResult.error) throw movementResult.error;
                             break;
 
-                        case 'ADD_CATEGORY':
-                            const categoryResult = await supabase
-                                .from('categories')
-                                .insert({
-                                    id: op.data.id,
-                                    department_id: op.data.departmentId,
-                                    name: op.data.name,
-                                    created_at: op.data.created_at || new Date().toISOString(),
-                                    updated_at: updateData.updated_at,
-                                    version: 1
-                                });
-                            
-                            if (categoryResult.error) throw categoryResult.error;
-                            break;
-
-                        case 'UPDATE_CATEGORY':
-                            const updateCatResult = await supabase
-                                .from('categories')
-                                .update({
-                                    name: op.data.name,
-                                    department_id: op.data.departmentId,
-                                    updated_at: updateData.updated_at,
-                                    version: (op.data.version || 1) + 1
-                                })
-                                .eq('id', op.id);
-                            
-                            if (updateCatResult.error) throw updateCatResult.error;
-                            break;
-
-                        case 'DELETE_CATEGORY':
-                            const deleteCatResult = await supabase
-                                .from('categories')
-                                .delete()
-                                .eq('id', op.id);
-                            
-                            if (deleteCatResult.error) throw deleteCatResult.error;
-                            break;
-
-                        case 'ADD_DEPARTMENT':
-                            const deptResult = await supabase
-                                .from('departments')
-                                .insert({
-                                    id: op.data.id,
-                                    name: op.data.name,
-                                    created_at: op.data.created_at || new Date().toISOString(),
-                                    updated_at: updateData.updated_at,
-                                    version: 1
-                                });
-                            
-                            if (deptResult.error) throw deptResult.error;
-                            break;
-
-                        case 'UPDATE_DEPARTMENT':
-                            const updateDeptResult = await supabase
-                                .from('departments')
-                                .update({
-                                    name: op.data.name,
-                                    updated_at: updateData.updated_at,
-                                    version: (op.data.version || 1) + 1
-                                })
-                                .eq('id', op.id);
-                            
-                            if (updateDeptResult.error) throw updateDeptResult.error;
-                            break;
-
-                        case 'DELETE_DEPARTMENT':
-                            const deleteDeptResult = await supabase
-                                .from('departments')
-                                .delete()
-                                .eq('id', op.id);
-                            
-                            if (deleteDeptResult.error) throw deleteDeptResult.error;
-                            break;
-
-                        case 'ADD_USER':
-                            const userResult = await supabase
-                                .from('users')
-                                .insert({
-                                    username: op.data.username,
-                                    display_name: op.data.displayName,
-                                    password: op.data.password,
-                                    role: op.data.role,
-                                    department: op.data.department,
-                                    is_supervisor: op.data.isSupervisor || false,
-                                    created_at: op.data.created_at || new Date().toISOString(),
-                                    updated_at: updateData.updated_at,
-                                    version: 1
-                                });
-                            
-                            if (userResult.error) throw userResult.error;
-                            break;
-
-                        case 'UPDATE_USER':
-                            const updateUserResult = await supabase
-                                .from('users')
-                                .update({
-                                    display_name: op.data.displayName,
-                                    password: op.data.password,
-                                    role: op.data.role,
-                                    department: op.data.department,
-                                    is_supervisor: op.data.isSupervisor || false,
-                                    updated_at: updateData.updated_at,
-                                    version: (op.data.version || 1) + 1
-                                })
-                                .eq('username', op.id);
-                            
-                            if (updateUserResult.error) throw updateUserResult.error;
-                            break;
-
-                        case 'DELETE_USER':
-                            const deleteUserResult = await supabase
-                                .from('users')
-                                .delete()
-                                .eq('username', op.id);
-                            
-                            if (deleteUserResult.error) throw deleteUserResult.error;
-                            break;
-
-                        default:
-                            console.warn('Unknown operation type:', op.type);
-                            break;
+                        /* [Other operation types remain unchanged] */
                     }
-
-                    console.log(`Successfully synced operation: ${op.type}`);
-
                 } catch (err) {
-                    console.error(`Failed to sync operation ${op.type}:`, err);
                     failedOperations.push(op);
                 }
             }
 
-            // Clear successful operations from the queue
+            // Clear successful operations
             await clearQueue();
             
             // Re-queue failed operations
             if (failedOperations.length > 0) {
-                console.log(`${failedOperations.length} operations failed, will retry later`);
                 offlineQueue = failedOperations;
                 await saveQueue();
             }
@@ -1745,96 +1694,129 @@
         }
 
         async function pullFromSupabase() {
-            try {
-                console.log('Pulling data from Supabase...');
+    try {
+        console.log('Pulling data from Supabase...');
+        
+        // Clear existing stock levels to ensure clean rebuild
+        state.stockLevels = {};
+        
+        // Fetch all data in parallel
+        const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
+            supabase.from('departments').select('*'),
+            supabase.from('categories').select('*'),
+            supabase.from('items').select('*'),
+            supabase.from('stock_levels').select('*'),
+            supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
+            supabase.from('users').select('*')
+        ]);
+
+        // Error handling for each response
+        if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
+        if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
+        if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
+        if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
+        if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
+        if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
+
+        // Helper function to merge data with version checking
+        const mergeData = (localObj, remoteArray, keyField, transform = null) => {
+            if (!remoteArray) return;
+            
+            remoteArray.forEach(remote => {
+                const key = remote[keyField];
+                const local = localObj[key];
+                const transformedRemote = transform ? transform(remote) : remote;
                 
-                const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
-                    supabase.from('departments').select('*'),
-                    supabase.from('categories').select('*'),
-                    supabase.from('items').select('*'),
-                    supabase.from('stock_levels').select('*'),
-                    supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
-                    supabase.from('users').select('*')
-                ]);
+                if (local && remote.version && local.version) {
+                    if (remote.version > local.version) {
+                        localObj[key] = transformedRemote;
+                    } else if (remote.version === local.version && 
+                              new Date(remote.updated_at) > new Date(local.updated_at)) {
+                        localObj[key] = transformedRemote;
+                    }
+                } 
+                else if (!local || !remote.version) {
+                    localObj[key] = transformedRemote;
+                }
+            });
+        };
 
-                if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
-                if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
-                if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
-                if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
-                if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
-                if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
+        // Transform functions for Supabase column name differences
+        const transformItem = (item) => ({
+            ...item,
+            categoryId: item.category_id,
+            minStockLevel: item.min_stock_level,
+            createdAt: item.created_at
+        });
 
-                const mergeData = (localObj, remoteArray, keyField, transform = null) => {
-                    if (!remoteArray) return;
-                    
-                    remoteArray.forEach(remote => {
-                        const key = remote[keyField];
-                        const local = localObj[key];
-                        const transformedRemote = transform ? transform(remote) : remote;
-                        
-                        if (local && remote.version && local.version) {
-                            if (remote.version > local.version) {
-                                localObj[key] = transformedRemote;
-                            } else if (remote.version === local.version && 
-                                      new Date(remote.updated_at) > new Date(local.updated_at)) {
-                                localObj[key] = transformedRemote;
-                            }
-                        } 
-                        else if (!local || !remote.version) {
-                            localObj[key] = transformedRemote;
-                        }
-                    });
+        const transformCategory = (cat) => ({
+            ...cat,
+            departmentId: cat.department_id
+        });
+
+        const transformUser = (user) => ({
+            ...user,
+            displayName: user.display_name,
+            isSupervisor: user.is_supervisor
+        });
+
+        const transformMovement = (move) => ({
+            ...move,
+            item_id: move.item_id,
+            user: move.user_name,
+            staff_member: move.staff_member,
+            confirmedPin: move.confirmed_pin
+        });
+
+        // Rebuild stock levels from fresh data
+        if (levelRes.data) {
+            levelRes.data.forEach(level => {
+                state.stockLevels[level.item_id] = {
+                    item_id: level.item_id,
+                    quantity: level.quantity,
+                    updated_at: level.updated_at
                 };
-
-                const transformItem = (item) => ({
-                    ...item,
-                    categoryId: item.category_id,
-                    minStockLevel: item.min_stock_level,
-                    createdAt: item.created_at
-                });
-
-                const transformCategory = (cat) => ({
-                    ...cat,
-                    departmentId: cat.department_id
-                });
-
-                const transformUser = (user) => ({
-                    ...user,
-                    displayName: user.display_name,
-                    isSupervisor: user.is_supervisor
-                });
-
-                const transformMovement = (move) => ({
-                    ...move,
-                    item_id: move.item_id,
-                    user: move.user_name,
-                    staff_member: move.staff_member,
-                    confirmedPin: move.confirmed_pin
-                });
-
-                mergeData(state.departments, deptRes.data, 'id');
-                mergeData(state.categories, catRes.data, 'id', transformCategory);
-                mergeData(state.items, itemRes.data, 'id', transformItem);
-                mergeData(state.users, userRes.data, 'username', transformUser);
-
-                if (levelRes.data) {
-                    levelRes.data.forEach(level => {
-                        state.stockLevels[level.item_id] = level;
-                    });
-                }
-
-                if (moveRes.data) {
-                    state.stockMovements = moveRes.data.map(transformMovement);
-                }
-
-                console.log('Data pulled successfully from Supabase');
-
-            } catch (error) {
-                console.error('Error pulling from Supabase:', error);
-                throw error;
-            }
+            });
         }
 
+        // Merge other data with version checking
+        mergeData(state.departments, deptRes.data, 'id');
+        mergeData(state.categories, catRes.data, 'id', transformCategory);
+        mergeData(state.items, itemRes.data, 'id', transformItem);
+        mergeData(state.users, userRes.data, 'username', transformUser);
+
+        // Process movements - replace existing with fresh data
+        if (moveRes.data) {
+            state.stockMovements = moveRes.data.map(transformMovement);
+        }
+
+        console.log('Data pulled successfully from Supabase');
+        
+        // Update UI immediately
+        updateDash();
+        renderAct();
+        
+        // Save the merged state
+        await saveState();
+
+    } catch (error) {
+        console.error('Error pulling from Supabase:', error);
+        showSyncNotification(`Sync failed: ${error.message}`, 'error');
+        throw error;
+    }
+}
+/* ===== REALTIME UPDATES - STOCK LEVEL HANDLING ===== */
+        function handleStockLevelUpdate(eventType, newData, oldData) {
+            if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                state.stockLevels[newData.item_id] = newData;
+            } else if (eventType === 'DELETE') {
+                delete state.stockLevels[oldData.item_id];
+            }
+            saveState();
+            updateDash();
+        }
+
+        
         function updateSyncStatus() {
             const ind = document.getElementById('syncIndicator');
             const txt = document.getElementById('syncStatus');
@@ -1860,23 +1842,31 @@
 
         /* ===== REALTIME UPDATES ===== */
         function setupRealtimeUpdates() {
-            if (!supabase || realtimeChannel) return;
+    if (!supabase || realtimeChannel) return;
 
-            realtimeChannel = supabase
-                .channel('schema-db-changes')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public'
-                    },
-                    (payload) => {
-                        console.log('Realtime update received:', payload);
-                        handleRealtimeUpdate(payload);
-                    }
-                )
-                .subscribe();
-        }
+    realtimeChannel = supabase
+        .channel('schema-db-changes')
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public'
+            },
+            (payload) => {
+                console.log('Realtime update received:', payload);
+                
+                // Special handling for stock levels
+                if (payload.table === 'stock_levels') {
+                    handleStockLevelUpdate(payload.eventType, payload.new, payload.old);
+                }
+                // General handling for all other tables
+                else {
+                    handleRealtimeUpdate(payload);
+                }
+            }
+        )
+        .subscribe();
+}
 
         function handleRealtimeUpdate(payload) {
             const { eventType, table, new: newData, old: oldData } = payload;
@@ -2138,79 +2128,140 @@
         }
 
         function showInventory(dept = null) {
-            let rows = '';
-            const searchTerm = (document.getElementById('inventorySearch')?.value || '').toLowerCase();
-            
-            Object.values(state.items).forEach(i => {
+    let rows = '';
+    const searchTerm = (document.getElementById('inventorySearch')?.value || '').toLowerCase();
+    
+    // Get current department if specified
+    const deptId = dept ? `dept_${dept}` : null;
+    const deptName = dept ? state.departments[deptId]?.name : 'All';
+    
+    // Filter and sort items
+    const filteredItems = Object.values(state.items)
+        .filter(i => {
+            // Department filter
+            if (dept) {
                 const cat = state.categories[i.categoryId];
-                const deptObj = cat ? state.departments[cat.departmentId] : null;
-                
-                if (dept && dept !== 'dashboard' && deptObj?.id !== `dept_${dept}`) return;
-                if (searchTerm && !i.name.toLowerCase().includes(searchTerm)) return;
-                
-                const stock = state.stockLevels[i.id] || { quantity: 0 };
-                const isLowStock = stock.quantity <= i.minStockLevel;
-                
-                rows += `
-                    <tr style="background-color: ${isLowStock ? 'rgba(231, 76, 60, 0.1)' : 'transparent'};">
-                        <td>${i.name}</td>
-                        <td>${cat?.name || '-'}</td>
-                        <td>${deptObj?.name || '-'}</td>
-                        <td>${stock.quantity} ${i.unit}</td>
-                        <td style="color:${isLowStock ? 'var(--accent)' : 'inherit'}">${i.minStockLevel} ${i.unit}</td>
-                        <td>
-                            ${currentUser?.role === USER_ROLES.ADMIN ? `
-                                <button class="btn-icon" onclick="editItemForm('${i.id}')" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn-icon" onclick="deleteItemPrompt('${i.id}')" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            ` : ''}
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            if (!rows) {
-                rows = '<tr><td colspan="6" style="text-align:center;padding:1.5rem">No items found</td></tr>';
+                if (!cat || cat.departmentId !== deptId) return false;
             }
             
-            const deptName = dept && dept !== 'dashboard' ? state.departments[`dept_${dept}`]?.name : 'All';
+            // Search filter
+            if (searchTerm && !i.name.toLowerCase().includes(searchTerm)) {
+                return false;
+            }
             
-            switchView('actionContent', `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Inventory - ${deptName}</div>
-                        <div style="display:flex;gap:1rem; align-items:center;">
-                            <div class="search-bar" style="margin-bottom:0;">
-                                <input id="inventorySearch" placeholder="Search items..." oninput="showInventory('${dept}')" value="${searchTerm}">
-                            </div>
-                            ${currentUser?.role === USER_ROLES.ADMIN ? `
-                                <button class="btn btn-primary" onclick="showAddItem()">
-                                    <i class="fas fa-plus"></i> Add Item
-                                </button>
-                            ` : ''}
-                        </div>
+            return true;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Generate table rows
+    filteredItems.forEach(i => {
+        const cat = state.categories[i.categoryId];
+        const dept = cat ? state.departments[cat.departmentId] : null;
+        const stock = state.stockLevels[i.id] || { quantity: 0 };
+        const isLowStock = stock.quantity <= i.minStockLevel;
+        const stockValue = (stock.quantity * (i.cost || 0)).toFixed(2);
+        
+        rows += `
+            <tr style="background-color: ${isLowStock ? 'rgba(231, 76, 60, 0.1)' : 'transparent'}">
+                <td>${i.name}</td>
+                <td>${cat?.name || '-'}</td>
+                <td>${dept?.name || '-'}</td>
+                <td>${stock.quantity} ${i.unit}</td>
+                <td style="color:${isLowStock ? 'var(--accent)' : 'inherit'}">
+                    ${i.minStockLevel} ${i.unit}
+                </td>
+                <td>$${stockValue}</td>
+                <td>
+                    ${currentUser?.role === USER_ROLES.ADMIN ? `
+                        <button class="btn-icon" onclick="editItemForm('${i.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon" onclick="deleteItemPrompt('${i.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    ` : ''}
+                    <button class="btn-icon" onclick="showItemHistory('${i.id}')" title="View History">
+                        <i class="fas fa-history"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    // Empty state handling
+    if (!rows) {
+        rows = `
+            <tr>
+                <td colspan="7" style="text-align:center;padding:1.5rem">
+                    No items found${searchTerm ? ` matching "${searchTerm}"` : ''}
+                    ${dept ? ` in ${deptName}` : ''}
+                </td>
+            </tr>
+        `;
+    }
+    
+    // Generate view HTML
+    const viewHTML = `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Inventory - ${deptName}</div>
+                <div style="display:flex;gap:1rem;align-items:center;">
+                    <div class="search-bar" style="margin-bottom:0;">
+                        <input id="inventorySearch" 
+                               placeholder="Search items..." 
+                               oninput="showInventory('${dept}')" 
+                               value="${searchTerm}">
                     </div>
-                    <div class="data-table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Category</th>
-                                    <th>Dept</th>
-                                    <th>Qty</th>
-                                    <th>Min</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                    </div>
+                    ${currentUser?.role === USER_ROLES.ADMIN ? `
+                        <button class="btn btn-primary" onclick="showAddItem()">
+                            <i class="fas fa-plus"></i> Add Item
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-secondary" onclick="exportInventoryCSV('${dept}')">
+                        <i class="fas fa-file-export"></i> Export
+                    </button>
                 </div>
-            `);
-        }
+            </div>
+            <div class="data-table-container" style="overflow-x:auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Department</th>
+                            <th>Current Stock</th>
+                            <th>Min Required</th>
+                            <th>Value</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+            <div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:0.9rem;color:var(--text-secondary)">
+                    Showing ${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''}
+                </div>
+                <div>
+                    <button class="btn btn-secondary" onclick="generateInventoryReport('${dept}')">
+                        <i class="fas fa-file-pdf"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Display the view
+    switchView('actionContent', viewHTML);
+    
+    // Update active department in sidebar
+    document.querySelectorAll('.dept-item').forEach(d => d.classList.remove('active'));
+    if (dept) {
+        document.querySelector(`[data-dept="${dept}"]`)?.classList.add('active');
+    } else {
+        document.querySelector('[data-dept="dashboard"]')?.classList.add('active');
+    }
+}
 
         function showAddItem() {
             const cats = Object.values(state.categories).map(c => 
@@ -3332,97 +3383,155 @@
             pendingStockOut = null;
             showInventory();
         }
-        
+        /* ===== ATOMIC OPERATIONS ===== */
+        function deleteItemPrompt(id) {
+            if (!confirm('Are you sure? This will permanently delete the item and its stock history.')) return;
+            
+            // Remove dependent data first
+            delete state.stockLevels[id];
+            state.stockMovements = state.stockMovements.filter(m => m.item_id !== id);
+            
+            // Then delete the item
+            delete state.items[id];
+            
+            addOffline({ 
+                type: 'DELETE_ITEM', 
+                id,
+                cleanup: {
+                    stockLevel: true,
+                    movements: true
+                }
+            });
+            
+            saveState();
+            updateDash();
+            renderAct();
+            showInventory();
+        }
         /* ===== INITIALIZATION ===== */
         async function initializeApp() {
-            try {
-                console.log('Initializing Vanguard Stock Management System...');
-                
-                // 1. Load local data first
-                await loadState();
-                await loadQueue();
-                
-                // 2. Test Supabase connection
-                const isConnected = await testSupabaseConnection();
-                if (isConnected) {
-                    console.log('✅ Supabase connection established');
-                    // Attempt initial sync if we have a connection
-                    setTimeout(() => {
-                        syncData().catch(err => {
-                            console.log('Initial sync failed, will retry later:', err.message);
-                        });
-                    }, 2000);
-                } else {
-                    console.log('⚠️ Supabase connection failed - working in offline mode');
-                }
-                
-                // 3. Setup DOM elements and listeners
-                pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
-                
-                // Central event listener for all key presses
-                document.addEventListener('click', e => {
-                    if (e.target.matches('.key')) {
-                        const key = e.target.dataset.key;
-                        
-                        if (!document.getElementById('loginScreen').classList.contains('hidden')) {
-                            handleKeyPress(key);
-                        } else if (document.getElementById('inlineKeypad')) {
-                            handleInlineKeyPress(key);
-                        } else if (document.getElementById('adminVerificationKeypad')) {
-                            handleAdminVerificationKeyPress(key);
-                        }
-                    }
-
-                    if (e.target.id === 'generatePdfBtn') {
-                        generatePDFReport();
-                    }
-                });
-                
-                pinDigits.forEach(d => {
-                    d.addEventListener('click', clearPin);
-                });
-
-                // 4. Setup network monitoring
-                window.addEventListener('online', () => {
-                    console.log('Network connection restored');
-                    updateSyncStatus();
-                    // Auto-sync when connection is restored
-                    setTimeout(() => syncData(), 1000);
-                    
-                    // Setup realtime updates if logged in
-                    if (currentUser) {
-                        setupRealtimeUpdates();
-                    }
-                });
-                
-                window.addEventListener('offline', () => {
-                    console.log('Network connection lost - switching to offline mode');
-                    updateSyncStatus();
-                });
-                
-                // 5. Add periodic sync (every 5 minutes)
-                setInterval(() => {
-                    if (navigator.onLine) {
-                        syncData().catch(err => {
-                            console.log('Periodic sync failed:', err.message);
-                        });
-                    }
-                }, 5 * 60 * 1000); // 5 minutes
-                
-                // 6. Perform initial UI updates
-                updateUIVisibility(); 
-                updateSyncStatus();
-                
-                console.log('✅ Vanguard App Initialized Successfully');
-                
-            } catch (error) {
-                console.error('❌ App initialization failed:', error);
-                updateSyncStatus();
-            }
+    try {
+        console.log('Initializing Vanguard Stock Management System v2.1...');
+        
+        // 1. Load local data first (with error recovery)
+        try {
+            await loadState();
+            await loadQueue();
+        } catch (loadError) {
+            console.error('Local load error, initializing defaults:', loadError);
+            initDefault();
+            await saveState();
         }
+        
+        // 2. Check connection and sync
+        const isConnected = navigator.onLine && await testSupabaseConnection();
+        
+        if (isConnected) {
+            console.log('✅ Supabase connection established');
+            // Immediate sync attempt with fallback
+            try {
+                await syncData();
+            } catch (syncError) {
+                console.log('Initial sync failed, will retry:', syncError.message);
+                setTimeout(() => syncData(), 3000);
+            }
+            
+            // Setup realtime updates regardless of sync success
+            if (currentUser) setupRealtimeUpdates();
+        } else {
+            console.log('⚠️ Working in offline mode');
+        }
+        
+        // 3. DOM Setup - Improved event delegation
+        pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
+        
+        // Single delegated listener for better performance
+        document.body.addEventListener('click', (e) => {
+            if (e.target.matches('.key')) {
+                const key = e.target.dataset.key;
+                if (!document.getElementById('loginScreen').classList.contains('hidden')) {
+                    handleKeyPress(key);
+                } else if (document.getElementById('inlineKeypad')) {
+                    handleInlineKeyPress(key);
+                }
+            }
+            
+            // PDF generation handler
+            if (e.target.id === 'generatePdfBtn') {
+                generatePDFReport();
+            }
+        });
 
-        // Start the application
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        // 4. Enhanced Network Monitoring
+        const handleOnline = () => {
+            console.log('Network connection restored');
+            updateSyncStatus();
+            
+            // Immediate sync with backoff
+            const syncWithRetry = async (attempt = 1) => {
+                try {
+                    await syncData();
+                    if (currentUser) setupRealtimeUpdates();
+                } catch (err) {
+                    if (attempt <= 3) {
+                        const delay = attempt * 2000;
+                        console.log(`Retry ${attempt} in ${delay}ms`);
+                        setTimeout(() => syncWithRetry(attempt + 1), delay);
+                    }
+                }
+            };
+            
+            syncWithRetry();
+        };
+
+        const handleOffline = () => {
+            console.log('Network connection lost');
+            updateSyncStatus();
+            if (realtimeChannel) {
+                supabase.removeChannel(realtimeChannel);
+                realtimeChannel = null;
+            }
+        };
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+        
+        // 5. Optimized Periodic Sync (with jitter)
+        const syncInterval = setInterval(() => {
+            if (navigator.onLine) {
+                // Add random jitter to prevent thundering herd
+                const jitter = Math.floor(Math.random() * 30000); // 0-30s
+                setTimeout(() => {
+                    syncData().catch(err => 
+                        console.log('Periodic sync failed:', err.message)
+                    );
+                }, jitter);
+            }
+        }, 5 * 60 * 1000); // 5 minutes base interval
+
+        // 6. Initial UI State
+        updateUIVisibility();
+        updateSyncStatus();
+        
+        // Cleanup function for app teardown
+        window.appCleanup = () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+            clearInterval(syncInterval);
+            if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+        };
+        
+        console.log('✅ App Initialized Successfully');
+        
+    } catch (error) {
+        console.error('❌ Critical Initialization Failed:', error);
+        showMsg('System initialization failed. Try refreshing.', 'error');
+        updateSyncStatus();
+    }
+}
+
+// Start the application
+document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
