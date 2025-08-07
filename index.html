@@ -1500,51 +1500,51 @@
 
         /* ===== SYNC ===== */
         async function syncData() {
-            const indicator = document.getElementById('syncIndicator');
-            const statusText = document.getElementById('syncStatus');
-            
-            if (!indicator || !statusText) return;
-            
-            indicator.className = 'sync-indicator syncing';
-            statusText.textContent = 'Syncing…';
-            showSyncNotification('Starting sync...');
+    const indicator = document.getElementById('syncIndicator');
+    const statusText = document.getElementById('syncStatus');
+    
+    if (!indicator || !statusText) return;
+    
+    indicator.className = 'sync-indicator syncing';
+    statusText.textContent = 'Syncing…';
+    showSyncNotification('Starting sync...');
 
-            try {
-                console.log('Starting sync process...');
-                
-                // Test connection first
-                const { error: testError } = await supabase
-                    .from('departments')
-                    .select('count')
-                    .limit(1);
-                    
-                if (testError) {
-                    throw new Error(`Connection test failed: ${testError.message}`);
-                }
-
-                // Process offline queue first
-                await processOfflineQueue();
-                
-                // Then pull latest data from Supabase
-                await pullFromSupabase();
-                
-                // Save the updated state
-                await saveState();
-                
-                // Update UI
-                updateDash();
-                renderAct();
-                
-                console.log('Sync completed successfully');
-                showSyncNotification('Sync completed successfully', 'success');
-                
-            } catch (error) {
-                console.error('Sync error:', error);
-                showSyncNotification(`Sync failed: ${error.message}`, 'error');
-            } finally {
-                updateSyncStatus();
-            }
+    try {
+        console.log('Starting sync process...');
+        
+        // Test connection first
+        const { error: testError } = await supabase
+            .from('departments')
+            .select('count')
+            .limit(1);
+            
+        if (testError) {
+            throw new Error(`Connection test failed: ${testError.message}`);
         }
+
+        // Process offline queue first
+        await processOfflineQueue();
+        
+        // Then pull latest data from Supabase
+        await pullFromSupabase();
+        
+        // Save the updated state
+        await saveState();
+        
+        // Update UI
+        updateDash();
+        renderAct();
+        
+        console.log('Sync completed successfully');
+        showSyncNotification('Sync completed successfully', 'success');
+        
+    } catch (error) {
+        console.error('Sync error:', error);
+        showSyncNotification(`Sync failed: ${error.message}`, 'error');
+    } finally {
+        updateSyncStatus();
+    }
+}
 
         async function forceSync() {
             const indicator = document.getElementById('syncIndicator');
@@ -1692,7 +1692,7 @@
                         if (movementResult.error) throw movementResult.error;
                         break;
 
-                    // Other cases remain the same...
+                    // Add other cases as needed...
                     case 'ADD_CATEGORY':
                     case 'UPDATE_CATEGORY':
                     case 'DELETE_CATEGORY':
@@ -1702,7 +1702,7 @@
                     case 'ADD_USER':
                     case 'UPDATE_USER':
                     case 'DELETE_USER':
-                        // ... (implementation remains same as before)
+                        // Implementation for other operation types
                         break;
                 }
                 
@@ -1737,7 +1737,6 @@
         }
     }
 }
-
     // Clear successful operations
     if (failedOperations.length < offlineQueue.length) {
         await clearQueue();
@@ -1790,119 +1789,119 @@ function formatToUUID(id) {
         }
 
         async function pullFromSupabase() {
-            try {
-                console.log('Pulling data from Supabase...');
-                
-                // Clear existing stock levels to ensure clean rebuild
-                state.stockLevels = {};
-                
-                // Fetch all data in parallel
-                const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
-                    supabase.from('departments').select('*'),
-                    supabase.from('categories').select('*'),
-                    supabase.from('items').select('*'),
-                    supabase.from('stock_levels').select('*'),
-                    supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
-                    supabase.from('users').select('*')
-                ]);
+    try {
+        console.log('Pulling data from Supabase...');
+        
+        // Clear existing stock levels to ensure clean rebuild
+        state.stockLevels = {};
+        
+        // Fetch all data in parallel
+        const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
+            supabase.from('departments').select('*'),
+            supabase.from('categories').select('*'),
+            supabase.from('items').select('*'),
+            supabase.from('stock_levels').select('*'),
+            supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
+            supabase.from('users').select('*')
+        ]);
 
-                // Error handling for each response
-                if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
-                if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
-                if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
-                if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
-                if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
-                if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
+        // Error handling for each response
+        if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
+        if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
+        if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
+        if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
+        if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
+        if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
 
-                // Helper function to merge data with version checking
-                const mergeData = (localObj, remoteArray, keyField, transform = null) => {
-                    if (!remoteArray) return;
-                    
-                    remoteArray.forEach(remote => {
-                        const key = remote[keyField];
-                        const local = localObj[key];
-                        const transformedRemote = transform ? transform(remote) : remote;
-                        
-                        if (local && remote.version && local.version) {
-                            if (remote.version > local.version) {
-                                localObj[key] = transformedRemote;
-                            } else if (remote.version === local.version && 
-                                      new Date(remote.updated_at) > new Date(local.updated_at)) {
-                                localObj[key] = transformedRemote;
-                            }
-                        } 
-                        else if (!local || !remote.version) {
-                            localObj[key] = transformedRemote;
-                        }
-                    });
+        // Helper function to merge data with version checking
+        const mergeData = (localObj, remoteArray, keyField, transform = null) => {
+            if (!remoteArray) return;
+            
+            remoteArray.forEach(remote => {
+                const key = remote[keyField];
+                const local = localObj[key];
+                const transformedRemote = transform ? transform(remote) : remote;
+                
+                if (local && remote.version && local.version) {
+                    if (remote.version > local.version) {
+                        localObj[key] = transformedRemote;
+                    } else if (remote.version === local.version && 
+                              new Date(remote.updated_at) > new Date(local.updated_at)) {
+                        localObj[key] = transformedRemote;
+                    }
+                } 
+                else if (!local || !remote.version) {
+                    localObj[key] = transformedRemote;
+                }
+            });
+        };
+
+        // Transform functions for Supabase column name differences
+        const transformItem = (item) => ({
+            ...item,
+            categoryId: item.category_id,
+            minStockLevel: item.min_stock_level,
+            createdAt: item.created_at
+        });
+
+        const transformCategory = (cat) => ({
+            ...cat,
+            departmentId: cat.department_id
+        });
+
+        const transformUser = (user) => ({
+            ...user,
+            displayName: user.display_name,
+            isSupervisor: user.is_supervisor
+        });
+
+        const transformMovement = (move) => ({
+            ...move,
+            item_id: move.item_id,
+            user: move.user_name,
+            staff_member: move.staff_member,
+            confirmedPin: move.confirmed_pin,
+            movement_value: move.movement_value || 0,
+            currency: move.currency || 'MWK'
+        });
+
+        // Rebuild stock levels from fresh data
+        if (levelRes.data) {
+            levelRes.data.forEach(level => {
+                state.stockLevels[level.item_id] = {
+                    item_id: level.item_id,
+                    quantity: level.quantity,
+                    updated_at: level.updated_at
                 };
-
-                // Transform functions for Supabase column name differences
-                const transformItem = (item) => ({
-                    ...item,
-                    categoryId: item.category_id,
-                    minStockLevel: item.min_stock_level,
-                    createdAt: item.created_at
-                });
-
-                const transformCategory = (cat) => ({
-                    ...cat,
-                    departmentId: cat.department_id
-                });
-
-                const transformUser = (user) => ({
-                    ...user,
-                    displayName: user.display_name,
-                    isSupervisor: user.is_supervisor
-                });
-
-                const transformMovement = (move) => ({
-                    ...move,
-                    item_id: move.item_id,
-                    user: move.user_name,
-                    staff_member: move.staff_member,
-                    confirmedPin: move.confirmed_pin,
-                    movement_value: move.movement_value || 0,
-                    currency: move.currency || 'MWK'
-                });
-
-                // Rebuild stock levels from fresh data
-                if (levelRes.data) {
-                    levelRes.data.forEach(level => {
-                        state.stockLevels[level.item_id] = {
-                            item_id: level.item_id,
-                            quantity: level.quantity,
-                            updated_at: level.updated_at
-                        };
-                    });
-                }
-
-                // Merge other data with version checking
-                mergeData(state.departments, deptRes.data, 'id');
-                mergeData(state.categories, catRes.data, 'id', transformCategory);
-                mergeData(state.items, itemRes.data, 'id', transformItem);
-                mergeData(state.users, userRes.data, 'username', transformUser);
-
-                // Process movements - replace existing with fresh data
-                if (moveRes.data) {
-                    state.stockMovements = moveRes.data.map(transformMovement);
-                }
-
-                console.log('Data pulled successfully from Supabase');
-                
-                // Update UI immediately
-                updateDash();
-                renderAct();
-                
-                // Save the merged state
-                await saveState();
-
-            } catch (error) {
-                console.error('Error pulling from Supabase:', error);
-                showSyncNotification(`Sync failed: ${error.message}`, 'error');
-                throw error;
-            }
+            });
         }
+
+        // Merge other data with version checking
+        mergeData(state.departments, deptRes.data, 'id');
+        mergeData(state.categories, catRes.data, 'id', transformCategory);
+        mergeData(state.items, itemRes.data, 'id', transformItem);
+        mergeData(state.users, userRes.data, 'username', transformUser);
+
+        // Process movements - replace existing with fresh data
+        if (moveRes.data) {
+            state.stockMovements = moveRes.data.map(transformMovement);
+        }
+
+        console.log('Data pulled successfully from Supabase');
+        
+        // Update UI immediately
+        updateDash();
+        renderAct();
+        
+        // Save the merged state
+        await saveState();
+
+    } catch (error) {
+        console.error('Error pulling from Supabase:', error);
+        showSyncNotification(`Sync failed: ${error.message}`, 'error');
+        throw error;
+    }
+}
 
         /* ===== REALTIME UPDATES - STOCK LEVEL HANDLING ===== */
         function handleStockLevelUpdate(eventType, newData, oldData) {
