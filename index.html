@@ -2611,7 +2611,7 @@ function getMovementStats(days = 7) {
             generatePDFReport(itemsToReport, dept);
         }
 
-function generatePDFReport() {
+async function generatePDFReport() {
     try {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -2687,7 +2687,7 @@ function generatePDFReport() {
         const ctx = canvas.getContext('2d');
         
         // Wait for chart to render before adding to PDF
-        return new Promise((resolve) => {
+        await new Promise((resolve) => {
             // Stock status chart
             new Chart(ctx, {
                 type: 'doughnut',
