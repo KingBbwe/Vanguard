@@ -2701,18 +2701,19 @@ function getMovementStats(days = 7) {
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
     doc.autoTable({
-        startY: 30,
-        head: [['Metric', 'Value']],
-        body: [
-            ['Total Items', totalItems],
-            ['In Stock Items', inStock],
-            ['Low Stock Items', lowStock],
-            ['Out of Stock Items', outOfStock],
-            ['Total Inventory Value', `$${totalValue.toFixed(2)}`],
-        theme: 'grid',
-        headStyles: { fillColor: [52, 152, 219] },
-        columnStyles: { 1: { fontStyle: 'bold' } }
-    });
+    startY: 30,
+    head: [['Metric', 'Value']],
+    body: [
+        ['Total Items', totalItems],
+        ['In Stock Items', inStock],
+        ['Low Stock Items', lowStock],
+        ['Out of Stock Items', outOfStock],
+        ['Total Inventory Value', `$${totalValue.toFixed(2)}`]
+    ],  // <-- Added this comma
+    theme: 'grid',
+    headStyles: { fillColor: [52, 152, 219] },
+    columnStyles: { 1: { fontStyle: 'bold' } }
+});
     
     // Add summary charts
     doc.setFontSize(14);
