@@ -1808,16 +1808,32 @@
                 console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
                 
                 if (retryCount >= MAX_RETRIES) {
-    console.error('Max retries reached, adding to failed operations');
-    failedOperations.push(op);
-} else {
-    // Exponential backoff before retry
-    await new Promise(resolve => 
-        setTimeout(resolve, 1000 * Math.pow(2, retryCount));
+                    console.error('Max retries reached, adding to failed operations');
+                    failedOperations.push(op);
+                } else {
+                    // Exponential backoff before retry
+                    await new Promise(resolve => 
+                        setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+                        .catch(e => console.error('Retry delay failed:', e));
                 }
             }
         }
     }
+
+    // Clear successful operations
+    if (failedOperations.length < offlineQueue.length) {
+        await clearQueue();
+        
+        // Re-queue failed operations
+        if (failedOperations.length > 0) {
+            offlineQueue = failedOperations;
+            await saveQueue();
+            showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
+        } else {
+            showSyncNotification('All operations synced successfully', 'success');
+        }
+    }
+}
 
     // Clear successful operations
     if (failedOperations.length < offlineQueue.length) {
