@@ -1045,56 +1045,83 @@
             return generateUUID();
         }
 
-        const sendTG = msg => {
-            if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
-            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: TELEGRAM_CHAT, text: msg, parse_mode: 'Markdown' })
-            }).catch(() => {});
-        };
+        // Enhanced Telegram notification with currency conversion
+const sendTG = msg => {
+    if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
+    
+    // 1. Currency conversion
+    const processedMsg = msg
+        .replace(/\$(\d+\.?\d*)/g, 'K$1')
+        .replace(/(\d+\.?\d*)\s?(USD|dollars?)/gi, 'K$1 Kwacha');
+    
+    // 2. Add context (original simplicity + new metadata)
+    const messageWithContext = `[Vanguard]\n${processedMsg}\n${new Date().toLocaleTimeString()}`;
 
-        function showMsg(text, type = 'info') {
-            const existingMessages = document.querySelectorAll('.message');
-            existingMessages.forEach(msg => msg.remove());
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}`;
-            messageDiv.style.cssText = `
-                position: fixed;
-                top: 100px;
-                right: 20px;
-                padding: 1rem 1.5rem;
-                border-radius: var(--radius);
-                color: white;
-                font-weight: 600;
-                z-index: 1000;
-                max-width: 400px;
-                box-shadow: var(--shadow);
-                background: ${type === 'success' ? 'var(--success)' : 
-                            type === 'error' ? 'var(--accent)' : 
-                            type === 'warning' ? 'var(--warning)' : 'var(--secondary)'};
-                animation: slideIn 0.3s ease;
-            `;
-            
-            messageDiv.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                                  type === 'error' ? 'fa-exclamation-triangle' : 
-                                  type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-                    <span>${text}</span>
-                </div>
-            `;
-            
-            document.body.appendChild(messageDiv);
-            
-            setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    messageDiv.style.animation = 'slideOut 0.3s ease';
-                    setTimeout(() => messageDiv.remove(), 300);
-                }
-            }, 4000);
+    // 3. Enhanced sending with error handling (merged approach)
+    fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            chat_id: TELEGRAM_CHAT, 
+            text: messageWithContext, 
+            parse_mode: 'Markdown' 
+        })
+    })
+    .catch(error => {
+        console.error('Telegram failed:', error);
+        addOffline({
+            type: 'TELEGRAM_MSG',
+            data: {
+                rawMessage: msg,
+                timestamp: new Date().toISOString()
+            }
+        });
+        showMsg('Message queued for retry', 'warning');
+    });
+};
+
+// Preserved original showMsg function (no changes needed)
+function showMsg(text, type = 'info') {
+    const existingMessages = document.querySelectorAll('.message');
+    existingMessages.forEach(msg => msg.remove());
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius);
+        color: white;
+        font-weight: 600;
+        z-index: 1000;
+        max-width: 400px;
+        box-shadow: var(--shadow);
+        background: ${type === 'success' ? 'var(--success)' : 
+                    type === 'error' ? 'var(--accent)' : 
+                    type === 'warning' ? 'var(--warning)' : 'var(--secondary)'};
+        animation: slideIn 0.3s ease;
+    `;
+    
+    messageDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                          type === 'error' ? 'fa-exclamation-triangle' : 
+                          type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+            <span>${text}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        if (messageDiv.parentNode) {
+            messageDiv.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => messageDiv.remove(), 300);
         }
+    }, 4000);
+}
 
         function showSyncNotification(message, type = 'info') {
             const notification = document.createElement('div');
@@ -1120,6 +1147,12 @@
             document.getElementById('categoryManagementMenuItem').classList.toggle('hidden', !isAdmin);
             document.getElementById('departmentManagementMenuItem').classList.toggle('hidden', !isAdmin);
         }
+
+        // Replace all notification messages showing currency
+function showLowStockAlert(item) {
+    const value = item.quantity * item.cost;
+    showMsg(`Low stock: ${item.name} - Current value: ${formatCurrency(value)}`, 'warning');
+}
 
         /* ===== CORE OPS ===== */
         function logMove(itemId, moveType, quantity, reason, staff = null, pin = null, userOverride = "System") {
@@ -1693,6 +1726,18 @@
             }
         }
 
+        // Add to your utility functions section
+function formatCurrency(amount) {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return 'K0.00';
+    
+    return 'K' + num.toFixed(2)
+              .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// Example usage:
+const itemValue = formatCurrency(1250.5); // Returns "K1,250.50"
+        
         async function pullFromSupabase() {
     try {
         console.log('Pulling data from Supabase...');
@@ -2170,7 +2215,7 @@
                 <td style="color:${isLowStock ? 'var(--accent)' : 'inherit'}">
                     ${i.minStockLevel} ${i.unit}
                 </td>
-                <td>$${stockValue}</td>
+                <td>K${stockValue}</td>
                 <td>
                     ${currentUser?.role === USER_ROLES.ADMIN ? `
                         <button class="btn-icon" onclick="editItemForm('${i.id}')" title="Edit">
@@ -2291,7 +2336,7 @@
                                 <input id="aiUnit" required placeholder="e.g., kg, piece, box">
                             </div>
                             <div class="form-group">
-                                <label>Cost per Unit ($)</label>
+                                <label>Cost per Unit (K)</label>
                                 <input type="number" id="aiCost" value="0" step="0.01" min="0">
                             </div>
                             <div class="form-group">
@@ -2358,7 +2403,7 @@
                                 <input id="eiUnit" value="${i.unit}" required>
                             </div>
                             <div class="form-group">
-                                <label>Cost per Unit ($)</label>
+                                <label>Cost per Unit (K)</label>
                                 <input type="number" id="eiCost" value="${i.cost}" step="0.01" min="0">
                             </div>
                             <div class="form-group">
@@ -2405,6 +2450,60 @@
             showInventory();
         }
 
+        function exportInventoryCSV(dept = null) {
+    // Get filtered items based on department
+    const itemsToExport = Object.values(state.items)
+        .filter(item => {
+            if (!dept) return true;
+            const cat = state.categories[item.categoryId];
+            return cat && state.departments[cat.departmentId]?.name.toLowerCase() === dept.toLowerCase();
+        })
+        .map(item => {
+            const cat = state.categories[item.categoryId];
+            const dept = cat ? state.departments[cat.departmentId] : null;
+            const stock = state.stockLevels[item.id] || { quantity: 0 };
+            const value = stock.quantity * (item.cost || 0);
+            
+            return {
+                name: item.name,
+                category: cat?.name || 'Uncategorized',
+                department: dept?.name || 'None',
+                quantity: stock.quantity,
+                unit: item.unit,
+                minStock: item.minStockLevel,
+                value: value
+            };
+        });
+
+    // Create CSV headers
+    let csvContent = 'Name,Category,Department,Quantity,Unit,Min Stock,Value (K)\n';
+
+    // Add data rows
+    itemsToExport.forEach(item => {
+        csvContent += `"${item.name.replace(/"/g, '""')}",` +
+                     `"${item.category.replace(/"/g, '""')}",` +
+                     `"${item.department.replace(/"/g, '""')}",` +
+                     `${item.quantity},` +
+                     `"${item.unit}",` +
+                     `${item.minStock},` +
+                     `"${formatCurrency(item.value)}"\n`;
+    });
+
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `inventory_export_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showMsg('CSV export completed', 'success');
+}
         function showReports() {
             const inStock = Object.values(state.items).filter(i => 
                 (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel
@@ -2481,7 +2580,7 @@
                     data: {
                         labels: Object.keys(deptVal),
                         datasets: [{
-                            label: 'Inventory Value ($)',
+                            label: 'Inventory Value (K)',
                             data: Object.values(deptVal),
                             backgroundColor: 'var(--secondary)'
                         }]
@@ -2528,7 +2627,7 @@
             const doc = new jsPDF();
             
             doc.setFontSize(18);
-            doc.text('Vanguard Stock Report', 105, 15, { align: 'center' });
+            doc.text('Vanguard Stock Report (Kwacha)', 105, 15, { align: 'center' });
             
             const date = new Date().toLocaleDateString();
             doc.setFontSize(11);
@@ -2556,7 +2655,13 @@
             
             doc.setFontSize(14);
             doc.text('Low Stock Items', 10, 85);
-            
+
+            const reportData = items.map(item => {
+        return [
+            item.name,
+            item.quantity,
+            'K' + (item.quantity * item.cost).toFixed(2)
+        ];
             const lowStockItems = Object.values(state.items).filter(i => {
                 const stock = state.stockLevels[i.id] || { quantity: 0 };
                 return stock.quantity > 0 && stock.quantity <= i.minStockLevel;
@@ -2575,7 +2680,7 @@
             
             doc.autoTable({
                 startY: 90,
-                head: [['Item', 'Department', 'Category', 'Current', 'Min']],
+                head: [['Item', 'Department', 'Category', 'Current', 'Min', 'Value (K)']],
                 body: lowStockItems,
                 theme: 'grid',
                 headStyles: { fillColor: [52, 152, 219] }
