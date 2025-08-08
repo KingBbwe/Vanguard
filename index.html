@@ -870,8 +870,17 @@
         const TELEGRAM_BOT = '7960256341:AAFw_BPZRibbnBlaSYD9Lf3id5Fw33S2wDc';
         const TELEGRAM_CHAT = '1212406500';
 
-        let currentUser = null, currentPin = '', pendingStockOut = null, pendingAdminVerification = null;
-        let state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], notifications: [], users: {}, version: APP_VERSION };
+        /* ===== IMPROVED STATE MANAGEMENT ===== */
+        let currentUser = null, currentPin = '', pendingStockOut = null;
+        let state = { 
+            departments: {}, 
+            categories: {}, 
+            items: {}, 
+            stockLevels: {}, 
+            stockMovements: [], 
+            users: {}, 
+            version: APP_VERSION 
+        };
         let offlineQueue = [];
         let pinDigits = [];
         let realtimeChannel = null;
@@ -1041,26 +1050,34 @@
             };
         }
 
-        /* ===== UTILS ===== */
+     /* ===== ENHANCED UUID HANDLING ===== */
         function generateUUID() {
-            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-            );
+            // Modern browser support (preferred)
+            if (typeof crypto.randomUUID === 'function') {
+                return crypto.randomUUID();
+            }
+            // Fallback for older browsers
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
         }
 
-        // Replace your current genId() function with this:
-function genId() {
-    // Modern browser support (preferred)
-    if (typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
-    }
-    // Fallback for older browsers
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
+        function validateUUID(id) {
+            return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+        }
+
+        function ensureUUID(id) {
+            if (!id) return generateUUID();
+            if (validateUUID(id)) return id;
+            
+            // If it's a number or simple string, convert to proper UUIDv4 format
+            const cleanId = String(id).replace(/[^0-9a-f]/gi, '');
+            const paddedId = (cleanId + '00000000000000000000000000000000').slice(0, 32);
+            return `${paddedId.slice(0, 8)}-${paddedId.slice(8, 12)}-4${paddedId.slice(13, 16)}-${
+                '89ab'[Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
+        }
 
         // Enhanced Telegram notification with currency conversion
         const sendTG = msg => {
@@ -1180,14 +1197,90 @@ function genId() {
         }
 
         /* ===== CORE OPS ===== */
+    
+        async function addItem(data) {
+            const id = generateUUID();
+            const newItem = {
+                id: id,
+                name: data.name,
+                categoryId: ensureUUID(data.categoryId),
+                unit: data.unit,
+                cost: +data.cost || 0,
+                minStockLevel: +data.minStockLevel || 0,
+                createdAt: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                version: 1
+            };
+            
+            // Create stock level record with same UUID
+            const stockLevelId = generateUUID();
+            state.stockLevels[id] = { 
+                id: stockLevelId,
+                item_id: id,
+                quantity: +data.initialQuantity || 0,
+                updated_at: new Date().toISOString(),
+                version: 1
+            };
+            
+            state.items[id] = newItem;
+            
+            if (+data.initialQuantity > 0) {
+                logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
+            }
+            
+            // Add both operations to offline queue
+            addOffline({ 
+                type: 'ADD_ITEM', 
+                data: newItem
+            });
+            
+            addOffline({
+                type: 'ADD_STOCK_LEVEL',
+                data: state.stockLevels[id]
+            });
+            
+            await saveState();
+            updateDash();
+            renderAct();
+            return id;
+        }
+
+        async function updateItem(id, data) {
+            const item = state.items[id];
+            if (!item) return;
+            
+            const updatedItem = {
+                ...item,
+                name: data.name,
+                categoryId: ensureUUID(data.categoryId),
+                unit: data.unit,
+                cost: +data.cost || 0,
+                minStockLevel: +data.minStockLevel || 0,
+                updated_at: new Date().toISOString(),
+                version: (item.version || 1) + 1
+            };
+            
+            state.items[id] = updatedItem;
+            addOffline({ 
+                type: 'UPDATE_ITEM', 
+                id: ensureUUID(id),
+                data: updatedItem 
+            });
+            
+            await saveState();
+            return id;
+        }
+
+        /* ===== ENHANCED STOCK MOVEMENT HANDLING ===== */
         function logMove(itemId, moveType, quantity, reason, staff = null, pin = null, userOverride = "System") {
+            const id = generateUUID();
             const user = userOverride || (currentUser ? currentUser.displayName : "System");
             const item = state.items[itemId];
             const movementValue = quantity * (item?.cost || 0);
             
-            state.stockMovements.unshift({
-                id: genId(),
-                item_id: itemId,
+            const movement = {
+                id: id,
+                item_id: ensureUUID(itemId),
                 type: moveType,
                 quantity: quantity,
                 reason: reason,
@@ -1199,97 +1292,68 @@ function genId() {
                 version: 1,
                 movement_value: movementValue,
                 currency: 'MWK'
-            });
-            saveState();
-        }
-
-        function addItem(data) {
-            const id = genId();
-            const newItem = {
-                id: id,
-                name: data.name,
-                categoryId: data.categoryId,
-                unit: data.unit,
-                cost: +data.cost || 0,
-                minStockLevel: +data.minStockLevel || 0,
-                createdAt: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                version: 1
             };
             
-            state.items[id] = newItem;
-            state.stockLevels[id] = { 
-                item_id: id, 
-                quantity: +data.initialQuantity || 0,
-                updated_at: new Date().toISOString()
-            };
-            
-            if (+data.initialQuantity > 0) {
-                logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
+            // Add verification info if admin
+            if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
+                movement.verified_by = currentUser.username;
+                movement.verification_timestamp = new Date().toISOString();
             }
             
-            addOffline({ 
-                type: 'ADD_ITEM', 
-                data: newItem, 
-                initialQuantity: +data.initialQuantity || 0 
+            state.stockMovements.unshift(movement);
+            addOffline({
+                type: 'STOCK_MOVEMENT',
+                data: movement
             });
             
             saveState();
-            updateDash();
-            renderAct();
-            return id;
+            return movement;
         }
 
-        /* ===== CORE OPS - STOCK LEVEL PERSISTENCE FIXES ===== */
         function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
-            // Ensure stock level exists
+            // Ensure stock level exists with proper UUID
             if (!state.stockLevels[itemId]) {
+                const stockLevelId = generateUUID();
                 state.stockLevels[itemId] = { 
-                    item_id: itemId, 
+                    id: stockLevelId,
+                    item_id: ensureUUID(itemId),
                     quantity: 0,
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    version: 1
                 };
+                addOffline({
+                    type: 'ADD_STOCK_LEVEL',
+                    data: state.stockLevels[itemId]
+                });
             }
             
             // Update quantity (prevent negative values)
             const newQuantity = state.stockLevels[itemId].quantity + quantity;
             state.stockLevels[itemId].quantity = Math.max(0, newQuantity);
             state.stockLevels[itemId].updated_at = new Date().toISOString();
+            state.stockLevels[itemId].version = (state.stockLevels[itemId].version || 1) + 1;
             
-            // Create movement record
-            const movementData = {
-                id: genId(),
-                item_id: itemId,
-                type: quantity > 0 ? 'in' : 'out',
-                quantity: Math.abs(quantity),
-                reason: reason,
-                user: currentUser?.displayName || 'System',
-                staff_member: staff,
-                confirmedPin: pin,
-                timestamp: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                version: 1,
-                movement_value: Math.abs(quantity) * (state.items[itemId]?.cost || 0),
-                currency: 'MWK'
-            };
+            // Record the movement
+            const movement = logMove(
+                itemId,
+                quantity > 0 ? 'in' : 'out',
+                Math.abs(quantity),
+                reason,
+                staff,
+                pin,
+                currentUser?.displayName
+            );
             
-            // Add verification info if admin
-            if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
-                movementData.verified_by = currentUser.username;
-                movementData.verification_timestamp = new Date().toISOString();
-                movementData.verification_note = verificationNote;
+            // Add verification note if provided
+            if (verificationNote) {
+                movement.verification_note = verificationNote;
             }
             
-            // Add to movements and offline queue
-            state.stockMovements.unshift(movementData);
+            // Update offline queue with stock level change
             addOffline({
-                type: 'STOCK_MOVEMENT',
-                data: movementData,
-                stockUpdate: {
-                    item_id: itemId,
-                    quantity: state.stockLevels[itemId].quantity,
-                    updated_at: state.stockLevels[itemId].updated_at
-                }
+                type: 'UPDATE_STOCK_LEVEL',
+                id: state.stockLevels[itemId].id,
+                data: state.stockLevels[itemId]
             });
             
             saveState();
@@ -1299,14 +1363,10 @@ function genId() {
             // Check for low stock
             const item = state.items[itemId];
             if (item && state.stockLevels[itemId].quantity <= item.minStockLevel) {
-                const currentValue = state.stockLevels[itemId].quantity * (item.cost || 0);
-                const msg = `🚨 Low stock alert: ${item.name}\n` +
-                           `Current: ${state.stockLevels[itemId].quantity} ${item.unit}\n` +
-                           `Value: ${formatCurrency(currentValue)}\n` +
-                           `Reorder needed!`;
-                sendTG(msg);
+                showLowStockAlert(item);
             }
         }
+
 
         async function testSupabaseConnection() {
             try {
@@ -1586,144 +1646,126 @@ function genId() {
         }
 
     async function processOfflineQueue() {
-    if (!offlineQueue.length) return;
+            if (!offlineQueue.length) return;
 
-    let failedOperations = [];
-    const MAX_RETRIES = 3;
-    
-    // Process each operation with retry logic
-    for (const op of offlineQueue) {
-        let retryCount = 0;
-        let success = false;
-        
-        while (retryCount < MAX_RETRIES && !success) {
-            try {
-                const updateData = { 
-                    ...op.data, 
-                    updated_at: new Date().toISOString(),
-                    version: (op.data.version || 1) + 1
-                };
-
-                switch (op.type) {
-                    case 'ADD_ITEM':
-                        // Generate a new, valid UUID for the new item to ensure type compatibility
-                        const newItemId = crypto.randomUUID();
-                        const formattedItem = {
-                            ...op.data,
-                            // Ensure the foreign key is a UUID
-                            categoryId: ensureUUID(op.data.categoryId)
+            let failedOperations = [];
+            const MAX_RETRIES = 3;
+            
+            for (const op of offlineQueue) {
+                let retryCount = 0;
+                let success = false;
+                
+                while (retryCount < MAX_RETRIES && !success) {
+                    try {
+                        const updateData = { 
+                            ...op.data, 
+                            updated_at: new Date().toISOString(),
+                            version: (op.data.version || 1) + 1
                         };
 
-                        const itemResult = await supabase
-                            .from('items')
-                            .insert({
-                                id: newItemId,
-                                name: formattedItem.name,
-                                category_id: formattedItem.categoryId,
-                                unit: formattedItem.unit,
-                                cost: formattedItem.cost || 0,
-                                min_stock_level: formattedItem.minStockLevel || 0,
-                                created_at: formattedItem.createdAt || new Date().toISOString(),
-                                updated_at: updateData.updated_at,
-                                version: updateData.version
-                            });
-                        
-                        if (itemResult.error) throw itemResult.error;
-                        
-                        // Use the same new item ID for the stock level record
-                        const stockResult = await supabase
-                            .from('stock_levels')
-                            .insert({
-                                id: crypto.randomUUID(), // A new ID for the stock_levels record
-                                item_id: newItemId,
-                                quantity: op.initialQuantity || 0,
-                                updated_at: updateData.updated_at
-                            });
-                        
-                        if (stockResult.error) throw stockResult.error;
-                        break;
+                        switch (op.type) {
+                            case 'ADD_ITEM':
+                                const { error: itemError } = await supabase
+                                    .from('items')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        name: op.data.name,
+                                        category_id: ensureUUID(op.data.categoryId),
+                                        unit: op.data.unit,
+                                        cost: op.data.cost || 0,
+                                        min_stock_level: op.data.minStockLevel || 0,
+                                        created_at: op.data.createdAt || new Date().toISOString(),
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    });
+                                
+                                if (itemError) throw itemError;
+                                break;
 
-                    case 'UPDATE_ITEM':
-                        const formattedUpdate = {
-                            ...op.data,
-                            id: ensureUUID(op.id),
-                            categoryId: ensureUUID(op.data.categoryId)
-                        };
+                            case 'UPDATE_ITEM':
+                                const { error: updateError } = await supabase
+                                    .from('items')
+                                    .update({
+                                        name: op.data.name,
+                                        category_id: ensureUUID(op.data.categoryId),
+                                        unit: op.data.unit,
+                                        cost: op.data.cost || 0,
+                                        min_stock_level: op.data.minStockLevel || 0,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    })
+                                    .eq('id', ensureUUID(op.id));
+                                
+                                if (updateError) throw updateError;
+                                break;
 
-                        const updateResult = await supabase
-                            .from('items')
-                            .update({
-                                name: formattedUpdate.name,
-                                category_id: formattedUpdate.categoryId,
-                                unit: formattedUpdate.unit,
-                                cost: formattedUpdate.cost || 0,
-                                min_stock_level: formattedUpdate.minStockLevel || 0,
-                                updated_at: updateData.updated_at,
-                                version: updateData.version
-                            })
-                            .eq('id', formattedUpdate.id);
-                        
-                        if (updateResult.error) throw updateResult.error;
-                        break;
+                            case 'DELETE_ITEM':
+                                // First delete dependent stock levels
+                                await supabase
+                                    .from('stock_levels')
+                                    .delete()
+                                    .eq('item_id', ensureUUID(op.id));
+                                
+                                // Then delete the item
+                                const { error: deleteError } = await supabase
+                                    .from('items')
+                                    .delete()
+                                    .eq('id', ensureUUID(op.id));
+                                
+                                if (deleteError) throw deleteError;
+                                break;
 
-                    case 'DELETE_ITEM':
-                        const deleteId = ensureUUID(op.id);
-                        
-                        await supabase
-                            .from('stock_levels')
-                            .delete()
-                            .eq('item_id', deleteId);
-                        
-                        const deleteResult = await supabase
-                            .from('items')
-                            .delete()
-                            .eq('id', deleteId);
-                        
-                        if (deleteResult.error) throw deleteResult.error;
-                        break;
+                            case 'ADD_STOCK_LEVEL':
+                                const { error: stockError } = await supabase
+                                    .from('stock_levels')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        item_id: ensureUUID(op.data.item_id),
+                                        quantity: op.data.quantity || 0,
+                                        updated_at: op.data.updated_at,
+                                        version: op.data.version || 1
+                                    });
+                                
+                                if (stockError) throw stockError;
+                                break;
 
-                    case 'STOCK_MOVEMENT':
-                        const formattedMovement = {
-                            ...op.data,
-                            id: ensureUUID(op.data.id),
-                            item_id: ensureUUID(op.data.item_id)
-                        };
+                            case 'UPDATE_STOCK_LEVEL':
+                                const { error: updateStockError } = await supabase
+                                    .from('stock_levels')
+                                    .update({
+                                        quantity: op.data.quantity,
+                                        updated_at: op.data.updated_at,
+                                        version: op.data.version
+                                    })
+                                    .eq('id', ensureUUID(op.id));
+                                
+                                if (updateStockError) throw updateStockError;
+                                break;
 
-                        // First ensure stock_levels record exists
-                        const stockUpdate = await supabase
-                            .from('stock_levels')
-                            // FIX: Replace the old ID generation with a new, valid UUID
-                            // to resolve the UUID type mismatch error.
-                            .upsert({
-                                id: crypto.randomUUID(),
-                                item_id: formattedMovement.item_id,
-                                quantity: op.stockUpdate?.quantity || 0,
-                                updated_at: op.stockUpdate?.updated_at || new Date().toISOString()
-                            }, { onConflict: 'item_id' });
-                        
-                        if (stockUpdate.error) throw stockUpdate.error;
-                        
-                        // Then record the movement
-                        const movementResult = await supabase
-                            .from('stock_movements')
-                            .insert({
-                                id: formattedMovement.id,
-                                item_id: formattedMovement.item_id,
-                                type: formattedMovement.type,
-                                quantity: formattedMovement.quantity,
-                                reason: formattedMovement.reason || '',
-                                user_name: formattedMovement.user || 'Unknown',
-                                staff_member: formattedMovement.staff_member,
-                                confirmed_pin: formattedMovement.confirmedPin,
-                                timestamp: formattedMovement.timestamp,
-                                updated_at: updateData.updated_at,
-                                version: 1,
-                                movement_value: formattedMovement.movement_value || 0,
-                                currency: formattedMovement.currency || 'MWK'
-                            });
-                        
-                        if (movementResult.error) throw movementResult.error;
-                        break;
+                            case 'STOCK_MOVEMENT':
+                                const { error: moveError } = await supabase
+                                    .from('stock_movements')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        item_id: ensureUUID(op.data.item_id),
+                                        type: op.data.type,
+                                        quantity: op.data.quantity,
+                                        reason: op.data.reason || '',
+                                        user_name: op.data.user || 'Unknown',
+                                        staff_member: op.data.staff_member,
+                                        confirmed_pin: op.data.confirmedPin,
+                                        timestamp: op.data.timestamp,
+                                        updated_at: op.data.updated_at,
+                                        version: 1,
+                                        movement_value: op.data.movement_value || 0,
+                                        currency: op.data.currency || 'MWK',
+                                        verified_by: op.data.verified_by,
+                                        verification_timestamp: op.data.verification_timestamp,
+                                        verification_note: op.data.verification_note
+                                    });
+                                
+                                if (moveError) throw moveError;
+                                break;
 
                     case 'ADD_CATEGORY':
                         // Generate a new, valid UUID for the new category
@@ -1878,17 +1920,16 @@ function genId() {
                 }
                 
                 success = true;
-                
-            } catch (err) {
-                retryCount++;
-                console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
-                
-                if (retryCount >= MAX_RETRIES) {
-                    console.error('Max retries reached, adding to failed operations');
-                    failedOperations.push(op);
-                } else {
-                    const delay = 1000 * Math.pow(2, retryCount);
-                    await new Promise(resolve => setTimeout(resolve, delay));
+                        
+                    } catch (err) {
+                        retryCount++;
+                        console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
+                        
+                        if (retryCount >= MAX_RETRIES) {
+                            failedOperations.push(op);
+                        } else {
+                            await new Promise(resolve => 
+                                setTimeout(resolve, 1000 * Math.pow(2, retryCount));
                 }
             }
         }
@@ -1898,12 +1939,13 @@ function genId() {
     if (failedOperations.length < offlineQueue.length) {
         await clearQueue();
         
-        if (failedOperations.length > 0) {
-            offlineQueue = failedOperations;
-            await saveQueue();
-            showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
-        } else {
-            showSyncNotification('All operations synced successfully', 'success');
+        if (failedOperations.length < offlineQueue.length) {
+                await clearQueue();
+                
+                if (failedOperations.length > 0) {
+                    offlineQueue = failedOperations;
+                    await saveQueue();
+                    showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
         }
     }
 }
@@ -2066,6 +2108,39 @@ function ensureUUID(id) {
         }
 
         /* ===== REALTIME UPDATES - STOCK LEVEL HANDLING ===== */
+        function setupRealtimeUpdates() {
+            if (!supabase || realtimeChannel) return;
+
+            realtimeChannel = supabase
+                .channel('schema-db-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'stock_movements'
+                    },
+                    (payload) => {
+                        console.log('Stock movement update:', payload);
+                        handleStockMovementUpdate(payload.eventType, payload.new, payload.old);
+                    }
+                )
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public',
+                        table: 'stock_levels' 
+                    },
+                    (payload) => {
+                        console.log('Stock level update:', payload);
+                        handleStockLevelUpdate(payload.eventType, payload.new, payload.old);
+                    }
+                )
+                .subscribe();
+        }
+        
+        
         function handleStockLevelUpdate(eventType, newData, oldData) {
             if (eventType === 'INSERT' || eventType === 'UPDATE') {
                 state.stockLevels[newData.item_id] = newData;
@@ -3950,11 +4025,11 @@ function ensureUUID(id) {
         }
 
         /* ===== INITIALIZATION ===== */
-        async function initializeApp() {
+       async function initializeApp() {
             try {
-                console.log('Initializing Vanguard Stock Management System v2.1...');
+                console.log('Initializing Vanguard Stock Management System v2.1.1');
                 
-                // 1. Load local data first (with error recovery)
+                // Load local state with error recovery
                 try {
                     await loadState();
                     await loadQueue();
@@ -3964,12 +4039,11 @@ function ensureUUID(id) {
                     await saveState();
                 }
                 
-                // 2. Check connection and sync
+                // Check connection and sync
                 const isConnected = navigator.onLine && await testSupabaseConnection();
                 
                 if (isConnected) {
                     console.log('✅ Supabase connection established');
-                    // Immediate sync attempt with fallback
                     try {
                         await syncData();
                     } catch (syncError) {
@@ -3977,16 +4051,15 @@ function ensureUUID(id) {
                         setTimeout(() => syncData(), 3000);
                     }
                     
-                    // Setup realtime updates regardless of sync success
                     if (currentUser) setupRealtimeUpdates();
                 } else {
                     console.log('⚠️ Working in offline mode');
                 }
                 
-                // 3. DOM Setup - Improved event delegation
+                // DOM Setup
                 pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
                 
-                // Single delegated listener for better performance
+                // Event delegation for better performance
                 document.body.addEventListener('click', (e) => {
                     if (e.target.matches('.key')) {
                         const key = e.target.dataset.key;
@@ -3996,33 +4069,15 @@ function ensureUUID(id) {
                             handleInlineKeyPress(key);
                         }
                     }
-                    
-                    // PDF generation handler
-                    if (e.target.id === 'generatePdfBtn') {
-                        generatePDFReport();
-                    }
                 });
 
-                // 4. Enhanced Network Monitoring
+                // Network monitoring
                 const handleOnline = () => {
                     console.log('Network connection restored');
                     updateSyncStatus();
-                    
-                    // Immediate sync with backoff
-                    const syncWithRetry = async (attempt = 1) => {
-                        try {
-                            await syncData();
-                            if (currentUser) setupRealtimeUpdates();
-                        } catch (err) {
-                            if (attempt <= 3) {
-                                const delay = attempt * 2000;
-                                console.log(`Retry ${attempt} in ${delay}ms`);
-                                setTimeout(() => syncWithRetry(attempt + 1), delay);
-                            }
-                        }
-                    };
-                    
-                    syncWithRetry();
+                    syncData().catch(err => 
+                        console.log('Connection sync failed:', err.message)
+                    );
                 };
 
                 const handleOffline = () => {
@@ -4037,24 +4092,23 @@ function ensureUUID(id) {
                 window.addEventListener('online', handleOnline);
                 window.addEventListener('offline', handleOffline);
                 
-                // 5. Optimized Periodic Sync (with jitter)
+                // Periodic sync with jitter
                 const syncInterval = setInterval(() => {
                     if (navigator.onLine) {
-                        // Add random jitter to prevent thundering herd
-                        const jitter = Math.floor(Math.random() * 30000); // 0-30s
+                        const jitter = Math.floor(Math.random() * 30000);
                         setTimeout(() => {
                             syncData().catch(err => 
                                 console.log('Periodic sync failed:', err.message)
                             );
                         }, jitter);
                     }
-                }, 5 * 60 * 1000); // 5 minutes base interval
+                }, 5 * 60 * 1000);
 
-                // 6. Initial UI State
+                // Initial UI state
                 updateUIVisibility();
                 updateSyncStatus();
                 
-                // Cleanup function for app teardown
+                // Cleanup function
                 window.appCleanup = () => {
                     window.removeEventListener('online', handleOnline);
                     window.removeEventListener('offline', handleOffline);
