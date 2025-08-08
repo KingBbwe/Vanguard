@@ -1660,37 +1660,44 @@ function genId() {
                                 break;
 
                             case 'STOCK_MOVEMENT':
-                                // First insert/update the stock level
-                                await supabase
-                                    .from('stock_levels')
-                                    .upsert({
-                                        id: ensureUUID(op.stockUpdate.id),
-                                        item_id: ensureUUID(op.stockUpdate.item_id),
-                                        quantity: op.stockUpdate.quantity,
-                                        updated_at: op.stockUpdate.updated_at
-                                    });
-                                
-                                // Then record the movement
-                                await supabase
-                                    .from('stock_movements')
-                                    .insert({
-                                        id: ensureUUID(op.data.id),
-                                        item_id: ensureUUID(op.data.item_id),
-                                        type: op.data.type,
-                                        quantity: op.data.quantity,
-                                        reason: op.data.reason || '',
-                                        user_name: op.data.user || 'Unknown',
-                                        staff_member: op.data.staff_member,
-                                        confirmed_pin: op.data.confirmedPin,
-                                        timestamp: op.data.timestamp,
-                                        updated_at: updateData.updated_at,
-                                        version: 1,
-                                        movement_value: op.data.movement_value || 0,
-                                        currency: op.data.currency || 'MWK',
-                                        verified_by: op.data.verified_by,
-                                        verification_note: op.data.verification_note
-                                    });
-                                break;
+                        // First insert/update the stock level
+                        const stockUpdate = {
+                            id: ensureUUID(op.stockUpdate.id),
+                            item_id: ensureUUID(op.stockUpdate.item_id),
+                            quantity: op.stockUpdate.quantity,
+                            updated_at: op.stockUpdate.updated_at
+                        };
+                        
+                        const { error: stockError } = await supabase
+                            .from('stock_levels')
+                            .upsert(stockUpdate);
+                        
+                        if (stockError) throw stockError;
+                        
+                        // Then record the movement
+                        const movementData = {
+                            id: ensureUUID(op.data.id),
+                            item_id: ensureUUID(op.data.item_id),
+                            type: op.data.type,
+                            quantity: op.data.quantity,
+                            reason: op.data.reason || '',
+                            user_name: op.data.user || 'Unknown',
+                            staff_member: op.data.staff_member || null,
+                            confirmed_pin: op.data.confirmedPin || null,
+                            timestamp: op.data.timestamp,
+                            updated_at: updateData.updated_at,
+                            movement_value: op.data.movement_value || 0,
+                            currency: op.data.currency || 'MWK',
+                            verified_by: op.data.verified_by || null,
+                            verification_note: op.data.verification_note || null
+                        };
+                        
+                        const { error: movementError } = await supabase
+                            .from('stock_movements')
+                            .insert(movementData);
+                        
+                        if (movementError) throw movementError;
+                        break;
 
                             case 'UPDATE_ITEM':
                                 await supabase
@@ -1832,35 +1839,35 @@ function genId() {
                         }
                         
                         success = true;
-                        
-                    } catch (err) {
-                        retryCount++;
-                        console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
-                        
-                        if (retryCount >= MAX_RETRIES) {
-                            console.error('Max retries reached, adding to failed operations');
-                            failedOperations.push(op);
-                        } else {
-                            const delay = 1000 * Math.pow(2, retryCount);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                        }
-                    }
-                }
-            }
-
-            // Clear successful operations
-            if (failedOperations.length < offlineQueue.length) {
-                await clearQueue();
                 
-                if (failedOperations.length > 0) {
-                    offlineQueue = failedOperations;
-                    await saveQueue();
-                    showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
+            } catch (err) {
+                retryCount++;
+                console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
+                
+                if (retryCount >= MAX_RETRIES) {
+                    console.error('Max retries reached, adding to failed operations');
+                    failedOperations.push(op);
                 } else {
-                    showSyncNotification('All operations synced successfully', 'success');
+                    const delay = 1000 * Math.pow(2, retryCount);
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
         }
+    }
+
+    // Clear successful operations
+    if (failedOperations.length < offlineQueue.length) {
+        await clearQueue();
+        
+        if (failedOperations.length > 0) {
+            offlineQueue = failedOperations;
+            await saveQueue();
+            showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
+        } else {
+            showSyncNotification('All operations synced successfully', 'success');
+        }
+    }
+}
 
         async function saveQueue() {
             try {
