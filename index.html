@@ -659,6 +659,7 @@
     </style>
 </head>
 <body>
+    <!-- Login Screen -->
     <div id="loginScreen" class="login-container">
         <div class="login-card">
             <div class="login-logo">
@@ -699,6 +700,7 @@
         </div>
     </div>
 
+    <!-- Main Application -->
     <div id="mainApp" class="hidden">
         <header class="header">
             <div class="header-content">
@@ -877,7 +879,7 @@
         /* ===== IndexedDB ===== */
         async function initIDB() {
             return new Promise((resolve, reject) => {
-                const req = indexedDB.open('VanguardStockDB', 7);
+                const req = indexedDB.open('VanguardStockDB', 8); // Version bumped to 8
                 req.onerror = e => reject(e.target.error);
                 req.onupgradeneeded = e => {
                     const db = e.target.result;
@@ -1019,46 +1021,53 @@
                     };
                 });
             });
-            
-            // Refactor users to use UUIDs for their IDs
-            const users = {
-                Kelvin: { username: 'Kelvin', password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all', updated_at: new Date().toISOString(), version: 1 },
-                Franklin: { username: 'Franklin', password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all', updated_at: new Date().toISOString(), version: 1 },
-                Chisomo: { username: 'Chisomo', password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin', updated_at: new Date().toISOString(), version: 1 },
-                Victor: { username: 'Victor', password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin', updated_at: new Date().toISOString(), version: 1 },
-                Boston: { username: 'Boston', password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', updated_at: new Date().toISOString(), version: 1 },
-                Magah: { username: 'Magah', password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', updated_at: new Date().toISOString(), version: 1 },
-                Phillip: { username: 'Phillip', password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', isSupervisor: true, updated_at: new Date().toISOString(), version: 1 },
-                Gift: { username: 'Gift', password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
-                Rhodney: { username: 'Rhodney', password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true, updated_at: new Date().toISOString(), version: 1 },
-                Mike: { username: 'Mike', password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
-                Matias: { username: 'Matias', password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel', updated_at: new Date().toISOString(), version: 1 },
-                Kennedy: { username: 'Kennedy', password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel', updated_at: new Date().toISOString(), version: 1 },
-                Mphatso: { username: 'Mphatso', password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
-                Gaven: { username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', updated_at: new Date().toISOString(), version: 1 },
-                Maya: { username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', updated_at: new Date().toISOString(), version: 1 }
+    
+    // Users with UUIDs
+            const userData = {
+                Kelvin: { username: 'Kelvin', password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all' },
+                Franklin: { username: 'Franklin', password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all' },
+                Chisomo: { username: 'Chisomo', password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin' },
+                Victor: { username: 'Victor', password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin' },
+                Boston: { username: 'Boston', password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar' },
+                Magah: { username: 'Magah', password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar' },
+                Phillip: { username: 'Phillip', password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', isSupervisor: true },
+                Gift: { username: 'Gift', password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant' },
+                Rhodney: { username: 'Rhodney', password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true },
+                Mike: { username: 'Mike', password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant' },
+                Matias: { username: 'Matias', password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel' },
+                Kennedy: { username: 'Kennedy', password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel' },
+                Mphatso: { username: 'Mphatso', password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant' },
+                Gaven: { username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds' },
+                Maya: { username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds' }
             };
 
-            // Now, assign UUIDs to each user
+            // Convert to UUID-based users
             state.users = {};
-            Object.values(users).forEach(user => {
-                const userId = genId(); // Generate UUID for each user
+            Object.entries(userData).forEach(([username, user]) => {
+                const userId = genId();
                 state.users[userId] = {
-                    ...user,
                     id: userId,
+                    username: username,
+                    password: user.password,
+                    role: user.role,
+                    displayName: user.displayName,
+                    department: user.department,
+                    isSupervisor: user.isSupervisor || false,
+                    updated_at: new Date().toISOString(),
+                    version: 1
                 };
             });
         }
-        
+
         /* ===== UTILS ===== */
         function generateUUID() {
             return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
             );
         }
 
-        // The user's genId() function is correct and will be used
-        function genId() {
+   
+function genId() {
             // Modern browser support (preferred)
             if (typeof crypto.randomUUID === 'function') {
                 return crypto.randomUUID();
@@ -1071,29 +1080,54 @@
             });
         }
 
+        function ensureUUID(id) {
+            if (!id) return genId();
+            
+            // If already in valid UUID format
+            const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            if (typeof id === 'string' && uuidPattern.test(id)) {
+                return id;
+            }
+            
+            // If it's a number or simple string, convert to proper UUIDv4 format
+            const cleanId = String(id).replace(/[^0-9a-f]/gi, '');
+            const paddedId = (cleanId + '00000000000000000000000000000000').slice(0, 32);
+            return `${paddedId.slice(0, 8)}-${paddedId.slice(8, 12)}-4${paddedId.slice(13, 16)}-${
+                '89ab'[Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
+        }
         // Enhanced Telegram notification with currency conversion
         const sendTG = msg => {
             if (!TELEGRAM_BOT || !TELEGRAM_CHAT) return;
+            
             // Enhanced currency conversion
             const processedMsg = msg
-            .replace(/\$(\d+\.?\d*)/g, 'K$1')
-            .replace(/(\d+\.?\d*)\s?(USD|dollars?)/gi, 'K$1 Kwacha')
-            .replace(/value:\s*(\d+\.?\d*)/gi, 'value: K$1')
-            .replace(/cost:\s*(\d+\.?\d*)/gi, 'cost: K$1');
+                .replace(/\$(\d+\.?\d*)/g, 'K$1')
+                .replace(/(\d+\.?\d*)\s?(USD|dollars?)/gi, 'K$1 Kwacha')
+                // Add pattern for raw monetary amounts in context
+                .replace(/value:\s*(\d+\.?\d*)/gi, 'value: K$1')
+                .replace(/cost:\s*(\d+\.?\d*)/gi, 'cost: K$1');
+            
             const messageWithContext = `[Vanguard]\n${processedMsg}\n${new Date().toLocaleTimeString()}`;
+            
             // 3. Enhanced sending with error handling
             fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: TELEGRAM_CHAT,
-                    text: messageWithContext,
-                    parse_mode: 'Markdown'
+                body: JSON.stringify({ 
+                    chat_id: TELEGRAM_CHAT, 
+                    text: messageWithContext, 
+                    parse_mode: 'Markdown' 
                 })
             })
             .catch(error => {
                 console.error('Telegram failed:', error);
-                addOffline({ type: 'TELEGRAM_MSG', data: { rawMessage: msg, timestamp: new Date().toISOString() } });
+                addOffline({
+                    type: 'TELEGRAM_MSG',
+                    data: {
+                        rawMessage: msg,
+                        timestamp: new Date().toISOString()
+                    }
+                });
                 showMsg('Message queued for retry', 'warning');
             });
         };
@@ -1101,6 +1135,7 @@
         function showMsg(text, type = 'info') {
             const existingMessages = document.querySelectorAll('.message');
             existingMessages.forEach(msg => msg.remove());
+            
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
             messageDiv.style.cssText = `
@@ -1114,16 +1149,23 @@
                 z-index: 1000;
                 max-width: 400px;
                 box-shadow: var(--shadow);
-                background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--accent)' : type === 'warning' ? 'var(--warning)' : 'var(--secondary)'};
+                background: ${type === 'success' ? 'var(--success)' : 
+                            type === 'error' ? 'var(--accent)' : 
+                            type === 'warning' ? 'var(--warning)' : 'var(--secondary)'};
                 animation: slideIn 0.3s ease;
             `;
+            
             messageDiv.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                                  type === 'error' ? 'fa-exclamation-triangle' : 
+                                  type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
                     <span>${text}</span>
                 </div>
             `;
+            
             document.body.appendChild(messageDiv);
+            
             setTimeout(() => {
                 if (messageDiv.parentNode) {
                     messageDiv.style.animation = 'slideOut 0.3s ease';
@@ -1131,15 +1173,19 @@
                 }
             }, 4000);
         }
-        
+
         function showSyncNotification(message, type = 'info') {
             const notification = document.createElement('div');
             notification.className = `sync-notification ${type}`;
             notification.innerHTML = `
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                              type === 'error' ? 'fa-exclamation-triangle' : 
+                              'fa-info-circle'}"></i>
                 <span>${message}</span>
             `;
+            
             document.body.appendChild(notification);
+            
             setTimeout(() => {
                 notification.classList.add('fade-out');
                 setTimeout(() => notification.remove(), 300);
@@ -1152,7 +1198,7 @@
             document.getElementById('categoryManagementMenuItem').classList.toggle('hidden', !isAdmin);
             document.getElementById('departmentManagementMenuItem').classList.toggle('hidden', !isAdmin);
         }
-        
+
         function showLowStockAlert(item) {
             const value = item.quantity * (item.cost || 0);
             showMsg(`Low stock: ${item.name} - Current value: ${formatCurrency(value)}`, 'warning');
@@ -1161,8 +1207,9 @@
         function formatCurrency(amount) {
             const num = parseFloat(amount);
             if (isNaN(num)) return 'K0.00';
+            
             return 'K' + num.toFixed(2)
-            .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                      .replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
         /* ===== CORE OPS ===== */
@@ -1170,8 +1217,9 @@
             const user = userOverride || (currentUser ? currentUser.displayName : "System");
             const item = state.items[itemId];
             const movementValue = quantity * (item?.cost || 0);
+            
             state.stockMovements.unshift({
-                id: genId(), // Using genId()
+                id: genId(),
                 item_id: itemId,
                 type: moveType,
                 quantity: quantity,
@@ -1189,7 +1237,7 @@
         }
 
         function addItem(data) {
-            const id = genId(); // Using genId()
+            const id = genId();
             const newItem = {
                 id: id,
                 name: data.name,
@@ -1201,16 +1249,24 @@
                 updated_at: new Date().toISOString(),
                 version: 1
             };
+            
             state.items[id] = newItem;
-            state.stockLevels[id] = {
-                item_id: id,
+            state.stockLevels[id] = { 
+                item_id: id, 
                 quantity: +data.initialQuantity || 0,
                 updated_at: new Date().toISOString()
             };
+            
             if (+data.initialQuantity > 0) {
                 logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
             }
-            addOffline({ type: 'ADD_ITEM', data: newItem, initialQuantity: +data.initialQuantity || 0 });
+            
+            addOffline({ 
+                type: 'ADD_ITEM', 
+                data: newItem, 
+                initialQuantity: +data.initialQuantity || 0 
+            });
+            
             saveState();
             updateDash();
             renderAct();
@@ -1221,1112 +1277,2792 @@
         function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
             // Ensure stock level exists
             if (!state.stockLevels[itemId]) {
-                state.stockLevels[itemId] = { item_id: itemId, quantity: 0, updated_at: new Date().toISOString() };
+                state.stockLevels[itemId] = { 
+                    id: genId(),
+                    item_id: itemId, 
+                    quantity: 0,
+                    updated_at: new Date().toISOString()
+                };
             }
-
+            
             // Update quantity (prevent negative values)
             const newQuantity = state.stockLevels[itemId].quantity + quantity;
-            state.stockLevels[itemId].quantity = Math.max(0, newQuantity); // Ensure quantity doesn't go below 0
+            state.stockLevels[itemId].quantity = Math.max(0, newQuantity);
             state.stockLevels[itemId].updated_at = new Date().toISOString();
-
-            // Log movement
-            const moveType = quantity > 0 ? 'in' : 'out';
-            logMove(itemId, moveType, Math.abs(quantity), reason, staff, pin);
-
-            // Add offline operation
+            
+            // Create movement record
+            const movementData = {
+                id: genId(),
+                item_id: itemId,
+                type: quantity > 0 ? 'in' : 'out',
+                quantity: Math.abs(quantity),
+                reason: reason,
+                user: currentUser?.displayName || 'System',
+                staff_member: staff,
+                confirmedPin: pin,
+                timestamp: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                version: 1,
+                movement_value: Math.abs(quantity) * (state.items[itemId]?.cost || 0),
+                currency: 'MWK'
+            };
+            
+            // Add verification info if admin
+            if (verificationNote && ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
+                movementData.verified_by = currentUser.username;
+                movementData.verification_timestamp = new Date().toISOString();
+                movementData.verification_note = verificationNote;
+            }
+            
+            // Add to movements and offline queue
+            state.stockMovements.unshift(movementData);
             addOffline({
-                type: 'ADJUST_STOCK',
-                data: {
-                    itemId: itemId,
-                    quantity: newQuantity,
-                    updated_at: state.stockLevels[itemId].updated_at,
-                    reason: reason,
-                    staff: staff,
-                    pin: pin,
-                    verificationNote: verificationNote
+                type: 'STOCK_MOVEMENT',
+                data: movementData,
+                stockUpdate: {
+                    id: state.stockLevels[itemId].id,
+                    item_id: itemId,
+                    quantity: state.stockLevels[itemId].quantity,
+                    updated_at: state.stockLevels[itemId].updated_at
                 }
             });
-
+            
             saveState();
             updateDash();
             renderAct();
+            
+            // Check for low stock
+            const item = state.items[itemId];
+            if (item && state.stockLevels[itemId].quantity <= item.minStockLevel) {
+                const currentValue = state.stockLevels[itemId].quantity * (item.cost || 0);
+                const msg = `🚨 Low stock alert: ${item.name}\n` +
+                           `Current: ${state.stockLevels[itemId].quantity} ${item.unit}\n` +
+                           `Value: ${formatCurrency(currentValue)}\n` +
+                           `Reorder needed!`;
+                sendTG(msg);
+            }
+        }
+        async function testSupabaseConnection() {
+            try {
+                const { data, error } = await supabase
+                    .from('departments')
+                    .select('id')
+                    .limit(1);
+                    
+                if (error) {
+                    console.error('Supabase connection test failed:', error);
+                    return false;
+                }
+                
+                console.log('Supabase connection test successful');
+                return true;
+            } catch (err) {
+                console.error('Supabase connection test error:', err);
+                return false;
+            }
         }
 
-        function upsertData(table, data) {
-            return new Promise(async (resolve, reject) => {
-                const { error } = await supabase
-                    .from(table)
-                    .upsert(data, { onConflict: 'id' }); // Use onConflict: 'id' for tables with a primary key
-                if (error) {
-                    console.error(`Operation ${table.toUpperCase()} failed:`, error);
-                    return reject(error);
-                }
-                resolve();
+        function updateDash() {
+            // Total items count
+            document.getElementById('totalItems').textContent = Object.keys(state.items).length;
+            
+            // Low stock calculation
+            const lowStockCount = Object.values(state.items).filter(i => {
+                const stock = state.stockLevels[i.id] || { quantity: 0 };
+                return stock.quantity <= i.minStockLevel;
+            }).length;
+            document.getElementById('lowStockCount').textContent = lowStockCount;
+            
+            // Today's movements
+            const today = new Date().toDateString();
+            const todayMovements = state.stockMovements.filter(m => 
+                new Date(m.timestamp).toDateString() === today
+            ).length;
+            document.getElementById('todayMovements').textContent = todayMovements;
+            
+            // Active users
+            document.getElementById('activeUsers').textContent = Object.keys(state.users).length;
+            
+            // Total inventory value
+            const totalValue = Object.values(state.items).reduce((sum, item) => {
+                const stock = state.stockLevels[item.id] || { quantity: 0 };
+                return sum + (stock.quantity * (item.cost || 0));
+            }, 0);
+            document.getElementById('totalInventoryValue').textContent = formatCurrency(totalValue);
+        }
+
+        function renderAct() {
+            const feed = document.getElementById('recentActivity');
+            if (!feed) return;
+            feed.innerHTML = '';
+            
+            if (!state.stockMovements.length) {
+                feed.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:2rem">No recent activity.</p>';
+                return;
+            }
+            
+            state.stockMovements.slice(0, 5).forEach(m => {
+                const item = state.items[m.item_id];
+                if (!item) return;
+                
+                const icon = m.type === 'in' ? 'fa-arrow-down' : 'fa-arrow-up';
+                const color = m.type === 'in' ? 'var(--success)' : 'var(--accent)';
+                const staff = m.staff_member ? state.users[m.staff_member]?.displayName || m.staff_member : 'Unknown';
+                const time = new Date(m.timestamp).toLocaleString();
+                const value = m.movement_value ? formatCurrency(m.movement_value) : '';
+                
+                // Add verification badge if verified
+                const verifiedBadge = m.verified_by ? `
+                    <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px;">
+                        <i class="fas fa-check-circle" style="color: var(--success); font-size: 12px;"></i>
+                        <span style="font-size: 12px; color: var(--success);">
+                            Verified by ${state.users[m.verified_by]?.displayName || m.verified_by}
+                        </span>
+                    </div>
+                ` : '';
+                
+                feed.innerHTML += `
+                    <div class="activity-item" style="display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid var(--surface-light);">
+                        <div class="activity-avatar" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: ${color}20; margin-right: 1rem;">
+                            <i class="fas ${icon}" style="color:${color};"></i>
+                        </div>
+                        <div class="activity-content" style="flex: 1;">
+                            <div class="activity-text" style="margin-bottom: 0.25rem;">
+                                ${m.user} ${m.type === 'in' ? 'stocked in' : 'issued'} 
+                                ${m.quantity} ${item.unit} of ${item.name} (${value})
+                                ${m.type === 'out' ? ` to ${staff}` : ''}
+                            </div>
+                            <div class="activity-time" style="font-size: 0.8rem; color: var(--text-secondary);">${time}</div>
+                            ${verifiedBadge}
+                        </div>
+                    </div>`;
             });
         }
 
-        async function syncData() {
-            showMsg('Starting sync...', 'info');
-            document.getElementById('syncIndicator').classList.remove('syncing', 'offline');
-            document.getElementById('syncIndicator').classList.add('syncing');
-            document.getElementById('syncStatus').textContent = 'Syncing...';
-            document.querySelector('.sync-btn').classList.remove('unsynced');
+        function switchView(view, html = '') {
+            document.querySelectorAll('.view-content').forEach(v => v.classList.add('hidden'));
+            const el = document.getElementById(view);
+            
+            if (html) el.innerHTML = html;
+            
+            el.classList.remove('hidden');
+            el.style.animation = 'fadeIn .3s';
+        }
 
-            // Fetch remote data first to get the latest state
-            try {
-                await fetchAndMergeData();
-                showSyncNotification('Data fetched successfully', 'success');
-            } catch (err) {
-                showMsg('Failed to fetch remote data. Sync aborted.', 'error');
-                updateSyncStatus('offline');
-                return;
-            }
-
-            // Process the offline queue
-            const failedOps = [];
-            for (const op of offlineQueue) {
-                try {
-                    switch (op.type) {
-                        case 'ADD_ITEM':
-                            await upsertData('items', op.data);
-                            await upsertData('stock_levels', {
-                                item_id: op.data.id,
-                                quantity: op.initialQuantity,
-                                updated_at: new Date().toISOString()
-                            });
-                            // Log initial stock movement
-                            if (op.initialQuantity > 0) {
-                                const initialMove = {
-                                    id: genId(),
-                                    item_id: op.data.id,
-                                    type: 'in',
-                                    quantity: op.initialQuantity,
-                                    reason: 'Initial stock',
-                                    user: op.data.user || 'System',
-                                    timestamp: new Date().toISOString(),
-                                    updated_at: new Date().toISOString(),
-                                    version: 1,
-                                    movement_value: op.data.cost * op.initialQuantity,
-                                    currency: 'MWK'
-                                };
-                                await upsertData('stock_movements', initialMove);
-                            }
-                            break;
-                        case 'ADJUST_STOCK':
-                            await upsertData('stock_levels', {
-                                item_id: op.data.itemId,
-                                quantity: op.data.quantity,
-                                updated_at: op.data.updated_at
-                            });
-                            // We need to log this as a new movement, not just a stock level update
-                            const movementData = {
-                                id: genId(),
-                                item_id: op.data.itemId,
-                                type: op.data.quantity > 0 ? 'in' : 'out',
-                                quantity: Math.abs(op.data.quantity),
-                                reason: op.data.reason,
-                                user: op.data.staff,
-                                confirmedPin: op.data.pin,
-                                timestamp: new Date().toISOString(),
-                                updated_at: new Date().toISOString(),
-                                version: 1,
-                                movement_value: (state.items[op.data.itemId]?.cost || 0) * Math.abs(op.data.quantity),
-                                currency: 'MWK'
-                            };
-                            await upsertData('stock_movements', movementData);
-                            break;
-                        case 'EDIT_ITEM':
-                            await upsertData('items', op.data);
-                            break;
-                        case 'ADD_USER':
-                            await upsertData('users', op.data);
-                            break;
-                        case 'UPDATE_USER':
-                            await upsertData('users', op.data);
-                            break;
-                        case 'ADD_CATEGORY':
-                            await upsertData('categories', op.data);
-                            break;
-                        case 'UPDATE_CATEGORY':
-                            await upsertData('categories', op.data);
-                            break;
-                        case 'ADD_DEPARTMENT':
-                            await upsertData('departments', op.data);
-                            break;
-                        case 'UPDATE_DEPARTMENT':
-                            await upsertData('departments', op.data);
-                            break;
-                        case 'TELEGRAM_MSG':
-                            await sendTG(op.data.rawMessage);
-                            break;
-                        default:
-                            console.error('Unknown offline operation:', op);
-                    }
-                } catch (err) {
-                    console.error('Failed to process offline operation:', op, err);
-                    failedOps.push(op);
+        /* ===== LOGIN ===== */
+        function clearPin() {
+            currentPin = '';
+            pinDigits.forEach(d => {
+                if (d) {
+                    d.value = '';
+                    d.classList.remove('filled');
                 }
+            });
+            if (pinDigits.length > 0 && pinDigits[0]) pinDigits[0].focus();
+            const msg = document.getElementById('loginMessage');
+            if (msg) {
+                msg.className = 'message';
+                msg.textContent = '';
+            }
+        }
+
+        function handleKeyPress(key) {
+            const msg = document.getElementById('loginMessage');
+            if (msg) {
+                msg.className = 'message';
+                msg.textContent = '';
             }
             
-            offlineQueue = failedOps;
-            await clearQueue();
+            if (currentPin.length >= pinDigits.length) return;
             
-            if (offlineQueue.length > 0) {
-                showMsg(`Sync completed with ${offlineQueue.length} failures. Retrying next time.`, 'warning');
-                updateSyncStatus('offline');
+            const currentDigit = pinDigits[currentPin.length];
+            if (currentDigit) {
+                currentDigit.value = key;
+                currentDigit.classList.add('filled');
+            }
+            currentPin += key;
+            
+            if (currentPin.length === pinDigits.length) {
+                attemptLogin();
+            }
+        }
+
+        function attemptLogin() {
+            const foundUser = Object.values(state.users).find(user => user.password === currentPin);
+            
+            if (foundUser) {
+                login(foundUser);
             } else {
-                // Final fetch to confirm everything is in sync and update local state
-                try {
-                    await fetchAndMergeData();
-                    showSyncNotification('Sync complete!', 'success');
-                    updateSyncStatus('online');
-                } catch (err) {
-                    showMsg('Final fetch failed. Data may be inconsistent.', 'error');
-                    updateSyncStatus('offline');
+                const msg = document.getElementById('loginMessage');
+                if (msg) {
+                    msg.textContent = 'Invalid PIN. Please try again.';
+                    msg.className = 'message error';
+                }
+                const loginCard = document.querySelector('.login-card');
+                if (loginCard) {
+                    loginCard.style.animation = 'shake .5s';
+                    setTimeout(() => {
+                        loginCard.style.animation = '';
+                        clearPin();
+                    }, 600);
                 }
             }
         }
-        
-        async function fetchAndMergeData() {
-            const { data: remoteDepts, error: deptsError } = await supabase.from('departments').select('*');
-            const { data: remoteCats, error: catsError } = await supabase.from('categories').select('*');
-            const { data: remoteItems, error: itemsError } = await supabase.from('items').select('*');
-            const { data: remoteLevels, error: levelsError } = await supabase.from('stock_levels').select('*');
-            const { data: remoteMoves, error: movesError } = await supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(50);
-            const { data: remoteUsers, error: usersError } = await supabase.from('users').select('*');
 
-            if (deptsError || catsError || itemsError || levelsError || movesError || usersError) {
-                console.error('Error fetching remote data:', deptsError, catsError, itemsError, levelsError, movesError, usersError);
-                throw new Error('Failed to fetch remote data.');
-            }
-
-            const departmentsById = remoteDepts.reduce((acc, d) => ({ ...acc, [d.id]: d }), {});
-            const categoriesById = remoteCats.reduce((acc, c) => ({ ...acc, [c.id]: c }), {});
-            const itemsById = remoteItems.reduce((acc, i) => ({ ...acc, [i.id]: i }), {});
-            const levelsByItemId = remoteLevels.reduce((acc, l) => ({ ...acc, [l.item_id]: l }), {});
-            const usersById = remoteUsers.reduce((acc, u) => ({ ...acc, [u.id]: u }), {});
-
-            // Merge with local state (remote data takes precedence)
-            state.departments = { ...state.departments, ...departmentsById };
-            state.categories = { ...state.categories, ...categoriesById };
-            state.items = { ...state.items, ...itemsById };
-            state.stockLevels = { ...state.stockLevels, ...levelsByItemId };
-            state.stockMovements = remoteMoves; // Overwrite local movements with recent remote ones
-            state.users = { ...state.users, ...usersById };
-
-            await saveState();
+        function login(user) {
+            currentUser = user;
+            document.getElementById('currentUser').textContent = `Welcome, ${user.displayName}`;
+            
+            updateUIVisibility();
+            
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
             updateDash();
-            renderSidebar();
             renderAct();
-        }
-
-        /* ===== LOGIN / AUTH ===== */
-        async function login(pin) {
-            // Find user by pin
-            const user = Object.values(state.users).find(u => u.password === pin);
-            if (user) {
-                currentUser = user;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                document.getElementById('currentUser').textContent = `Welcome, ${currentUser.displayName}`;
-                updateUIVisibility();
-                await loadState(); // Load state after login to handle user-specific data
-                renderSidebar();
-                showDashboard();
-                updateSyncStatus();
-                initRealtime();
-                showMsg('Login successful!', 'success');
-            } else {
-                const pinInput = document.querySelectorAll('.pin-digit');
-                pinInput.forEach(input => input.classList.add('shake'));
-                setTimeout(() => pinInput.forEach(input => input.classList.remove('shake')), 500);
-                showMsg('Invalid PIN. Please try again.', 'error');
+            updateSyncStatus();
+            
+            // Setup realtime updates after login
+            if (navigator.onLine) {
+                setupRealtimeUpdates();
             }
         }
 
         function logout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('mainApp').classList.add('hidden');
-            document.getElementById('loginMessage').textContent = '';
-            location.reload();
-        }
-        
-        function initLoginScreen() {
-            pinDigits = Array.from(document.querySelectorAll('.pin-digit'));
-            document.querySelector('.keypad').addEventListener('click', (e) => {
-                if (!e.target.classList.contains('key')) return;
-                const key = e.target.dataset.key;
-                if (currentPin.length < 5) {
-                    currentPin += key;
-                    pinDigits[currentPin.length - 1].value = key;
-                    if (currentPin.length === 5) {
-                        login(currentPin);
-                    }
-                }
-            });
-            pinDigits.forEach((input, index) => {
-                input.addEventListener('focus', () => {
-                    input.blur();
-                });
-            });
-        }
-        
-        function clearPin() {
-            currentPin = '';
-            pinDigits.forEach(input => input.value = '');
-        }
-
-        /* ===== REALTIME SYNC ===== */
-        function initRealtime() {
-            if (!supabase || realtimeChannel) return;
+            // Unsubscribe from realtime updates
+            if (realtimeChannel) {
+                supabase.removeChannel(realtimeChannel);
+                realtimeChannel = null;
+            }
             
-            realtimeChannel = supabase.channel('vanguard-stock-db')
-            .on('postgres_changes', { event: '*', schema: 'public' }, async payload => {
-                console.log('Change received!', payload);
-                await fetchAndMergeData(); // Re-fetch all data to ensure consistency
-                showMsg('Realtime data updated.', 'info');
-                showSyncNotification('Remote data updated.', 'info');
-            })
-            .subscribe();
+            currentUser = null;
+            updateUIVisibility();
+            clearPin();
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
         }
 
-        function updateSyncStatus(status = 'online') {
+        /* ===== SYNC ===== */
+        async function syncData() {
             const indicator = document.getElementById('syncIndicator');
             const statusText = document.getElementById('syncStatus');
-            const syncButton = document.querySelector('.sync-btn');
             
-            if (offlineQueue.length > 0) {
-                status = 'offline';
-                syncButton.classList.add('unsynced');
-            } else {
-                syncButton.classList.remove('unsynced');
-            }
-            
-            indicator.classList.remove('online', 'syncing', 'offline');
-            indicator.classList.add(status);
-            
-            switch (status) {
-                case 'online':
-                    statusText.textContent = 'Online';
-                    break;
-                case 'syncing':
-                    statusText.textContent = 'Syncing...';
-                    break;
-                case 'offline':
-                    statusText.textContent = 'Offline';
-                    break;
+            indicator.className = 'sync-indicator syncing';
+            statusText.textContent = 'Syncing…';
+            showSyncNotification('Starting sync...');
+
+            try {
+                console.log('Starting sync process...');
+                
+                // Test connection first
+                const { error: testError } = await supabase
+                    .from('departments')
+                    .select('count')
+                    .limit(1);
+                    
+                if (testError) throw new Error(`Connection test failed: ${testError.message}`);
+
+                // Process offline queue first
+                await processOfflineQueue();
+                
+                // Then pull latest data from Supabase
+                await pullFromSupabase();
+                
+                // Save the updated state
+                await saveState();
+                
+                // Update UI
+                updateDash();
+                renderAct();
+                
+                console.log('Sync completed successfully');
+                showSyncNotification('Sync completed successfully', 'success');
+                
+            } catch (error) {
+                console.error('Sync error:', error);
+                showSyncNotification(`Sync failed: ${error.message}`, 'error');
+            } finally {
+                updateSyncStatus();
             }
         }
 
-        /* ===== UI RENDERING ===== */
-        let currentView = 'dashboard';
-        
-        function renderSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            const existingDeptItems = sidebar.querySelectorAll('.dept-item:not([data-dept="dashboard"])');
-            existingDeptItems.forEach(item => item.remove());
+        async function forceSync() {
+            const indicator = document.getElementById('syncIndicator');
+            const statusText = document.getElementById('syncStatus');
             
-            const deptManagementMenuItem = document.getElementById('departmentManagementMenuItem');
-            const categoryManagementMenuItem = document.getElementById('categoryManagementMenuItem');
+            if (!navigator.onLine) {
+                showSyncNotification('Cannot sync - offline', 'error');
+                return;
+            }
             
-            const departments = Object.values(state.departments).sort((a,b) => a.name.localeCompare(b.name));
-            departments.forEach(dept => {
-                const deptItem = document.createElement('div');
-                deptItem.className = 'dept-item';
-                deptItem.dataset.dept = dept.id;
-                deptItem.onclick = () => showInventory(dept.id);
+            indicator.className = 'sync-indicator syncing';
+            statusText.textContent = 'Syncing…';
+            showSyncNotification('Forcing immediate sync...');
+            
+            try {
+                await processOfflineQueue();
+                await pullFromSupabase();
+                await saveState();
                 
-                const icon = document.createElement('i');
-                const deptColors = {
-                    'hotel': 'var(--hotel-color)', 'bar': 'var(--bar-color)', 'restaurant': 'var(--restaurant-color)',
-                    'kitchen': 'var(--kitchen-color)', 'admin': 'var(--admin-color)', 'grounds': 'var(--grounds-color)',
-                    'cultivation': 'var(--cultivation-color)'
-                };
-                const deptIconClasses = {
-                    'hotel': 'fas fa-hotel', 'bar': 'fas fa-martini-glass-citrus', 'restaurant': 'fas fa-utensils',
-                    'kitchen': 'fas fa-kitchen-set', 'admin': 'fas fa-user-gear', 'grounds': 'fas fa-tree',
-                    'cultivation': 'fas fa-seedling'
-                };
+                updateDash();
+                renderAct();
+                showSyncNotification('Sync completed successfully', 'success');
+            } catch (error) {
+                console.error('Force sync error:', error);
+                showSyncNotification(`Sync failed: ${error.message}`, 'error');
+            } finally {
+                updateSyncStatus();
+            }
+        }
+
+    async function processOfflineQueue() {
+            if (!offlineQueue.length) return;
+
+            let failedOperations = [];
+            const MAX_RETRIES = 3;
+            
+            for (const op of offlineQueue) {
+                let retryCount = 0;
+                let success = false;
                 
-                icon.className = deptIconClasses[dept.name.toLowerCase()] || 'fas fa-folder';
-                icon.style.color = deptColors[dept.name.toLowerCase()] || 'var(--text-secondary)';
-                
-                deptItem.innerHTML = `<i class="${icon.className}" style="color:${icon.style.color}"></i><span>${dept.name}</span>`;
-                
-                if (deptManagementMenuItem) {
-                    sidebar.insertBefore(deptItem, deptManagementMenuItem);
-                } else {
-                    sidebar.appendChild(deptItem);
+                while (retryCount < MAX_RETRIES && !success) {
+                    try {
+                        const updateData = { 
+                            ...op.data, 
+                            updated_at: new Date().toISOString(),
+                            version: (op.data.version || 1) + 1
+                        };
+
+                        switch (op.type) {
+                            case 'ADD_ITEM':
+                                await supabase
+                                    .from('items')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        name: op.data.name,
+                                        category_id: ensureUUID(op.data.categoryId),
+                                        unit: op.data.unit,
+                                        cost: op.data.cost || 0,
+                                        min_stock_level: op.data.minStockLevel || 0,
+                                        created_at: op.data.createdAt || new Date().toISOString(),
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    });
+                                
+                                await supabase
+                                    .from('stock_levels')
+                                    .insert({
+                                        id: genId(),
+                                        item_id: ensureUUID(op.data.id),
+                                        quantity: op.initialQuantity || 0,
+                                        updated_at: updateData.updated_at
+                                    });
+                                break;
+
+                            case 'STOCK_MOVEMENT':
+                                // First insert/update the stock level
+                                await supabase
+                                    .from('stock_levels')
+                                    .upsert({
+                                        id: ensureUUID(op.stockUpdate.id),
+                                        item_id: ensureUUID(op.stockUpdate.item_id),
+                                        quantity: op.stockUpdate.quantity,
+                                        updated_at: op.stockUpdate.updated_at
+                                    });
+                                
+                                // Then record the movement
+                                await supabase
+                                    .from('stock_movements')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        item_id: ensureUUID(op.data.item_id),
+                                        type: op.data.type,
+                                        quantity: op.data.quantity,
+                                        reason: op.data.reason || '',
+                                        user_name: op.data.user || 'Unknown',
+                                        staff_member: op.data.staff_member,
+                                        confirmed_pin: op.data.confirmedPin,
+                                        timestamp: op.data.timestamp,
+                                        updated_at: updateData.updated_at,
+                                        version: 1,
+                                        movement_value: op.data.movement_value || 0,
+                                        currency: op.data.currency || 'MWK',
+                                        verified_by: op.data.verified_by,
+                                        verification_note: op.data.verification_note
+                                    });
+                                break;
+
+                            case 'UPDATE_ITEM':
+                                await supabase
+                                    .from('items')
+                                    .update({
+                                        name: op.data.name,
+                                        category_id: ensureUUID(op.data.categoryId),
+                                        unit: op.data.unit,
+                                        cost: op.data.cost || 0,
+                                        min_stock_level: op.data.minStockLevel || 0,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    })
+                                    .eq('id', ensureUUID(op.id));
+                                break;
+
+                            case 'DELETE_ITEM':
+                                const deleteId = ensureUUID(op.id);
+                                await supabase
+                                    .from('stock_movements')
+                                    .delete()
+                                    .eq('item_id', deleteId);
+                                
+                                await supabase
+                                    .from('stock_levels')
+                                    .delete()
+                                    .eq('item_id', deleteId);
+                                
+                                await supabase
+                                    .from('items')
+                                    .delete()
+                                    .eq('id', deleteId);
+                                break;
+
+                            case 'ADD_CATEGORY':
+                                await supabase
+                                    .from('categories')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        department_id: ensureUUID(op.data.departmentId),
+                                        name: op.data.name,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    });
+                                break;
+
+                            case 'UPDATE_CATEGORY':
+                                await supabase
+                                    .from('categories')
+                                    .update({
+                                        department_id: ensureUUID(op.data.departmentId),
+                                        name: op.data.name,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    })
+                                    .eq('id', ensureUUID(op.id));
+                                break;
+
+                            case 'DELETE_CATEGORY':
+                                await supabase
+                                    .from('categories')
+                                    .delete()
+                                    .eq('id', ensureUUID(op.id));
+                                break;
+
+                            case 'ADD_DEPARTMENT':
+                                await supabase
+                                    .from('departments')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        name: op.data.name,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    });
+                                break;
+
+                            case 'UPDATE_DEPARTMENT':
+                                await supabase
+                                    .from('departments')
+                                    .update({
+                                        name: op.data.name,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    })
+                                    .eq('id', ensureUUID(op.id));
+                                break;
+
+                            case 'DELETE_DEPARTMENT':
+                                await supabase
+                                    .from('departments')
+                                    .delete()
+                                    .eq('id', ensureUUID(op.id));
+                                break;
+
+                            case 'ADD_USER':
+                                await supabase
+                                    .from('users')
+                                    .insert({
+                                        id: ensureUUID(op.data.id),
+                                        username: op.data.username,
+                                        display_name: op.data.displayName,
+                                        password: op.data.password,
+                                        role: op.data.role,
+                                        department: op.data.department,
+                                        is_supervisor: op.data.isSupervisor || false,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    });
+                                break;
+
+                            case 'UPDATE_USER':
+                                await supabase
+                                    .from('users')
+                                    .update({
+                                        display_name: op.data.displayName,
+                                        password: op.data.password,
+                                        role: op.data.role,
+                                        department: op.data.department,
+                                        is_supervisor: op.data.isSupervisor || false,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    })
+                                    .eq('id', ensureUUID(op.id));
+                                break;
+
+                            case 'DELETE_USER':
+                                await supabase
+                                    .from('users')
+                                    .delete()
+                                    .eq('id', ensureUUID(op.id));
+                                break;
+
+                            case 'TELEGRAM_MSG':
+                                await sendTG(op.data.rawMessage);
+                                break;
+
+                            default:
+                                console.warn('Unknown operation type:', op.type);
+                        }
+                        
+                        success = true;
+                        
+                    } catch (err) {
+                        retryCount++;
+                        console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
+                        
+                        if (retryCount >= MAX_RETRIES) {
+                            console.error('Max retries reached, adding to failed operations');
+                            failedOperations.push(op);
+                        } else {
+                            const delay = 1000 * Math.pow(2, retryCount);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    }
                 }
-            });
-            
-            const currentActive = sidebar.querySelector(`.dept-item.active`);
-            if (currentActive) currentActive.classList.remove('active');
-            
-            const newActive = sidebar.querySelector(`.dept-item[data-dept="${currentView}"]`);
-            if (newActive) newActive.classList.add('active');
+            }
+
+            // Clear successful operations
+            if (failedOperations.length < offlineQueue.length) {
+                await clearQueue();
+                
+                if (failedOperations.length > 0) {
+                    offlineQueue = failedOperations;
+                    await saveQueue();
+                    showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
+                } else {
+                    showSyncNotification('All operations synced successfully', 'success');
+                }
+            }
         }
 
-        function showView(viewId) {
-            document.querySelectorAll('.view-content').forEach(view => view.classList.add('hidden'));
-            document.getElementById(viewId).classList.remove('hidden');
-            document.querySelectorAll('.sidebar .dept-item').forEach(item => item.classList.remove('active'));
+        async function saveQueue() {
+            try {
+                const db = await initIDB();
+                const tx = db.transaction(['offlineQueue'], 'readwrite');
+                const store = tx.objectStore('offlineQueue');
+                
+                await new Promise((resolve, reject) => {
+                    const clearReq = store.clear();
+                    clearReq.onsuccess = () => resolve();
+                    clearReq.onerror = (e) => reject(e.target.error);
+                });
+                
+                for (const op of offlineQueue) {
+                    await new Promise((resolve, reject) => {
+                        const addReq = store.add(op);
+                        addReq.onsuccess = () => resolve();
+                        addReq.onerror = (e) => reject(e.target.error);
+                    });
+                }
+                
+                console.log(`Saved ${offlineQueue.length} operations to offline queue`);
+            } catch (err) {
+                console.error('Error saving offline queue:', err);
+            }
         }
 
-        function showDashboard() {
-            showView('dashboardContent');
-            currentView = 'dashboard';
-            document.querySelector('.sidebar .dept-item[data-dept="dashboard"]').classList.add('active');
+        async function pullFromSupabase() {
+            try {
+                console.log('Pulling data from Supabase...');
+                
+                // Clear existing stock levels to ensure clean rebuild
+                state.stockLevels = {};
+                
+                // Fetch all data in parallel
+                const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
+                    supabase.from('departments').select('*'),
+                    supabase.from('categories').select('*'),
+                    supabase.from('items').select('*'),
+                    supabase.from('stock_levels').select('*'),
+                    supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
+                    supabase.from('users').select('*')
+                ]);
+
+                // Error handling for each response
+                if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
+                if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
+                if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
+                if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
+                if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
+                if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
+
+                // Helper function to merge data with version checking
+                const mergeData = (localObj, remoteArray, keyField, transform = null) => {
+                    if (!remoteArray) return;
+                    
+                    remoteArray.forEach(remote => {
+                        const key = remote[keyField];
+                        const local = localObj[key];
+                        const transformedRemote = transform ? transform(remote) : remote;
+                        
+                        if (local && remote.version && local.version) {
+                            if (remote.version > local.version) {
+                                localObj[key] = transformedRemote;
+                            } else if (remote.version === local.version && 
+                                      new Date(remote.updated_at) > new Date(local.updated_at)) {
+                                localObj[key] = transformedRemote;
+                            }
+                        } 
+                        else if (!local || !remote.version) {
+                            localObj[key] = transformedRemote;
+                        }
+                    });
+                };
+
+                // Transform functions for Supabase column name differences
+                const transformItem = (item) => ({
+                    ...item,
+                    id: ensureUUID(item.id),
+                    categoryId: ensureUUID(item.category_id),
+                    minStockLevel: item.min_stock_level,
+                    createdAt: item.created_at
+                });
+
+                const transformCategory = (cat) => ({
+                    ...cat,
+                    id: ensureUUID(cat.id),
+                    departmentId: ensureUUID(cat.department_id)
+                });
+
+                const transformUser = (user) => ({
+                    ...user,
+                    id: ensureUUID(user.id),
+                    displayName: user.display_name,
+                    isSupervisor: user.is_supervisor
+                });
+
+                const transformMovement = (move) => ({
+                    ...move,
+                    id: ensureUUID(move.id),
+                    item_id: ensureUUID(move.item_id),
+                    user: move.user_name,
+                    staff_member: move.staff_member,
+                    confirmedPin: move.confirmed_pin,
+                    movement_value: move.movement_value || 0,
+                    currency: move.currency || 'MWK',
+                    verified_by: move.verified_by,
+                    verification_note: move.verification_note
+                });
+
+                const transformStockLevel = (level) => ({
+                    ...level,
+                    id: ensureUUID(level.id),
+                    item_id: ensureUUID(level.item_id)
+                });
+
+                // Rebuild stock levels from fresh data
+                if (levelRes.data) {
+                    levelRes.data.forEach(level => {
+                        const transformed = transformStockLevel(level);
+                        state.stockLevels[transformed.item_id] = transformed;
+                    });
+                }
+
+                // Merge other data with version checking
+                mergeData(state.departments, deptRes.data, 'id');
+                mergeData(state.categories, catRes.data, 'id', transformCategory);
+                mergeData(state.items, itemRes.data, 'id', transformItem);
+                mergeData(state.users, userRes.data, 'id', transformUser);
+
+                // Process movements - replace existing with fresh data
+                if (moveRes.data) {
+                    state.stockMovements = moveRes.data.map(transformMovement);
+                }
+
+                console.log('Data pulled successfully from Supabase');
+                
+            } catch (error) {
+                console.error('Error pulling from Supabase:', error);
+                showSyncNotification(`Sync failed: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        /* ===== REALTIME UPDATES - STOCK LEVEL HANDLING ===== */
+        function handleStockLevelUpdate(eventType, newData, oldData) {
+            if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                state.stockLevels[newData.item_id] = newData;
+            } else if (eventType === 'DELETE') {
+                delete state.stockLevels[oldData.item_id];
+            }
+            saveState();
+            updateDash();
+        }
+
+       function setupRealtimeUpdates() {
+            if (!supabase || realtimeChannel) return;
+
+            realtimeChannel = supabase
+                .channel('schema-db-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',
+                        schema: 'public'
+                    },
+                    (payload) => {
+                        console.log('Realtime update received:', payload);
+                        handleRealtimeUpdate(payload);
+                    }
+                )
+                .subscribe();
+        }
+
+        function handleRealtimeUpdate(payload) {
+            const { eventType, table, new: newData, old: oldData } = payload;
+            
+            switch (table) {
+                case 'items':
+                    handleItemUpdate(eventType, newData, oldData);
+                    break;
+                case 'stock_levels':
+                    handleStockLevelUpdate(eventType, newData, oldData);
+                    break;
+                case 'stock_movements':
+                    handleStockMovementUpdate(eventType, newData, oldData);
+                    break;
+                case 'categories':
+                    handleCategoryUpdate(eventType, newData, oldData);
+                    break;
+                case 'departments':
+                    handleDepartmentUpdate(eventType, newData, oldData);
+                    break;
+                case 'users':
+                    handleUserUpdate(eventType, newData, oldData);
+                    break;
+            }
+            
             updateDash();
             renderAct();
         }
 
-        function updateDash() {
-            const totalItemsCount = Object.keys(state.items).length;
-            const lowStockItems = Object.values(state.items).filter(item => {
-                const stock = state.stockLevels[item.id]?.quantity || 0;
-                return stock <= item.minStockLevel;
-            });
-            
-            const today = new Date().toISOString().slice(0, 10);
-            const todayMoves = state.stockMovements.filter(m => m.timestamp.slice(0, 10) === today);
-            
-            const totalInventoryValue = Object.values(state.items).reduce((sum, item) => {
-                const stock = state.stockLevels[item.id]?.quantity || 0;
-                return sum + (stock * (item.cost || 0));
-            }, 0);
-            
-            document.getElementById('totalItems').textContent = totalItemsCount;
-            document.getElementById('lowStockCount').textContent = lowStockItems.length;
-            document.getElementById('todayMovements').textContent = todayMoves.length;
-            document.getElementById('activeUsers').textContent = Object.keys(state.users).length;
-            document.getElementById('totalInventoryValue').textContent = formatCurrency(totalInventoryValue);
+        function handleItemUpdate(eventType, newData, oldData) {
+            const transformed = {
+                ...newData,
+                id: ensureUUID(newData.id),
+                categoryId: ensureUUID(newData.category_id),
+                minStockLevel: newData.min_stock_level
+            };
+
+            switch (eventType) {
+                case 'INSERT':
+                case 'UPDATE':
+                    state.items[transformed.id] = transformed;
+                    break;
+                case 'DELETE':
+                    delete state.items[ensureUUID(oldData.id)];
+                    break;
+            }
+            saveState();
         }
 
-        function renderAct() {
-            const recentActivity = document.getElementById('recentActivity');
-            if (!recentActivity) return;
-            recentActivity.innerHTML = '';
+
+        function handleStockLevelUpdate(eventType, newData, oldData) {
+            const transformed = {
+                ...newData,
+                id: ensureUUID(newData.id),
+                item_id: ensureUUID(newData.item_id)
+            };
+
+            switch (eventType) {
+                case 'INSERT':
+                case 'UPDATE':
+                    state.stockLevels[transformed.item_id] = transformed;
+                    break;
+                case 'DELETE':
+                    delete state.stockLevels[ensureUUID(oldData.item_id)];
+                    break;
+            }
+            saveState();
+        }
+        function handleStockMovementUpdate(eventType, newData, oldData) {
+            if (eventType === 'INSERT') {
+                state.stockMovements.unshift({
+                    ...newData,
+                    user: newData.user_name,
+                    staff_member: newData.staff_member,
+                    confirmedPin: newData.confirmed_pin,
+                    movement_value: newData.movement_value || 0,
+                    currency: newData.currency || 'MWK'
+                });
+            } else if (eventType === 'DELETE') {
+                state.stockMovements = state.stockMovements.filter(m => m.id !== oldData.id);
+            }
+            saveState();
+        }
+
+        function handleStockMovementUpdate(eventType, newData, oldData) {
+            const transformed = {
+                ...newData,
+                id: ensureUUID(newData.id),
+                item_id: ensureUUID(newData.item_id),
+                user: newData.user_name,
+                staff_member: newData.staff_member,
+                confirmedPin: newData.confirmed_pin,
+                movement_value: newData.movement_value || 0,
+                currency: newData.currency || 'MWK'
+            };
+
+            if (eventType === 'INSERT') {
+                state.stockMovements.unshift(transformed);
+            } else if (eventType === 'DELETE') {
+                state.stockMovements = state.stockMovements.filter(m => m.id !== ensureUUID(oldData.id));
+            }
+            saveState();
+        }
+        
+        function handleCategoryUpdate(eventType, newData, oldData) {
+            const transformed = {
+                ...newData,
+                id: ensureUUID(newData.id),
+                departmentId: ensureUUID(newData.department_id)
+            };
+
+            switch (eventType) {
+                case 'INSERT':
+                case 'UPDATE':
+                    state.categories[transformed.id] = transformed;
+                    break;
+                case 'DELETE':
+                    delete state.categories[ensureUUID(oldData.id)];
+                    break;
+            }
+            saveState();
+        }
+
+        function handleDepartmentUpdate(eventType, newData, oldData) {
+            const transformed = {
+                ...newData,
+                id: ensureUUID(newData.id)
+            };
+
+            switch (eventType) {
+                case 'INSERT':
+                case 'UPDATE':
+                    state.departments[transformed.id] = transformed;
+                    break;
+                case 'DELETE':
+                    delete state.departments[ensureUUID(oldData.id)];
+                    break;
+            }
+            saveState();
+        }
+        
+        function handleUserUpdate(eventType, newData, oldData) {
+            const transformed = {
+                ...newData,
+                id: ensureUUID(newData.id),
+                displayName: newData.display_name,
+                isSupervisor: newData.is_supervisor
+            };
+
+            switch (eventType) {
+                case 'INSERT':
+                case 'UPDATE':
+                    state.users[transformed.id] = transformed;
+                    // If current user was updated, refresh UI
+                    if (currentUser && currentUser.id === transformed.id) {
+                        currentUser = transformed;
+                        updateUIVisibility();
+                    }
+                    break;
+                case 'DELETE':
+                    delete state.users[ensureUUID(oldData.id)];
+                    break;
+            }
+            saveState();
             
-            if (state.stockMovements.length === 0) {
-                recentActivity.innerHTML = `<div style="text-align:center;color:var(--text-secondary);padding:2rem;">No recent activity</div>`;
+            // If current user was updated, refresh UI
+            if (currentUser && currentUser.username === newData?.username) {
+                currentUser = state.users[newData.username];
+                updateUIVisibility();
+            }
+        }
+
+        function updateSyncStatus() {
+            const ind = document.getElementById('syncIndicator');
+            const txt = document.getElementById('syncStatus');
+            const syncBtn = document.querySelector('.sync-btn');
+            
+            if (!navigator.onLine) {
+                if (ind) ind.className = 'sync-indicator offline';
+                if (txt) txt.textContent = 'Offline';
+                if (syncBtn) syncBtn.classList.add('unsynced');
                 return;
             }
             
-            const table = document.createElement('table');
-            table.className = 'data-table';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Type</th>
-                        <th>Qty</th>
-                        <th>User</th>
-                        <th>Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            `;
-            
-            const tbody = table.querySelector('tbody');
-            state.stockMovements.slice(0, 5).forEach(move => {
-                const item = state.items[move.item_id];
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${item ? item.name : 'Unknown'}</td>
-                    <td>${move.type === 'in' ? 'Stock In' : 'Stock Out'}</td>
-                    <td>${move.quantity}</td>
-                    <td>${move.user}</td>
-                    <td>${new Date(move.timestamp).toLocaleTimeString()}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            recentActivity.appendChild(table);
+            if (offlineQueue.length) {
+                if (ind) ind.className = 'sync-indicator syncing';
+                if (txt) txt.textContent = `${offlineQueue.length} pending`;
+                if (syncBtn) syncBtn.classList.add('unsynced');
+            } else {
+                if (ind) ind.className = 'sync-indicator';
+                if (txt) txt.textContent = 'Online';
+                if (syncBtn) syncBtn.classList.remove('unsynced');
+            }
         }
 
-        // Add this to your addItem function in your local state
-        function renderAddItem() {
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            actionContent.innerHTML = `
+        function getInventoryValue(deptId = null) {
+            let total = 0;
+            Object.values(state.items).forEach(i => {
+                if (deptId) {
+                    const cat = state.categories[i.categoryId];
+                    if (!cat || cat.departmentId !== deptId) return;
+                }
+                const stock = state.stockLevels[i.id] || { quantity: 0 };
+                total += stock.quantity * (i.cost || 0);
+            });
+            return total;
+        }
+
+        function getMovementStats(days = 7) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            
+            return state.stockMovements
+                .filter(m => new Date(m.timestamp) > cutoff)
+                .reduce((acc, m) => {
+                    acc[m.type] = (acc[m.type] || 0) + m.quantity;
+                    return acc;
+                }, {});
+        }
+        
+        /* ===== VIEWS ===== */
+        function showDashboard() {
+            switchView('dashboardContent');
+            document.querySelectorAll('.dept-item').forEach(d => d.classList.remove('active'));
+            document.querySelector('[data-dept="dashboard"]').classList.add('active');
+            updateDash();
+            renderAct();
+        }
+
+        function showStockIn() {
+            const items = Object.values(state.items).map(i => 
+                `<option value="${i.id}">${i.name}</option>`
+            ).join('');
+            
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Stock In</div>
+                        <button class="logout-btn" onclick="showDashboard()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="stockInForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Item</label>
+                                <select id="siItem" required>${items}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="number" id="siQty" required min="0.01" step="any">
+                            </div>
+                            <div class="form-group">
+                                <label>Reason</label>
+                                <input id="siReason" value="Supplier delivery" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Stock</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('stockInForm').addEventListener('submit', e => {
+                e.preventDefault();
+                adjustStock(
+                    document.getElementById('siItem').value,
+                    +document.getElementById('siQty').value,
+                    document.getElementById('siReason').value
+                );
+                showDashboard();
+            });
+        }
+
+        function showStockOut() {
+            const items = Object.values(state.items).map(i => 
+                `<option value="${i.id}">${i.name} (Avail: ${state.stockLevels[i.id]?.quantity || 0})</option>`
+            ).join('');
+            
+            const staff = Object.values(state.users).map(u => 
+                `<option value="${u.username}">${u.displayName}</option>`
+            ).join('');
+            
+            // Check if current user is an admin who can verify
+            const isVerifyingAdmin = ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username);
+            
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Stock Out</div>
+                        <button class="logout-btn" onclick="showDashboard()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="stockOutForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Item</label>
+                                <select id="soItem" required>${items}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="number" id="soQty" required min="0.01" step="any">
+                            </div>
+                            <div class="form-group">
+                                <label>Issued To</label>
+                                <select id="soStaff" required>${staff}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>Reason</label>
+                                <input id="soReason" value="Department usage" required>
+                            </div>
+                            ${isVerifyingAdmin ? `
+                            <div class="form-group">
+                                <label>Verification Note</label>
+                                <input id="soVerificationNote" placeholder="Optional verification details">
+                            </div>
+                            ` : ''}
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+                            <button type="button" id="soBtn" class="btn btn-primary">Remove Stock</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('soBtn').addEventListener('click', () => {
+                const itemId = document.getElementById('soItem').value;
+                const qty = +document.getElementById('soQty').value;
+                const staff = document.getElementById('soStaff').value;
+                const reason = document.getElementById('soReason').value;
+                const verificationNote = document.getElementById('soVerificationNote')?.value || '';
+                const staffObj = state.users[staff];
+                
+                if (!qty || qty <= 0) {
+                    showMsg('Enter valid quantity', 'error');
+                    return;
+                }
+                
+                if (staffObj && staffObj.role !== USER_ROLES.ADMIN) {
+                    pendingStockOut = { 
+                        itemId, 
+                        qty, 
+                        staff, 
+                        reason,
+                        needsVerification: ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser.username),
+                        verificationNote
+                    };
+                    openInlinePin();
+                } else {
+                    adjustStock(itemId, -qty, reason, staff);
+                    showDashboard();
+                }
+            });
+        }
+
+        function showInventory(dept = null) {
+            let rows = '';
+            const searchTerm = (document.getElementById('inventorySearch')?.value || '').toLowerCase();
+            
+            // Get current department if specified
+            const deptId = dept ? `dept_${dept}` : null;
+            const deptName = dept ? state.departments[deptId]?.name : 'All';
+            
+            // Filter and sort items
+            const filteredItems = Object.values(state.items)
+                .filter(i => {
+                    // Department filter
+                    if (dept) {
+                        const cat = state.categories[i.categoryId];
+                        if (!cat || cat.departmentId !== deptId) return false;
+                    }
+                    
+                    // Search filter
+                    if (searchTerm && !i.name.toLowerCase().includes(searchTerm)) {
+                        return false;
+                    }
+                    
+                    return true;
+                })
+                .sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Generate table rows
+            filteredItems.forEach(i => {
+                const cat = state.categories[i.categoryId];
+                const dept = cat ? state.departments[cat.departmentId] : null;
+                const stock = state.stockLevels[i.id] || { quantity: 0 };
+                const isLowStock = stock.quantity <= i.minStockLevel;
+                const stockValue = formatCurrency(stock.quantity * (i.cost || 0));
+                
+                rows += `
+                    <tr style="background-color: ${isLowStock ? 'rgba(231, 76, 60, 0.1)' : 'transparent'}">
+                        <td>${i.name}</td>
+                        <td>${cat?.name || '-'}</td>
+                        <td>${dept?.name || '-'}</td>
+                        <td>${stock.quantity} ${i.unit}</td>
+                        <td style="color:${isLowStock ? 'var(--accent)' : 'inherit'}">
+                            ${i.minStockLevel} ${i.unit}
+                        </td>
+                        <td>${stockValue}</td>
+                        <td>
+                            ${currentUser?.role === USER_ROLES.ADMIN ? `
+                                <button class="btn-icon" onclick="editItemForm('${i.id}')" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon" onclick="deleteItemPrompt('${i.id}')" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                            <button class="btn-icon" onclick="showItemHistory('${i.id}')" title="View History">
+                                <i class="fas fa-history"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            // Empty state handling
+            if (!rows) {
+                rows = `
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:1.5rem">
+                            No items found${searchTerm ? ` matching "${searchTerm}"` : ''}
+                            ${dept ? ` in ${deptName}` : ''}
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Generate view HTML
+            const viewHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Inventory - ${deptName}</div>
+                        <div style="display:flex;gap:1rem;align-items:center;">
+                            <div class="search-bar" style="margin-bottom:0;">
+                                <input id="inventorySearch" 
+                                       placeholder="Search items..." 
+                                       oninput="showInventory('${dept}')" 
+                                       value="${searchTerm}">
+                            </div>
+                            ${currentUser?.role === USER_ROLES.ADMIN ? `
+                                <button class="btn btn-primary" onclick="showAddItem()">
+                                    <i class="fas fa-plus"></i> Add Item
+                                </button>
+                            ` : ''}
+                            <button class="btn btn-secondary" onclick="exportInventoryCSV('${dept}')">
+                                <i class="fas fa-file-export"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="data-table-container" style="overflow-x:auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Department</th>
+                                    <th>Current Stock</th>
+                                    <th>Min Required</th>
+                                    <th>Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:1rem;display:flex;justify-content:space-between;align-items:center;">
+                        <div style="font-size:0.9rem;color:var(--text-secondary)">
+                            Showing ${filteredItems.length} item${filteredItems.length !== 1 ? 's' : ''}
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary" onclick="generateInventoryReport('${dept}')">
+                                <i class="fas fa-file-pdf"></i> Generate Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Display the view
+            switchView('actionContent', viewHTML);
+            
+            // Update active department in sidebar
+            document.querySelectorAll('.dept-item').forEach(d => d.classList.remove('active'));
+            if (dept) {
+                document.querySelector(`[data-dept="${dept}"]`)?.classList.add('active');
+            } else {
+                document.querySelector('[data-dept="dashboard"]').classList.add('active');
+            }
+        }
+
+        function showAddItem() {
+            const cats = Object.values(state.categories).map(c => 
+                `<option value="${c.id}">${state.departments[c.departmentId]?.name || 'Unknown'} - ${c.name}</option>`
+            ).join('');
+            
+            switchView('actionContent', `
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Add New Item</div>
+                        <button class="logout-btn" onclick="showInventory()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
                     </div>
                     <form id="addItemForm">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="itemName">Item Name</label>
-                                <input type="text" id="itemName" required>
+                                <label>Item Name</label>
+                                <input id="aiName" required placeholder="Enter item name">
                             </div>
                             <div class="form-group">
-                                <label for="itemCategory">Category</label>
-                                <select id="itemCategory" required></select>
+                                <label>Category</label>
+                                <select id="aiCat" required>${cats}</select>
                             </div>
                             <div class="form-group">
-                                <label for="itemUnit">Unit (e.g., kg, unit)</label>
-                                <input type="text" id="itemUnit" required>
+                                <label>Unit</label>
+                                <input id="aiUnit" required placeholder="e.g., kg, piece, box">
                             </div>
                             <div class="form-group">
-                                <label for="itemCost">Cost per Unit (MWK)</label>
-                                <input type="number" id="itemCost" step="0.01" required>
+                                <label>Cost per Unit (K)</label>
+                                <input type="number" id="aiCost" value="0" step="0.01" min="0">
                             </div>
                             <div class="form-group">
-                                <label for="initialQuantity">Initial Stock Quantity</label>
-                                <input type="number" id="initialQuantity" required>
+                                <label>Initial Quantity</label>
+                                <input type="number" id="aiQty" value="0" step="any" min="0">
                             </div>
                             <div class="form-group">
-                                <label for="minStockLevel">Minimum Stock Level</label>
-                                <input type="number" id="minStockLevel" required>
+                                <label>Minimum Stock Level</label>
+                                <input type="number" id="aiMin" value="0" step="any" min="0">
                             </div>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add Item</button>
-                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+                            <button type="button" class="btn btn-secondary" onclick="showInventory()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Item</button>
                         </div>
                     </form>
                 </div>
-            `;
-
-            const categorySelect = document.getElementById('itemCategory');
-            const categories = Object.values(state.categories).sort((a,b) => a.name.localeCompare(b.name));
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = `${cat.name} (${state.departments[cat.departmentId]?.name || 'Unknown'})`;
-                categorySelect.appendChild(option);
-            });
-
-            document.getElementById('addItemForm').addEventListener('submit', (e) => {
+            `);
+            
+            document.getElementById('addItemForm').addEventListener('submit', e => {
                 e.preventDefault();
-                const data = {
-                    name: document.getElementById('itemName').value,
-                    categoryId: document.getElementById('itemCategory').value,
-                    unit: document.getElementById('itemUnit').value,
-                    cost: document.getElementById('itemCost').value,
-                    initialQuantity: document.getElementById('initialQuantity').value,
-                    minStockLevel: document.getElementById('minStockLevel').value,
-                };
-                addItem(data);
-                showDashboard();
-                showMsg('Item added successfully!', 'success');
-            });
-        }
-        
-        function showInventory(deptId = null) {
-            showView('actionContent');
-            currentView = deptId;
-            renderSidebar();
-            const actionContent = document.getElementById('actionContent');
-            
-            const items = Object.values(state.items).filter(item => {
-                const category = state.categories[item.categoryId];
-                return !deptId || category?.departmentId === deptId;
-            }).sort((a, b) => a.name.localeCompare(b.name));
-            
-            const lowStockCount = items.filter(item => (state.stockLevels[item.id]?.quantity || 0) <= item.minStockLevel).length;
-            const deptName = deptId ? state.departments[deptId]?.name : 'All Departments';
-            
-            actionContent.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">${deptName || 'Inventory'}</div>
-                        <button class="btn btn-primary" onclick="renderAddItem()"><i class="fas fa-plus"></i> Add New Item</button>
-                    </div>
-                    <div class="card-subtitle" style="margin-bottom:1rem;">${lowStockCount} items low on stock</div>
-                    <div class="search-bar">
-                        <input type="text" id="inventorySearch" placeholder="Search items...">
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Category</th>
-                                <th>Quantity</th>
-                                <th>Cost/Unit</th>
-                                <th>Value</th>
-                                <th>Min Stock</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryTableBody">
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            const tableBody = document.getElementById('inventoryTableBody');
-            
-            function renderTable(filteredItems) {
-                tableBody.innerHTML = '';
-                if (filteredItems.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-secondary)">No items found.</td></tr>`;
-                    return;
-                }
-                
-                filteredItems.forEach(item => {
-                    const stock = state.stockLevels[item.id]?.quantity || 0;
-                    const value = stock * item.cost;
-                    const category = state.categories[item.categoryId];
-                    const isLow = stock <= item.minStockLevel;
-                    
-                    const tr = document.createElement('tr');
-                    if (isLow) tr.style.color = 'var(--accent)';
-                    tr.innerHTML = `
-                        <td>${item.name}</td>
-                        <td>${category?.name || 'Unknown'}</td>
-                        <td>${stock} ${item.unit}</td>
-                        <td>${formatCurrency(item.cost)}</td>
-                        <td>${formatCurrency(value)}</td>
-                        <td>${item.minStockLevel}</td>
-                        <td>
-                            <button class="btn-icon" title="Stock In" onclick="showStockIn('${item.id}')"><i class="fas fa-box-archive"></i></button>
-                            <button class="btn-icon" title="Stock Out" onclick="showStockOut('${item.id}')"><i class="fas fa-arrow-right-from-bracket"></i></button>
-                        </td>
-                    `;
-                    tableBody.appendChild(tr);
+                addItem({
+                    name: document.getElementById('aiName').value,
+                    categoryId: document.getElementById('aiCat').value,
+                    unit: document.getElementById('aiUnit').value,
+                    cost: +document.getElementById('aiCost').value,
+                    initialQuantity: +document.getElementById('aiQty').value,
+                    minStockLevel: +document.getElementById('aiMin').value
                 });
-            }
-            
-            renderTable(items);
-            
-            document.getElementById('inventorySearch').addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                const filteredItems = items.filter(item => 
-                    item.name.toLowerCase().includes(searchTerm) ||
-                    state.categories[item.categoryId]?.name.toLowerCase().includes(searchTerm)
-                );
-                renderTable(filteredItems);
+                showInventory();
             });
         }
-        
-        function showStockIn(itemId = null) {
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            const item = itemId ? state.items[itemId] : null;
 
-            actionContent.innerHTML = `
+        function editItemForm(id) {
+            const i = state.items[id];
+            if (!i) return;
+            
+            const cats = Object.values(state.categories).map(c => 
+                `<option value="${c.id}" ${c.id === i.categoryId ? 'selected' : ''}>
+                    ${state.departments[c.departmentId]?.name || 'Unknown'} - ${c.name}
+                </option>`
+            ).join('');
+            
+            switchView('actionContent', `
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-title">Stock In</div>
+                        <div class="card-title">Edit ${i.name}</div>
+                        <button class="logout-btn" onclick="showInventory()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
                     </div>
-                    <form id="stockInForm">
-                        <div class="form-group">
-                            <label for="stockInItem">Item</label>
-                            <select id="stockInItem" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label for="stockInQuantity">Quantity</label>
-                            <input type="number" id="stockInQuantity" required min="1">
-                        </div>
-                        <div class="form-group">
-                            <label for="stockInReason">Reason</label>
-                            <input type="text" id="stockInReason" required>
+                    <form id="editItemForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Item Name</label>
+                                <input id="eiName" value="${i.name}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select id="eiCat">${cats}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>Unit</label>
+                                <input id="eiUnit" value="${i.unit}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Cost per Unit (K)</label>
+                                <input type="number" id="eiCost" value="${i.cost}" step="0.01" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>Minimum Stock Level</label>
+                                <input type="number" id="eiMin" value="${i.minStockLevel}" step="any" min="0">
+                            </div>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Stock In</button>
-                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
+                            <button type="button" class="btn btn-secondary" onclick="showInventory()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
                         </div>
                     </form>
                 </div>
-            `;
+            `);
             
-            const itemSelect = document.getElementById('stockInItem');
-            const items = Object.values(state.items).sort((a,b) => a.name.localeCompare(b.name));
-            items.forEach(i => {
-                const option = document.createElement('option');
-                option.value = i.id;
-                option.textContent = `${i.name} - ${state.stockLevels[i.id]?.quantity || 0} ${i.unit}`;
-                itemSelect.appendChild(option);
-            });
-
-            if (itemId) {
-                itemSelect.value = itemId;
-                itemSelect.disabled = true;
-            }
-
-            document.getElementById('stockInForm').addEventListener('submit', (e) => {
+            document.getElementById('editItemForm').addEventListener('submit', e => {
                 e.preventDefault();
-                const selectedItemId = document.getElementById('stockInItem').value;
-                const quantity = parseInt(document.getElementById('stockInQuantity').value);
-                const reason = document.getElementById('stockInReason').value;
-                adjustStock(selectedItemId, quantity, reason, currentUser?.displayName);
-                showDashboard();
-                showMsg('Stock successfully increased!', 'success');
+                Object.assign(i, {
+                    name: document.getElementById('eiName').value,
+                    categoryId: document.getElementById('eiCat').value,
+                    unit: document.getElementById('eiUnit').value,
+                    cost: +document.getElementById('eiCost').value,
+                    minStockLevel: +document.getElementById('eiMin').value,
+                    updated_at: new Date().toISOString(),
+                    version: (i.version || 1) + 1
+                });
+                addOffline({ type: 'UPDATE_ITEM', id, data: i });
+                saveState();
+                showInventory();
             });
         }
 
-        function showStockOut(itemId = null) {
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            const item = itemId ? state.items[itemId] : null;
-
-            actionContent.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Stock Out</div>
-                    </div>
-                    <form id="stockOutForm">
-                        <div class="form-group">
-                            <label for="stockOutItem">Item</label>
-                            <select id="stockOutItem" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label for="stockOutQuantity">Quantity</label>
-                            <input type="number" id="stockOutQuantity" required min="1">
-                        </div>
-                        <div class="form-group">
-                            <label for="stockOutReason">Reason</label>
-                            <input type="text" id="stockOutReason" required>
-                        </div>
-                        <div class="form-group hidden" id="adminVerificationGroup">
-                            <label for="adminPin">Admin PIN for approval</label>
-                            <input type="password" id="adminPin">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-danger"><i class="fas fa-arrow-right-from-bracket"></i> Stock Out</button>
-                            <button type="button" class="btn btn-secondary" onclick="showDashboard()">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            `;
-
-            const itemSelect = document.getElementById('stockOutItem');
-            const items = Object.values(state.items).sort((a,b) => a.name.localeCompare(b.name));
-            items.forEach(i => {
-                const option = document.createElement('option');
-                option.value = i.id;
-                option.textContent = `${i.name} - ${state.stockLevels[i.id]?.quantity || 0} ${i.unit}`;
-                itemSelect.appendChild(option);
-            });
-
-            if (itemId) {
-                itemSelect.value = itemId;
-                itemSelect.disabled = true;
-            }
-
-            const stockOutForm = document.getElementById('stockOutForm');
-            const stockOutQuantityInput = document.getElementById('stockOutQuantity');
-            const adminVerificationGroup = document.getElementById('adminVerificationGroup');
-
-            const checkAdminVerification = () => {
-                const selectedItemId = itemSelect.value;
-                const quantity = parseInt(stockOutQuantityInput.value);
-                const item = state.items[selectedItemId];
-                const currentStock = state.stockLevels[selectedItemId]?.quantity || 0;
-                
-                if (item && item.minStockLevel !== undefined && (currentStock - quantity) <= item.minStockLevel && currentUser.role !== USER_ROLES.ADMIN) {
-                    adminVerificationGroup.classList.remove('hidden');
-                } else {
-                    adminVerificationGroup.classList.add('hidden');
-                }
-            };
+        function deleteItemPrompt(id) {
+            if (!confirm('Are you sure? This will permanently delete the item and its stock history.')) return;
             
-            stockOutQuantityInput.addEventListener('input', checkAdminVerification);
-            itemSelect.addEventListener('change', checkAdminVerification);
-
-            stockOutForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const selectedItemId = itemSelect.value;
-                const quantity = parseInt(stockOutQuantityInput.value);
-                const reason = document.getElementById('stockOutReason').value;
-                const adminPin = document.getElementById('adminPin').value;
-                const item = state.items[selectedItemId];
-                const currentStock = state.stockLevels[selectedItemId]?.quantity || 0;
-
-                if (quantity > currentStock) {
-                    showMsg('Insufficient stock.', 'error');
-                    return;
-                }
-
-                if ((currentStock - quantity) <= item.minStockLevel && currentUser.role !== USER_ROLES.ADMIN) {
-                    const adminUser = Object.values(state.users).find(u => u.role === USER_ROLES.ADMIN && u.password === adminPin);
-                    if (!adminUser) {
-                        showMsg('Incorrect Admin PIN for low stock approval.', 'error');
-                        return;
-                    }
-                    adjustStock(selectedItemId, -quantity, reason, currentUser?.displayName, adminPin, `Approved by ${adminUser.displayName}`);
-                    showDashboard();
-                    showMsg('Stock successfully decreased (with admin approval)!', 'success');
-                    sendTG(`Stock Out: ${item.name} by ${quantity} units, reason: ${reason}, approved by Admin ${adminUser.displayName}. Remaining stock: ${currentStock - quantity}.`);
-                } else {
-                    adjustStock(selectedItemId, -quantity, reason, currentUser?.displayName);
-                    showDashboard();
-                    showMsg('Stock successfully decreased!', 'success');
-                    sendTG(`Stock Out: ${item.name} by ${quantity} units, reason: ${reason}. Remaining stock: ${currentStock - quantity}.`);
-                }
-            });
-        }
-        
-        // Reports View
-        function showReports() {
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            actionContent.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Reports</div>
-                    </div>
-                    <div id="reportsContent">
-                        <div style="margin-bottom:1rem;">
-                            <button class="btn btn-secondary" onclick="generateInventoryReport()"><i class="fas fa-file-pdf"></i> Generate Inventory Report</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function generateInventoryReport() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            const items = Object.values(state.items).map(item => {
-                const stock = state.stockLevels[item.id]?.quantity || 0;
-                const value = stock * item.cost;
-                const category = state.categories[item.categoryId];
-                return [
-                    item.name,
-                    category?.name || 'Unknown',
-                    `${stock} ${item.unit}`,
-                    formatCurrency(item.cost),
-                    formatCurrency(value),
-                    item.minStockLevel
-                ];
-            }).sort((a,b) => a[0].localeCompare(b[0])); // Sort by item name
-
-            doc.autoTable({
-                startY: 20,
-                head: [['Item', 'Category', 'Quantity', 'Cost/Unit', 'Value', 'Min Stock']],
-                body: items,
-                styles: { fontSize: 10, cellPadding: 2 },
-                headStyles: { fillColor: [37, 47, 61], textColor: 255 },
-                margin: { top: 15 }
-            });
-
-            doc.save('inventory_report.pdf');
-        }
-        
-        // User Management View
-        function showUserManagement() {
-            if (currentUser?.role !== USER_ROLES.ADMIN) return showDashboard();
-            showView('userManagementContent');
-            const userContent = document.getElementById('userManagementContent');
-            userContent.innerHTML = `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">User Management</div>
-                        <button class="btn btn-primary" onclick="renderAddUser()"><i class="fas fa-user-plus"></i> Add User</button>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Username</th>
-                                <th>Role</th>
-                                <th>Department</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody">
-                        </tbody>
-                    </table>
-                </div>
-            `;
-
-            const userTableBody = document.getElementById('userTableBody');
-            Object.values(state.users).forEach(user => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${user.displayName}</td>
-                    <td>${user.username}</td>
-                    <td>${user.role}</td>
-                    <td>${user.department}</td>
-                    <td>
-                        <button class="btn-icon" title="Edit User" onclick="renderEditUser('${user.id}')"><i class="fas fa-user-edit"></i></button>
-                        <button class="btn-icon" title="Delete User" onclick="deleteUser('${user.id}')"><i class="fas fa-trash-alt" style="color:var(--accent)"></i></button>
-                    </td>
-                `;
-                userTableBody.appendChild(tr);
-            });
-        }
-        
-        function renderAddUser() {
-            // Functionality to add a new user
-        }
-        
-        function renderEditUser(userId) {
-            // Functionality to edit a user
-        }
-
-        // Add this to your main script file
-        function deleteUser(userId) {
-            if (!confirm('Are you sure you want to delete this user?')) return;
+            // Remove dependent data first
+            delete state.stockLevels[id];
+            state.stockMovements = state.stockMovements.filter(m => m.item_id !== id);
             
-            const user = state.users[userId];
-            if (!user) return;
-
-            delete state.users[userId];
-            addOffline({ type: 'DELETE_USER', id: userId });
+            // Then delete the item
+            delete state.items[id];
+            
+            addOffline({ 
+                type: 'DELETE_ITEM', 
+                id,
+                cleanup: {
+                    stockLevel: true,
+                    movements: true
+                }
+            });
+            
             saveState();
-            showUserManagement();
-            showMsg(`User ${user.displayName} deleted.`, 'success');
+            updateDash();
+            renderAct();
+            showInventory();
         }
 
-        // Add this to your main script file
+        function exportInventoryCSV(dept = null) {
+            // Get filtered items based on department
+            const itemsToExport = Object.values(state.items)
+                .filter(item => {
+                    if (!dept) return true;
+                    const cat = state.categories[item.categoryId];
+                    return cat && state.departments[cat.departmentId]?.name.toLowerCase() === dept.toLowerCase();
+                })
+                .map(item => {
+                    const cat = state.categories[item.categoryId];
+                    const dept = cat ? state.departments[cat.departmentId] : null;
+                    const stock = state.stockLevels[item.id] || { quantity: 0 };
+                    const value = stock.quantity * (item.cost || 0);
+                    
+                    return {
+                        name: item.name,
+                        category: cat?.name || 'Uncategorized',
+                        department: dept?.name || 'None',
+                        quantity: stock.quantity,
+                        unit: item.unit,
+                        minStock: item.minStockLevel,
+                        value: value
+                    };
+                });
+
+            // Create CSV headers
+            let csvContent = 'Name,Category,Department,Quantity,Unit,Min Stock,Value (K)\n';
+
+            // Add data rows
+            itemsToExport.forEach(item => {
+                csvContent += `"${item.name.replace(/"/g, '""')}",` +
+                             `"${item.category.replace(/"/g, '""')}",` +
+                             `"${item.department.replace(/"/g, '""')}",` +
+                             `${item.quantity},` +
+                             `"${item.unit}",` +
+                             `${item.minStock},` +
+                             `"${formatCurrency(item.value)}"\n`;
+            });
+
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `inventory_export_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.visibility = 'hidden';
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showMsg('CSV export completed', 'success');
+        }
+
+        function generateInventoryReport(dept = null) {
+            // Filter items based on department
+            const itemsToReport = Object.values(state.items)
+                .filter(item => {
+                    if (!dept) return true;
+                    const cat = state.categories[item.categoryId];
+                    return cat && state.departments[cat.departmentId]?.name.toLowerCase() === dept.toLowerCase();
+                })
+                .map(item => {
+                    const cat = state.categories[item.categoryId];
+                    const dept = cat ? state.departments[cat.departmentId] : null;
+                    const stock = state.stockLevels[item.id] || { quantity: 0 };
+                    return {
+                        name: item.name,
+                        category: cat?.name || '-',
+                        department: dept?.name || '-',
+                        quantity: stock.quantity,
+                        unit: item.unit,
+                        minStock: item.minStockLevel,
+                        value: stock.quantity * (item.cost || 0)
+                    };
+                });
+
+            generatePDFReport(itemsToReport, dept);
+        }
+
+        async function generatePDFReport() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // ===== COVER PAGE =====
+                doc.setFontSize(24);
+                doc.setTextColor(52, 152, 219); // Blue color
+                doc.text('Vanguard Stock Management Report', 105, 30, { align: 'center' });
+                
+                doc.setFontSize(16);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Comprehensive Inventory Analysis', 105, 40, { align: 'center' });
+                
+                // Add logo placeholder
+                doc.setFillColor(230, 230, 230);
+                doc.roundedRect(80, 50, 50, 40, 3, 3, 'F');
+                doc.setFontSize(10);
+                doc.text('Company Logo', 105, 70, { align: 'center' });
+                
+                // Report metadata
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 100, { align: 'center' });
+                doc.text(`Generated by: ${currentUser?.displayName || 'System'}`, 105, 110, { align: 'center' });
+                
+                doc.addPage();
+                
+                // ===== EXECUTIVE SUMMARY =====
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Executive Summary', 14, 20);
+                
+                // Calculate summary metrics
+                const totalItems = Object.keys(state.items).length;
+                const inStock = Object.values(state.items).filter(i => 
+                    (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel
+                ).length;
+                const lowStock = Object.values(state.items).filter(i => {
+                    const stock = state.stockLevels[i.id] || { quantity: 0 };
+                    return stock.quantity > 0 && stock.quantity <= i.minStockLevel;
+                }).length;
+                const outOfStock = totalItems - inStock - lowStock;
+                
+                // Calculate inventory value
+                let totalValue = 0;
+                Object.values(state.items).forEach(i => {
+                    const stock = state.stockLevels[i.id] || { quantity: 0 };
+                    totalValue += stock.quantity * (i.cost || 0);
+                });
+                
+                // Summary table
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.autoTable({
+                    startY: 30,
+                    head: [['Metric', 'Value']],
+                    body: [
+                        ['Total Items', totalItems],
+                        ['In Stock Items', inStock],
+                        ['Low Stock Items', lowStock],
+                        ['Out of Stock Items', outOfStock],
+                        ['Total Inventory Value', `K${totalValue.toFixed(2)}`]
+                    ],
+                    theme: 'grid',
+                    headStyles: { fillColor: [52, 152, 219] },
+                    columnStyles: { 1: { fontStyle: 'bold' } }
+                });
+                
+                // Create temporary canvas for chart
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+                
+                // Wait for chart to render before adding to PDF
+                await new Promise((resolve) => {
+                    // Stock status chart
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['In Stock', 'Low Stock', 'Out of Stock'],
+                            datasets: [{
+                                data: [inStock, lowStock, outOfStock],
+                                backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            animation: {
+                                onComplete: () => {
+                                    try {
+                                        const imgData = canvas.toDataURL('image/png');
+                                        if (imgData && imgData.startsWith('data:image/png')) {
+                                            doc.addImage(imgData, 'PNG', 50, doc.lastAutoTable.finalY + 30, 110, 80);
+                                            doc.addPage();
+                                            generateDetailedContent(doc).then(() => {
+                                                doc.save(`vanguard-stock-report-${new Date().toISOString().slice(0,10)}.pdf`);
+                                                resolve();
+                                            });
+                                        } else {
+                                            throw new Error('Invalid chart image data');
+                                        }
+                                    } catch (e) {
+                                        console.error('Error adding chart:', e);
+                                        showMsg('Error generating report charts', 'error');
+                                        resolve();
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                showMsg('Failed to generate PDF report', 'error');
+            }
+        }
+
+        async function generateDetailedContent(doc) {
+            try {
+                // ===== DETAILED INVENTORY STATUS =====
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Detailed Inventory Status', 14, 20);
+                
+                // Group items by department and category
+                const inventoryByDept = {};
+                Object.values(state.items).forEach(i => {
+                    const cat = state.categories[i.categoryId];
+                    const dept = cat ? state.departments[cat.departmentId] : null;
+                    if (!dept) return;
+                    
+                    const stock = state.stockLevels[i.id] || { quantity: 0 };
+                    const value = stock.quantity * (i.cost || 0);
+                    
+                    if (!inventoryByDept[dept.name]) {
+                        inventoryByDept[dept.name] = {
+                            items: 0,
+                            value: 0,
+                            categories: {}
+                        };
+                    }
+                    
+                    inventoryByDept[dept.name].items++;
+                    inventoryByDept[dept.name].value += value;
+                    
+                    if (!inventoryByDept[dept.name].categories[cat.name]) {
+                        inventoryByDept[dept.name].categories[cat.name] = {
+                            items: 0,
+                            value: 0
+                        };
+                    }
+                    
+                    inventoryByDept[dept.name].categories[cat.name].items++;
+                    inventoryByDept[dept.name].categories[cat.name].value += value;
+                });
+                
+                // Department summary table
+                doc.setFontSize(12);
+                doc.autoTable({
+                    startY: 30,
+                    head: [['Department', 'Items', 'Total Value (K)']],
+                    body: Object.entries(inventoryByDept).map(([dept, data]) => [
+                        dept,
+                        data.items,
+                        data.value.toFixed(2)
+                    ]),
+                    theme: 'grid',
+                    headStyles: { fillColor: [52, 152, 219] },
+                    columnStyles: { 
+                        1: { halign: 'right' },
+                        2: { halign: 'right', fontStyle: 'bold' }
+                    }
+                });
+                
+                // ===== LOW STOCK ALERTS =====
+                doc.addPage();
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Low Stock Alerts', 14, 20);
+                
+                const lowStockItems = Object.values(state.items)
+                    .filter(i => {
+                        const stock = state.stockLevels[i.id] || { quantity: 0 };
+                        return stock.quantity <= i.minStockLevel;
+                    })
+                    .sort((a, b) => {
+                        const stockA = state.stockLevels[a.id]?.quantity || 0;
+                        const stockB = state.stockLevels[b.id]?.quantity || 0;
+                        return (stockA / a.minStockLevel) - (stockB / b.minStockLevel);
+                    });
+                
+                if (lowStockItems.length > 0) {
+                    doc.autoTable({
+                        startY: 30,
+                        head: [['Item', 'Department', 'Current', 'Min', 'Deficit', 'Value (K)']],
+                        body: lowStockItems.map(i => {
+                            const cat = state.categories[i.categoryId];
+                            const dept = cat ? state.departments[cat.departmentId] : null;
+                            const stock = state.stockLevels[i.id] || { quantity: 0 };
+                            const deficit = i.minStockLevel - stock.quantity;
+                            const value = stock.quantity * (i.cost || 0);
+                            
+                            return [
+                                i.name,
+                                dept?.name || '-',
+                                `${stock.quantity} ${i.unit}`,
+                                `${i.minStockLevel} ${i.unit}`,
+                                `${deficit} ${i.unit}`,
+                                value.toFixed(2)
+                            ];
+                        }),
+                        theme: 'grid',
+                        headStyles: { fillColor: [231, 76, 60] },
+                        columnStyles: {
+                            2: { fontStyle: stock => stock.raw[2].includes('0 ') ? 'bold' : 'normal' },
+                            4: { fontStyle: 'bold', textColor: [231, 76, 60] },
+                            5: { halign: 'right' }
+                        }
+                    });
+                } else {
+                    doc.setFontSize(12);
+                    doc.text('No low stock items found', 14, 30);
+                }
+                
+                // ===== MOVEMENT ANALYSIS =====
+                doc.addPage();
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Recent Stock Movements', 14, 20);
+                
+                // Filter movements for last 30 days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                
+                const recentMovements = state.stockMovements
+                    .filter(m => new Date(m.timestamp) > thirtyDaysAgo)
+                    .slice(0, 100); // Limit to 100 most recent
+                
+                if (recentMovements.length > 0) {
+                    doc.autoTable({
+                        startY: 30,
+                        head: [['Date', 'Item', 'Type', 'Qty', 'User', 'Department', 'Reason']],
+                        body: recentMovements.map(m => {
+                            const item = state.items[m.item_id];
+                            const cat = item ? state.categories[item.categoryId] : null;
+                            const dept = cat ? state.departments[cat.departmentId] : null;
+                            
+                            return [
+                                new Date(m.timestamp).toLocaleDateString(),
+                                item?.name || 'Unknown',
+                                m.type === 'in' ? 'IN' : 'OUT',
+                                m.quantity,
+                                m.user,
+                                dept?.name || '-',
+                                m.reason || '-'
+                            ];
+                        }),
+                        theme: 'grid',
+                        headStyles: { fillColor: [46, 204, 113] },
+                        columnStyles: {
+                            3: { halign: 'right' },
+                            6: { fontStyle: 'italic', fontSize: 10 }
+                        },
+                        styles: {
+                            fontSize: 9,
+                            cellPadding: 3
+                        }
+                    });
+                } else {
+                    doc.setFontSize(12);
+                    doc.text('No recent movements found', 14, 30);
+                }
+                
+                // ===== SAVE THE REPORT =====
+                doc.save(`vanguard-stock-report-${new Date().toISOString().slice(0,10)}.pdf`);
+            } catch (error) {
+                console.error('Error generating detailed PDF content:', error);
+                throw error;
+            }
+        }
+    
+        function showReports() {
+            const inStock = Object.values(state.items).filter(i => 
+                (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel
+            ).length;
+            
+            const low = Object.values(state.items).filter(i => {
+                const stock = state.stockLevels[i.id] || { quantity: 0 };
+                return stock.quantity > 0 && stock.quantity <= i.minStockLevel;
+            }).length;
+            
+            const out = Object.values(state.items).length - inStock - low;
+            
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Reports & Analytics</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                        <div style="height: 300px;">
+                            <canvas id="stockChart"></canvas>
+                        </div>
+                        <div style="height: 300px;">
+                            <canvas id="deptChart"></canvas>
+                        </div>
+                    </div>
+                    <button id="generatePdfBtn" class="pdf-btn" onclick="generatePDFReport()">
+                        <i class="fas fa-file-pdf"></i> Export Full Report to PDF
+                    </button>
+                </div>
+            `);
+            
+            setTimeout(() => {
+                new Chart(document.getElementById('stockChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['In Stock', 'Low Stock', 'Out of Stock'],
+                        datasets: [{
+                            data: [inStock, low, out],
+                            backgroundColor: ['var(--success)', 'var(--warning)', 'var(--accent)']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: 'var(--text-primary)'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Stock Status Overview',
+                                color: 'var(--text-primary)'
+                            }
+                        }
+                    }
+                });
+                
+                const deptVal = {};
+                Object.values(state.items).forEach(i => {
+                    const cat = state.categories[i.categoryId];
+                    const dept = cat ? state.departments[cat.departmentId] : null;
+                    if (!dept) return;
+                    
+                    const stock = state.stockLevels[i.id] || { quantity: 0 };
+                    const value = stock.quantity * (i.cost || 0);
+                    deptVal[dept.name] = (deptVal[dept.name] || 0) + value;
+                });
+                
+                new Chart(document.getElementById('deptChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(deptVal),
+                        datasets: [{
+                            label: 'Inventory Value (K)',
+                            data: Object.values(deptVal),
+                            backgroundColor: 'var(--secondary)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Inventory Value by Department',
+                                color: 'var(--text-primary)'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(255,255,255,0.1)'
+                                },
+                                ticks: {
+                                    color: 'var(--text-secondary)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(255,255,255,0.1)'
+                                },
+                                ticks: {
+                                    color: 'var(--text-secondary)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }, 100);
+        }
+
+        function showSettings() {
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">System Settings</div>
+                    </div>
+                    <div style="display: grid; gap: 1.5rem; margin-top: 1rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0.8rem;">Telegram Integration</h3>
+                            <button class="btn btn-primary" onclick="sendTG('✅ Vanguard test message')">
+                                <i class="fab fa-telegram"></i> Send Test Message
+                            </button>
+                        </div>
+                        
+                        <div>
+                            <h3 style="margin-bottom: 0.8rem;">Data Management</h3>
+                            <button class="btn btn-secondary" onclick="syncData()" style="margin-bottom: 0.5rem;">
+                                <i class="fas fa-sync"></i> Sync Data Now
+                            </button>
+                            <button class="btn btn-danger" onclick="resetApp()">
+                                <i class="fas fa-trash"></i> Reset Application Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        /* ===== CATEGORY MANAGEMENT ===== */
+        function addCategory(deptId, catName) {
+            const id = `cat_${deptId}_${catName.toLowerCase().replace(/\s+/g, '')}`;
+            
+            if (state.categories[id]) {
+                showMsg('Category already exists', 'error');
+                return;
+            }
+            
+            state.categories[id] = { 
+                id, 
+                departmentId: deptId, 
+                name: catName, 
+                updated_at: new Date().toISOString(),
+                version: 1
+            };
+            addOffline({ type: 'ADD_CATEGORY', data: state.categories[id] });
+            saveState();
+            showMsg('Category added', 'success');
+            forceSync().catch(console.error);
+        }
+
+        function updateCategory(id, newName) {
+            state.categories[id].name = newName;
+            state.categories[id].updated_at = new Date().toISOString();
+            state.categories[id].version = (state.categories[id].version || 1) + 1;
+            addOffline({ type: 'UPDATE_CATEGORY', id, data: state.categories[id] });
+            saveState();
+            showMsg('Category updated', 'success');
+            forceSync().catch(console.error);
+        }
+
+        function deleteCategory(id) {
+            const inUse = Object.values(state.items).some(i => i.categoryId === id);
+            
+            if (inUse) {
+                showMsg('Category is in use - cannot delete', 'error');
+                return;
+            }
+            
+            delete state.categories[id];
+            addOffline({ type: 'DELETE_CATEGORY', id });
+            saveState();
+            showMsg('Category deleted', 'success');
+            forceSync().catch(console.error);
+        }
+
         function showCategoryManagement() {
-            if (currentUser?.role !== USER_ROLES.ADMIN) return showDashboard();
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            actionContent.innerHTML = `
+            if (currentUser?.role !== USER_ROLES.ADMIN) {
+                showMsg('Access denied', 'error');
+                return;
+            }
+            
+            const cats = Object.values(state.categories).map(c => {
+                const dept = state.departments[c.departmentId];
+                return `
+                    <tr>
+                        <td>${dept?.name || 'Unknown'}</td>
+                        <td>${c.name}</td>
+                        <td>
+                            <button class="btn-icon" onclick="editCategoryForm('${c.id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-icon" onclick="deleteCategory('${c.id}')" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            switchView('actionContent', `
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Category Management</div>
-                        <button class="btn btn-primary" onclick="renderAddCategory()"><i class="fas fa-plus"></i> Add Category</button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" onclick="addCategoryForm()">
+                                <i class="fas fa-plus"></i> Add Category
+                            </button>
+                        </div>
                     </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Department</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="categoryTableBody"></tbody>
-                    </table>
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Category Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${cats || '<tr><td colspan="3" style="text-align:center;padding:1.5rem">No categories found</td></tr>'}</tbody>
+                        </table>
+                    </div>
                 </div>
-            `;
-
-            const tableBody = document.getElementById('categoryTableBody');
-            Object.values(state.categories).forEach(cat => {
-                const dept = state.departments[cat.departmentId];
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${cat.name}</td>
-                    <td>${dept?.name || 'Unknown'}</td>
-                    <td>
-                        <button class="btn-icon" title="Edit Category" onclick="renderEditCategory('${cat.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon" title="Delete Category" onclick="deleteCategory('${cat.id}')"><i class="fas fa-trash-alt" style="color:var(--accent)"></i></button>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
+            `);
         }
 
-        // Add this to your main script file
-        function renderAddCategory() {
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            actionContent.innerHTML = `
+        function addCategoryForm() {
+            const depts = Object.values(state.departments).map(d => 
+                `<option value="${d.id}">${d.name}</option>`
+            ).join('');
+            
+            switchView('actionContent', `
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Add New Category</div>
+                        <button class="logout-btn" onclick="showCategoryManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
                     </div>
-                    <form id="addCategoryForm">
-                        <div class="form-group">
-                            <label for="categoryName">Category Name</label>
-                            <input type="text" id="categoryName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="categoryDepartment">Department</label>
-                            <select id="categoryDepartment" required></select>
+                    <form id="addCatForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="acDept" required>${depts}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>Category Name</label>
+                                <input id="acName" required placeholder="Enter category name">
+                            </div>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Add Category</button>
                             <button type="button" class="btn btn-secondary" onclick="showCategoryManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Category</button>
                         </div>
                     </form>
                 </div>
-            `;
-            const deptSelect = document.getElementById('categoryDepartment');
-            Object.values(state.departments).forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept.id;
-                option.textContent = dept.name;
-                deptSelect.appendChild(option);
-            });
-            document.getElementById('addCategoryForm').addEventListener('submit', (e) => {
+            `);
+            
+            document.getElementById('addCatForm').addEventListener('submit', e => {
                 e.preventDefault();
-                const newCat = {
-                    id: genId(),
-                    name: document.getElementById('categoryName').value,
-                    departmentId: document.getElementById('categoryDepartment').value,
-                    updated_at: new Date().toISOString(),
-                    version: 1
-                };
-                state.categories[newCat.id] = newCat;
-                addOffline({ type: 'ADD_CATEGORY', data: newCat });
-                saveState();
+                addCategory(
+                    document.getElementById('acDept').value,
+                    document.getElementById('acName').value
+                );
                 showCategoryManagement();
-                showMsg('Category added!', 'success');
-                renderSidebar();
             });
         }
 
-        // Add this to your main script file
-        function renderEditCategory(categoryId) {
-            // Logic for editing a category
-        }
-        
-        // Add this to your main script file
-        function deleteCategory(categoryId) {
-            if (!confirm('Are you sure you want to delete this category and all related items?')) return;
-            const category = state.categories[categoryId];
-            if (!category) return;
-
-            // Remove associated items and stock levels
-            Object.keys(state.items).forEach(itemId => {
-                if (state.items[itemId].categoryId === categoryId) {
-                    delete state.items[itemId];
-                    delete state.stockLevels[itemId];
-                    addOffline({ type: 'DELETE_ITEM', id: itemId });
-                }
+        function editCategoryForm(id) {
+            const c = state.categories[id];
+            if (!c) return;
+            
+            const depts = Object.values(state.departments).map(d => 
+                `<option value="${d.id}" ${d.id === c.departmentId ? 'selected' : ''}>${d.name}</option>`
+            ).join('');
+            
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Edit Category</div>
+                        <button class="logout-btn" onclick="showCategoryManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="editCatForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="ecDept">${depts}</select>
+                            </div>
+                            <div class="form-group">
+                                <label>Category Name</label>
+                                <input id="ecName" value="${c.name}" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showCategoryManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('editCatForm').addEventListener('submit', e => {
+                e.preventDefault();
+                updateCategory(id, document.getElementById('ecName').value);
+                showCategoryManagement();
             });
+        }
 
-            delete state.categories[categoryId];
-            addOffline({ type: 'DELETE_CATEGORY', id: categoryId });
+        /* ===== DEPARTMENT MANAGEMENT ===== */
+        function addDepartment(name) {
+            const id = `dept_${name.toLowerCase().replace(/\s+/g, '')}`;
+            if (state.departments[id]) {
+                showMsg('Department already exists', 'error');
+                return;
+            }
+            
+            state.departments[id] = { 
+                id, 
+                name, 
+                updated_at: new Date().toISOString(),
+                version: 1
+            };
+            addOffline({ type: 'ADD_DEPARTMENT', data: state.departments[id] });
             saveState();
-            showCategoryManagement();
-            showMsg(`Category ${category.name} and related items deleted.`, 'success');
-            renderSidebar();
+            showMsg('Department added', 'success');
+            forceSync().catch(console.error);
         }
-        
-        // Add this to your main script file
+
+        function updateDepartment(id, newName) {
+            state.departments[id].name = newName;
+            state.departments[id].updated_at = new Date().toISOString();
+            state.departments[id].version = (state.departments[id].version || 1) + 1;
+            addOffline({ type: 'UPDATE_DEPARTMENT', id, data: state.departments[id] });
+            saveState();
+            showMsg('Department updated', 'success');
+            forceSync().catch(console.error);
+        }
+
+        function deleteDepartment(id) {
+            const inCat = Object.values(state.categories).some(c => c.departmentId === id);
+            if (inCat) {
+                showMsg('Department has categories – cannot delete', 'error');
+                return;
+            }
+            
+            delete state.departments[id];
+            addOffline({ type: 'DELETE_DEPARTMENT', id });
+            saveState();
+            showMsg('Department deleted', 'success');
+            forceSync().catch(console.error);
+        }
+
         function showDepartmentManagement() {
-            if (currentUser?.role !== USER_ROLES.ADMIN) return showDashboard();
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            actionContent.innerHTML = `
+            if (currentUser?.role !== USER_ROLES.ADMIN) {
+                showMsg('Access denied', 'error');
+                return;
+            }
+            
+            const depts = Object.values(state.departments).map(d => `
+                <tr>
+                    <td>${d.name}</td>
+                    <td>
+                        <button class="btn-icon" onclick="editDepartmentForm('${d.id}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon" onclick="deleteDepartment('${d.id}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`
+            ).join('');
+            
+            switchView('actionContent', `
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Department Management</div>
-                        <button class="btn btn-primary" onclick="renderAddDepartment()"><i class="fas fa-plus"></i> Add Department</button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" onclick="addDepartmentForm()">
+                                <i class="fas fa-plus"></i> Add Department
+                            </button>
+                        </div>
                     </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="departmentTableBody"></tbody>
-                    </table>
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${depts || '<tr><td colspan="2" style="text-align:center;padding:1.5rem">No departments found</td></tr>'}</tbody>
+                        </table>
+                    </div>
                 </div>
-            `;
-            const tableBody = document.getElementById('departmentTableBody');
-            Object.values(state.departments).forEach(dept => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${dept.name}</td>
-                    <td>
-                        <button class="btn-icon" title="Edit Department" onclick="renderEditDepartment('${dept.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-icon" title="Delete Department" onclick="deleteDepartment('${dept.id}')"><i class="fas fa-trash-alt" style="color:var(--accent)"></i></button>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
+            `);
         }
 
-        // Add this to your main script file
-        function renderAddDepartment() {
-            showView('actionContent');
-            const actionContent = document.getElementById('actionContent');
-            actionContent.innerHTML = `
+        function addDepartmentForm() {
+            switchView('actionContent', `
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">Add New Department</div>
+                        <button class="logout-btn" onclick="showDepartmentManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
                     </div>
-                    <form id="addDepartmentForm">
-                        <div class="form-group">
-                            <label for="departmentName">Department Name</label>
-                            <input type="text" id="departmentName" required>
+                    <form id="addDeptForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Department Name</label>
+                                <input id="adName" required placeholder="Enter department name">
+                            </div>
                         </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Add Department</button>
                             <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Department</button>
                         </div>
                     </form>
                 </div>
-            `;
-            document.getElementById('addDepartmentForm').addEventListener('submit', (e) => {
+            `);
+            
+            document.getElementById('addDeptForm').addEventListener('submit', e => {
                 e.preventDefault();
-                const newDept = {
-                    id: genId(),
-                    name: document.getElementById('departmentName').value,
+                addDepartment(document.getElementById('adName').value);
+                showDepartmentManagement();
+            });
+        }
+
+        function editDepartmentForm(id) {
+            const d = state.departments[id];
+            switchView('actionContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Edit Department</div>
+                        <button class="logout-btn" onclick="showDepartmentManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="editDeptForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input id="edName" value="${d.name}" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('editDeptForm').addEventListener('submit', e => {
+                e.preventDefault();
+                updateDepartment(id, document.getElementById('edName').value);
+                showDepartmentManagement();
+            });
+        }
+
+        /* ===== USER MANAGEMENT ===== */
+        function showUserManagement() {
+            if (currentUser?.role !== USER_ROLES.ADMIN) {
+                showMsg('Access denied', 'error');
+                return;
+            }
+            
+            const rows = Object.values(state.users).map(u => `
+                <tr>
+                    <td>${u.username}</td>
+                    <td>${u.displayName}</td>
+                    <td>${u.role}</td>
+                    <td>${u.department}</td>
+                    <td>
+                        <button class="btn-icon" onclick="editUserForm('${u.username}')" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-icon" onclick="deleteUserPrompt('${u.username}')" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            switchView('userManagementContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">User Management</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" onclick="addUserForm()">
+                                <i class="fas fa-plus"></i> Add User
+                            </button>
+                        </div>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Display Name</th>
+                                    <th>Role</th>
+                                    <th>Department</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `);
+        }
+
+        function addUserForm() {
+            const depts = Object.values(state.departments).map(d => 
+                `<option value="${d.id.replace('dept_', '')}">${d.name}</option>`
+            ).join('');
+            
+            switchView('userManagementContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Add New User</div>
+                        <button class="logout-btn" onclick="showUserManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="addUserForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input id="auUsername" required placeholder="Unique username">
+                            </div>
+                            <div class="form-group">
+                                <label>Display Name</label>
+                                <input id="auDisplay" required placeholder="Full name">
+                            </div>
+                            <div class="form-group">
+                                <label>Password (PIN)</label>
+                                <input id="auPassword" required type="password" placeholder="5-digit PIN">
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="auRole">
+                                    <option value="admin">Admin</option>
+                                    <option value="processor">Processor</option>
+                                    <option value="viewer">Viewer</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="auDept">
+                                    <option value="all">All Departments</option>
+                                    ${depts}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add User</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('addUserForm').addEventListener('submit', e => {
+                e.preventDefault();
+                const username = document.getElementById('auUsername').value;
+                const displayName = document.getElementById('auDisplay').value;
+                const password = document.getElementById('auPassword').value;
+                const role = document.getElementById('auRole').value;
+                const department = document.getElementById('auDept').value;
+                
+                if (state.users[username]) {
+                    showMsg('User already exists', 'error');
+                    return;
+                }
+                
+                state.users[username] = {
+                    username,
+                    displayName,
+                    password,
+                    role,
+                    department,
                     updated_at: new Date().toISOString(),
                     version: 1
                 };
-                state.departments[newDept.id] = newDept;
-                addOffline({ type: 'ADD_DEPARTMENT', data: newDept });
+                
+                addOffline({ type: 'ADD_USER', data: state.users[username] });
                 saveState();
-                showDepartmentManagement();
-                showMsg('Department added!', 'success');
-                renderSidebar();
+                showUserManagement();
+                forceSync().catch(console.error);
             });
         }
-        
-        // Add this to your main script file
-        function renderEditDepartment(deptId) {
-            // Logic for editing a department
-        }
-        
-        // Add this to your main script file
-        function deleteDepartment(deptId) {
-            if (!confirm('Are you sure you want to delete this department and all related categories and items?')) return;
-            const dept = state.departments[deptId];
-            if (!dept) return;
 
-            // Remove associated categories and their items/stock levels
-            Object.values(state.categories).forEach(cat => {
-                if (cat.departmentId === deptId) {
-                    Object.keys(state.items).forEach(itemId => {
-                        if (state.items[itemId].categoryId === cat.id) {
-                            delete state.items[itemId];
-                            delete state.stockLevels[itemId];
-                            addOffline({ type: 'DELETE_ITEM', id: itemId });
-                        }
-                    });
-                    delete state.categories[cat.id];
-                    addOffline({ type: 'DELETE_CATEGORY', id: cat.id });
-                }
+        function editUserForm(username) {
+            const u = state.users[username];
+            if (!u) return;
+            
+            const depts = Object.values(state.departments).map(d => 
+                `<option value="${d.id.replace('dept_', '')}" ${d.id.replace('dept_', '') === u.department ? 'selected' : ''}>${d.name}</option>`
+            ).join('');
+            
+            switchView('userManagementContent', `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Edit ${u.displayName}</div>
+                        <button class="logout-btn" onclick="showUserManagement()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                    </div>
+                    <form id="editUserForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input value="${u.username}" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Display Name</label>
+                                <input id="euDisplay" value="${u.displayName}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password (blank = no change)</label>
+                                <input id="euPassword" type="password" placeholder="Leave blank to keep current">
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select id="euRole">
+                                    <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                    <option value="processor" ${u.role === 'processor' ? 'selected' : ''}>Processor</option>
+                                    <option value="viewer" ${u.role === 'viewer' ? 'selected' : ''}>Viewer</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="euDept">
+                                    <option value="all" ${u.department === 'all' ? 'selected' : ''}>All Departments</option>
+                                    ${depts}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="showUserManagement()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            `);
+            
+            document.getElementById('editUserForm').addEventListener('submit', e => {
+                e.preventDefault();
+                Object.assign(u, {
+                    displayName: document.getElementById('euDisplay').value,
+                    password: document.getElementById('euPassword').value || u.password,
+                    role: document.getElementById('euRole').value,
+                    department: document.getElementById('euDept').value,
+                    updated_at: new Date().toISOString(),
+                    version: (u.version || 1) + 1
+                });
+                addOffline({ type: 'UPDATE_USER', id: username, data: u });
+                saveState();
+                showUserManagement();
+                forceSync().catch(console.error);
             });
+        }
 
-            delete state.departments[deptId];
-            addOffline({ type: 'DELETE_DEPARTMENT', id: deptId });
+        function deleteUserPrompt(username) {
+            if (currentUser.username === username) {
+                showMsg('Cannot delete yourself', 'error');
+                return;
+            }
+            
+            if (!confirm(`Delete user ${username}? This will sync immediately.`)) return;
+            
+            delete state.users[username];
+            addOffline({ type: 'DELETE_USER', id: username });
             saveState();
-            showDepartmentManagement();
-            showMsg(`Department ${dept.name} and related data deleted.`, 'success');
-            renderSidebar();
+            
+            forceSync().catch(console.error);
+            
+            showUserManagement();
+        }
+
+        /* ===== INLINE KEYPAD ===== */
+        function buildInlineKeypad() {
+            if (document.getElementById('inlineKeypad')) return;
+            
+            const div = document.createElement('div');
+            div.id = 'inlineKeypad';
+            div.className = 'modal-backdrop';
+            div.style.position = 'fixed';
+            div.style.top = '0';
+            div.style.left = '0';
+            div.style.width = '100%';
+            div.style.height = '100%';
+            div.style.backgroundColor = 'rgba(0,0,0,0.7)';
+            div.style.display = 'flex';
+            div.style.justifyContent = 'center';
+            div.style.alignItems = 'center';
+            div.style.zIndex = '1000';
+            
+            div.innerHTML = `
+                <div class="modal-content" style="background: var(--surface); padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px;">
+                    <h3 style="margin-bottom: 1rem; text-align: center;">Confirm Receipt</h3>
+                    <p style="margin-bottom: 1.5rem; text-align: center;">Enter staff member's 5-digit PIN</p>
+                    
+                    <div class="pin-input" style="margin-bottom: 1.5rem;">
+                        ${'<input type="text" class="pin-digit" maxlength="1" readonly>'.repeat(5)}
+                    </div>
+                    
+                    <div class="keypad">
+                        ${[1,2,3,4,5,6,7,8,9,'*',0,'%'].map(k => 
+                            `<button class="key" data-key="${k}">${k}</button>`
+                        ).join('')}
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button class="clear-btn" style="flex: 1;" onclick="cancelInlinePin()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(div);
+        }
+
+        function handleInlineKeyPress(key) {
+            const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+            let currentInlinePin = '';
+            
+            for(let i = 0; i < digits.length; i++) {
+                if (!digits[i].value) {
+                    digits[i].value = key;
+                    digits[i].classList.add('filled');
+                    break;
+                }
+            }
+            
+            currentInlinePin = Array.from(digits).map(d => d.value).join('');
+            if (currentInlinePin.length === 5) {
+                setTimeout(() => confirmInlinePin(currentInlinePin), 200);
+            }
+        }
+
+        function clearInlinePin(digits) {
+            digits.forEach(d => {
+                d.value = '';
+                d.classList.remove('filled');
+            });
+            if (digits.length > 0) digits[0].focus();
+        }
+
+        function openInlinePin() {
+            buildInlineKeypad();
+            const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+            clearInlinePin(digits);
+        }
+
+        function cancelInlinePin() {
+            const keypad = document.getElementById('inlineKeypad');
+            if (keypad) keypad.remove();
+            pendingStockOut = null;
+        }
+
+        function confirmInlinePin(pin) {
+            if (!pendingStockOut) return;
+            
+            const user = state.users[pendingStockOut.staff];
+            
+            if (!user || user.password !== pin) {
+                showMsg('Wrong PIN', 'error');
+                const keypad = document.getElementById('inlineKeypad');
+                if (keypad) {
+                    keypad.querySelector('.modal-content').style.animation = 'shake .5s';
+                    setTimeout(() => {
+                        keypad.querySelector('.modal-content').style.animation = '';
+                        const digits = document.querySelectorAll('#inlineKeypad .pin-digit');
+                        clearInlinePin(digits);
+                    }, 600);
+                }
+                return;
+            }
+            
+            // If this needs admin verification and current user is an admin, proceed with verification
+            if (pendingStockOut.needsVerification && ['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
+                // Store the admin verification note
+                pendingStockOut.adminPin = pin;
+                
+                // Show verification note input
+                showVerificationNoteInput();
+            } else {
+                // Complete the stock out with the recipient's pin
+                adjustStock(
+                    pendingStockOut.itemId,
+                    -pendingStockOut.qty,
+                    pendingStockOut.reason,
+                    pendingStockOut.staff,
+                    pin,
+                    pendingStockOut.verificationNote || ''
+                );
+                
+                showMsg('Stock issued successfully', 'success');
+                cancelInlinePin();
+                showInventory();
+            }
+        }
+
+        function showVerificationNoteInput() {
+            // Remove the existing keypad
+            const keypad = document.getElementById('inlineKeypad');
+            if (keypad) keypad.remove();
+
+            // Create the note-input modal
+            const div = document.createElement('div');
+            div.id = 'verificationNoteModal';
+            div.className = 'modal-backdrop';
+            Object.assign(div.style, {
+                position: 'fixed',
+                inset: 0,
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1000
+            });
+
+            div.innerHTML = `
+                <div class="modal-content" style="background: var(--surface); padding: 2rem; border-radius: var(--radius); width: 90%; max-width: 400px;">
+                    <h3 style="margin-bottom: 1rem; text-align: center;">Verification Details</h3>
+                    <p style="margin-bottom: 1.5rem; text-align: center;">Add any notes for this verified transaction.</p>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <textarea id="verificationNoteInput"
+                                  style="width: 100%; padding: 0.75rem; border-radius: var(--radius); background: var(--primary); color: var(--text-primary); border: 1px solid var(--surface-light); min-height: 100px;"
+                                  placeholder="Optional verification notes"></textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="clear-btn" style="flex: 1;" onclick="cancelVerificationNote()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="btn btn-primary" style="flex: 1;" onclick="completeVerifiedStockOut()">
+                            <i class="fas fa-check"></i> Confirm
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(div);
+        }
+
+        function cancelVerificationNote() {
+            const modal = document.getElementById('verificationNoteModal');
+            if (modal) modal.remove();
+            pendingStockOut = null;
+        }
+
+        function completeVerifiedStockOut() {
+            const note = document.getElementById('verificationNoteInput')?.value || '';
+            if (pendingStockOut) {
+                adjustStock(
+                    pendingStockOut.itemId,
+                    -pendingStockOut.qty,
+                    pendingStockOut.reason,
+                    pendingStockOut.staff,
+                    pendingStockOut.adminPin,
+                    note
+                );
+                showMsg('Stock issued & verified', 'success');
+            }
+            const modal = document.getElementById('verificationNoteModal');
+            if (modal) modal.remove();
+            pendingStockOut = null;
+            showInventory();
         }
 
         /* ===== INITIALIZATION ===== */
-        async function init() {
-            await loadState();
-            await loadQueue();
-            const storedUser = localStorage.getItem('currentUser');
-            if (storedUser) {
-                currentUser = JSON.parse(storedUser);
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                document.getElementById('currentUser').textContent = `Welcome, ${currentUser.displayName}`;
-                updateUIVisibility();
-                renderSidebar();
-                showDashboard();
-                updateSyncStatus();
-                initRealtime();
-                if (offlineQueue.length > 0) {
-                    showMsg('Offline changes detected. Sync to update remote data.', 'warning');
+        async function initializeApp() {
+            try {
+                console.log('Initializing Vanguard Stock Management System v2.1...');
+                
+                // 1. Load local data first (with error recovery)
+                try {
+                    await loadState();
+                    await loadQueue();
+                } catch (loadError) {
+                    console.error('Local load error, initializing defaults:', loadError);
+                    initDefault();
+                    await saveState();
                 }
-            } else {
-                initLoginScreen();
+                
+                // 2. Check connection and sync
+                const isConnected = navigator.onLine && await testSupabaseConnection();
+                
+                if (isConnected) {
+                    console.log('✅ Supabase connection established');
+                    // Immediate sync attempt with fallback
+                    try {
+                        await syncData();
+                    } catch (syncError) {
+                        console.log('Initial sync failed, will retry:', syncError.message);
+                        setTimeout(() => syncData(), 3000);
+                    }
+                    
+                    // Setup realtime updates regardless of sync success
+                    if (currentUser) setupRealtimeUpdates();
+                } else {
+                    console.log('⚠️ Working in offline mode');
+                }
+                
+                // 3. DOM Setup - Improved event delegation
+                pinDigits = document.querySelectorAll('#loginScreen .pin-digit');
+                
+                // Single delegated listener for better performance
+                document.body.addEventListener('click', (e) => {
+                    if (e.target.matches('.key')) {
+                        const key = e.target.dataset.key;
+                        if (!document.getElementById('loginScreen').classList.contains('hidden')) {
+                            handleKeyPress(key);
+                        } else if (document.getElementById('inlineKeypad')) {
+                            handleInlineKeyPress(key);
+                        }
+                    }
+                    
+                    // PDF generation handler
+                    if (e.target.id === 'generatePdfBtn') {
+                        generatePDFReport();
+                    }
+                });
+
+                // 4. Enhanced Network Monitoring
+                const handleOnline = () => {
+                    console.log('Network connection restored');
+                    updateSyncStatus();
+                    
+                    // Immediate sync with backoff
+                    const syncWithRetry = async (attempt = 1) => {
+                        try {
+                            await syncData();
+                            if (currentUser) setupRealtimeUpdates();
+                        } catch (err) {
+                            if (attempt <= 3) {
+                                const delay = attempt * 2000;
+                                console.log(`Retry ${attempt} in ${delay}ms`);
+                                setTimeout(() => syncWithRetry(attempt + 1), delay);
+                            }
+                        }
+                    };
+                    
+                    syncWithRetry();
+                };
+
+                const handleOffline = () => {
+                    console.log('Network connection lost');
+                    updateSyncStatus();
+                    if (realtimeChannel) {
+                        supabase.removeChannel(realtimeChannel);
+                        realtimeChannel = null;
+                    }
+                };
+
+                window.addEventListener('online', handleOnline);
+                window.addEventListener('offline', handleOffline);
+                
+                // 5. Optimized Periodic Sync (with jitter)
+                const syncInterval = setInterval(() => {
+                    if (navigator.onLine) {
+                        // Add random jitter to prevent thundering herd
+                        const jitter = Math.floor(Math.random() * 30000); // 0-30s
+                        setTimeout(() => {
+                            syncData().catch(err => 
+                                console.log('Periodic sync failed:', err.message)
+                            );
+                        }, jitter);
+                    }
+                }, 5 * 60 * 1000); // 5 minutes base interval
+
+                // 6. Initial UI State
+                updateUIVisibility();
+                updateSyncStatus();
+                
+                // Cleanup function for app teardown
+                window.appCleanup = () => {
+                    window.removeEventListener('online', handleOnline);
+                    window.removeEventListener('offline', handleOffline);
+                    clearInterval(syncInterval);
+                    if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+                };
+                
+                console.log('✅ App Initialized Successfully');
+                
+            } catch (error) {
+                console.error('❌ Critical Initialization Failed:', error);
+                showMsg('System initialization failed. Try refreshing.', 'error');
+                updateSyncStatus();
             }
         }
-        
-        window.onload = init;
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
