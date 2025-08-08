@@ -1940,17 +1940,14 @@
     // Clear successful operations
     if (failedOperations.length < offlineQueue.length) {
         await clearQueue();
-        
-        if (failedOperations.length < offlineQueue.length) {
-                await clearQueue();
-                
-                if (failedOperations.length > 0) {
-                    offlineQueue = failedOperations;
-                    await saveQueue();
-                    showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
+
+        if (failedOperations.length > 0) {
+            offlineQueue = failedOperations;
+            await saveQueue();
+            showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
         }
     }
-}
+}  // <<== THIS IS YOUR FUNCTION'S CLOSING BRACE
 // UUID validation and formatting helper
 function ensureUUID(id) {
     if (!id) return genId();
