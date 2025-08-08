@@ -1576,167 +1576,277 @@
         }
 
         async function processOfflineQueue() {
-            if (!offlineQueue.length) return;
+    if (!offlineQueue.length) return;
 
-            let failedOperations = [];
-            const MAX_RETRIES = 3;
-            
-            // Process each operation with retry logic
-            for (const op of offlineQueue) {
-                let retryCount = 0;
-                let success = false;
-                
-                while (retryCount < MAX_RETRIES && !success) {
-                    try {
-                        const updateData = { 
-                            ...op.data, 
-                            updated_at: new Date().toISOString(),
-                            version: (op.data.version || 1) + 1
+    let failedOperations = [];
+    const MAX_RETRIES = 3;
+    
+    // Process each operation with retry logic
+    for (const op of offlineQueue) {
+        let retryCount = 0;
+        let success = false;
+        
+        while (retryCount < MAX_RETRIES && !success) {
+            try {
+                const updateData = { 
+                    ...op.data, 
+                    updated_at: new Date().toISOString(),
+                    version: (op.data.version || 1) + 1
+                };
+
+                switch (op.type) {
+                    case 'ADD_ITEM':
+                        const itemResult = await supabase
+                            .from('items')
+                            .insert({
+                                id: formatToUUID(op.data.id),
+                                name: op.data.name,
+                                category_id: formatToUUID(op.data.categoryId),
+                                unit: op.data.unit,
+                                cost: op.data.cost || 0,
+                                min_stock_level: op.data.minStockLevel || 0,
+                                created_at: op.data.createdAt || new Date().toISOString(),
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            });
+                        
+                        if (itemResult.error) throw itemResult.error;
+                        
+                        const stockResult = await supabase
+                            .from('stock_levels')
+                            .insert({
+                                item_id: formatToUUID(op.data.id),
+                                quantity: op.initialQuantity || 0,
+                                updated_at: updateData.updated_at
+                            });
+                        
+                        if (stockResult.error) throw stockResult.error;
+                        break;
+
+                    case 'UPDATE_ITEM':
+                        const updateResult = await supabase
+                            .from('items')
+                            .update({
+                                name: op.data.name,
+                                category_id: formatToUUID(op.data.categoryId),
+                                unit: op.data.unit,
+                                cost: op.data.cost || 0,
+                                min_stock_level: op.data.minStockLevel || 0,
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            })
+                            .eq('id', formatToUUID(op.id));
+                        
+                        if (updateResult.error) throw updateResult.error;
+                        break;
+
+                    case 'DELETE_ITEM':
+                        await supabase
+                            .from('stock_levels')
+                            .delete()
+                            .eq('item_id', formatToUUID(op.id));
+                        
+                        const deleteResult = await supabase
+                            .from('items')
+                            .delete()
+                            .eq('id', formatToUUID(op.id));
+                        
+                        if (deleteResult.error) throw deleteResult.error;
+                        break;
+
+                    case 'STOCK_MOVEMENT':
+                        const movementData = {
+                            ...op.data,
+                            id: formatToUUID(op.data.id),
+                            item_id: formatToUUID(op.data.item_id)
                         };
 
-                        switch (op.type) {
-                            case 'ADD_ITEM':
-                                const itemResult = await supabase
-                                    .from('items')
-                                    .insert({
-                                        id: op.data.id,
-                                        name: op.data.name,
-                                        category_id: op.data.categoryId,
-                                        unit: op.data.unit,
-                                        cost: op.data.cost || 0,
-                                        min_stock_level: op.data.minStockLevel || 0,
-                                        created_at: op.data.createdAt || new Date().toISOString(),
-                                        updated_at: updateData.updated_at,
-                                        version: updateData.version
-                                    });
-                                
-                                if (itemResult.error) throw itemResult.error;
-                                
-                                const stockResult = await supabase
-                                    .from('stock_levels')
-                                    .insert({
-                                        item_id: op.data.id,
-                                        quantity: op.initialQuantity || 0,
-                                        updated_at: updateData.updated_at
-                                    });
-                                
-                                if (stockResult.error) throw stockResult.error;
-                                break;
-
-                            case 'UPDATE_ITEM':
-                                const updateResult = await supabase
-                                    .from('items')
-                                    .update({
-                                        name: op.data.name,
-                                        category_id: op.data.categoryId,
-                                        unit: op.data.unit,
-                                        cost: op.data.cost || 0,
-                                        min_stock_level: op.data.minStockLevel || 0,
-                                        updated_at: updateData.updated_at,
-                                        version: updateData.version
-                                    })
-                                    .eq('id', op.id);
-                                
-                                if (updateResult.error) throw updateResult.error;
-                                break;
-
-                            case 'DELETE_ITEM':
-                                await supabase
-                                    .from('stock_levels')
-                                    .delete()
-                                    .eq('item_id', op.id);
-                                
-                                const deleteResult = await supabase
-                                    .from('items')
-                                    .delete()
-                                    .eq('id', op.id);
-                                
-                                if (deleteResult.error) throw deleteResult.error;
-                                break;
-
-                            case 'STOCK_MOVEMENT':
-    const movementData = {
-        ...op.data,
-        id: formatToUUID(op.data.id),
-        item_id: formatToUUID(op.data.item_id)
-    };
-
-    const stockUpdateResult = await supabase
-        .from('stock_levels')
-        .upsert({
-            item_id: movementData.item_id,
-            quantity: op.stockUpdate.quantity,
-            updated_at: op.stockUpdate.updated_at
-        }, { onConflict: 'item_id' });
-    
-    if (stockUpdateResult.error) throw stockUpdateResult.error;
-    
-    const movementResult = await supabase
-        .from('stock_movements')
-        .insert({
-            id: movementData.id,
-            item_id: movementData.item_id,
-            type: movementData.type,
-            quantity: movementData.quantity,
-            reason: movementData.reason || '',
-            user_name: movementData.user || 'Unknown',
-            staff_member: movementData.staff_member,
-            confirmed_pin: movementData.confirmedPin,
-            timestamp: movementData.timestamp,
-            updated_at: updateData.updated_at,
-            version: 1,
-            movement_value: movementData.movement_value || 0,
-            currency: movementData.currency || 'MWK'
-        });
-    
-    if (movementResult.error) throw movementResult.error;
-    break;
-
-                            // Add other cases as needed...
-                            case 'ADD_CATEGORY':
-                            case 'UPDATE_CATEGORY':
-                            case 'DELETE_CATEGORY':
-                            case 'ADD_DEPARTMENT':
-                            case 'UPDATE_DEPARTMENT':
-                            case 'DELETE_DEPARTMENT':
-                            case 'ADD_USER':
-                            case 'UPDATE_USER':
-                            case 'DELETE_USER':
-                                // Implementation for other operation types
-                                break;
-                        }
+                        const stockUpdateResult = await supabase
+                            .from('stock_levels')
+                            .upsert({
+                                item_id: movementData.item_id,
+                                quantity: op.stockUpdate.quantity,
+                                updated_at: op.stockUpdate.updated_at
+                            }, { onConflict: 'item_id' });
                         
-                        success = true;
+                        if (stockUpdateResult.error) throw stockUpdateResult.error;
                         
-                    } catch (err) {
-                        retryCount++;
-                        console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
+                        const movementResult = await supabase
+                            .from('stock_movements')
+                            .insert({
+                                id: movementData.id,
+                                item_id: movementData.item_id,
+                                type: movementData.type,
+                                quantity: movementData.quantity,
+                                reason: movementData.reason || '',
+                                user_name: movementData.user || 'Unknown',
+                                staff_member: movementData.staff_member,
+                                confirmed_pin: movementData.confirmedPin,
+                                timestamp: movementData.timestamp,
+                                updated_at: updateData.updated_at,
+                                version: 1,
+                                movement_value: movementData.movement_value || 0,
+                                currency: movementData.currency || 'MWK'
+                            });
                         
-                        if (retryCount >= MAX_RETRIES) {
-                            console.error('Max retries reached, adding to failed operations');
-                            failedOperations.push(op);
-                        } else {
-                            // Exponential backoff with proper async/await
-                            const delay = 1000 * Math.pow(2, retryCount);
-                            await new Promise(resolve => setTimeout(resolve, delay));
-                        }
-                    }
+                        if (movementResult.error) throw movementResult.error;
+                        break;
+
+                    case 'ADD_CATEGORY':
+                        const addCategoryResult = await supabase
+                            .from('categories')
+                            .insert({
+                                id: formatToUUID(op.data.id),
+                                department_id: formatToUUID(op.data.departmentId),
+                                name: op.data.name,
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            });
+                        
+                        if (addCategoryResult.error) throw addCategoryResult.error;
+                        break;
+
+                    case 'UPDATE_CATEGORY':
+                        const updateCategoryResult = await supabase
+                            .from('categories')
+                            .update({
+                                department_id: formatToUUID(op.data.departmentId),
+                                name: op.data.name,
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            })
+                            .eq('id', formatToUUID(op.id));
+                        
+                        if (updateCategoryResult.error) throw updateCategoryResult.error;
+                        break;
+
+                    case 'DELETE_CATEGORY':
+                        const deleteCategoryResult = await supabase
+                            .from('categories')
+                            .delete()
+                            .eq('id', formatToUUID(op.id));
+                        
+                        if (deleteCategoryResult.error) throw deleteCategoryResult.error;
+                        break;
+
+                    case 'ADD_DEPARTMENT':
+                        const addDeptResult = await supabase
+                            .from('departments')
+                            .insert({
+                                id: formatToUUID(op.data.id),
+                                name: op.data.name,
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            });
+                        
+                        if (addDeptResult.error) throw addDeptResult.error;
+                        break;
+
+                    case 'UPDATE_DEPARTMENT':
+                        const updateDeptResult = await supabase
+                            .from('departments')
+                            .update({
+                                name: op.data.name,
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            })
+                            .eq('id', formatToUUID(op.id));
+                        
+                        if (updateDeptResult.error) throw updateDeptResult.error;
+                        break;
+
+                    case 'DELETE_DEPARTMENT':
+                        const deleteDeptResult = await supabase
+                            .from('departments')
+                            .delete()
+                            .eq('id', formatToUUID(op.id));
+                        
+                        if (deleteDeptResult.error) throw deleteDeptResult.error;
+                        break;
+
+                    case 'ADD_USER':
+                        const addUserResult = await supabase
+                            .from('users')
+                            .insert({
+                                username: op.data.username,
+                                display_name: op.data.displayName,
+                                password: op.data.password,
+                                role: op.data.role,
+                                department: op.data.department,
+                                is_supervisor: op.data.isSupervisor || false,
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            });
+                        
+                        if (addUserResult.error) throw addUserResult.error;
+                        break;
+
+                    case 'UPDATE_USER':
+                        const updateUserResult = await supabase
+                            .from('users')
+                            .update({
+                                display_name: op.data.displayName,
+                                password: op.data.password,
+                                role: op.data.role,
+                                department: op.data.department,
+                                is_supervisor: op.data.isSupervisor || false,
+                                updated_at: updateData.updated_at,
+                                version: updateData.version
+                            })
+                            .eq('username', op.id);
+                        
+                        if (updateUserResult.error) throw updateUserResult.error;
+                        break;
+
+                    case 'DELETE_USER':
+                        const deleteUserResult = await supabase
+                            .from('users')
+                            .delete()
+                            .eq('username', op.id);
+                        
+                        if (deleteUserResult.error) throw deleteUserResult.error;
+                        break;
+
+                    case 'TELEGRAM_MSG':
+                        // Handle Telegram message retries
+                        await sendTG(op.data.rawMessage);
+                        break;
+
+                    default:
+                        console.warn('Unknown operation type:', op.type);
                 }
-            }
-
-            // Clear successful operations
-            if (failedOperations.length < offlineQueue.length) {
-                await clearQueue();
                 
-                if (failedOperations.length > 0) {
-                    offlineQueue = failedOperations;
-                    await saveQueue();
-                    showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
+                success = true;
+                
+            } catch (err) {
+                retryCount++;
+                console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
+                
+                if (retryCount >= MAX_RETRIES) {
+                    console.error('Max retries reached, adding to failed operations');
+                    failedOperations.push(op);
                 } else {
-                    showSyncNotification('All operations synced successfully', 'success');
+                    // Exponential backoff with proper async/await
+                    const delay = 1000 * Math.pow(2, retryCount);
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
         }
+    }
+
+    // Clear successful operations
+    if (failedOperations.length < offlineQueue.length) {
+        await clearQueue();
+        
+        if (failedOperations.length > 0) {
+            offlineQueue = failedOperations;
+            await saveQueue();
+            showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
+        } else {
+            showSyncNotification('All operations synced successfully', 'success');
+        }
+    }
+}
 
         // Helper function to format IDs as UUID if needed
         function formatToUUID(id) {
