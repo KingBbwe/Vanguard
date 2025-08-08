@@ -1048,9 +1048,19 @@
             );
         }
 
-        function genId() {
-            return generateUUID();
-        }
+        // Replace your current genId() function with this:
+function genId() {
+    // Modern browser support (preferred)
+    if (typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    // Fallback for older browsers
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
 
         // Enhanced Telegram notification with currency conversion
         const sendTG = msg => {
@@ -1655,38 +1665,42 @@
                         break;
 
                     case 'STOCK_MOVEMENT':
-                        const movementData = {
+                        // Convert all IDs to proper UUID format
+                        const formattedMovement = {
                             ...op.data,
                             id: formatToUUID(op.data.id),
                             item_id: formatToUUID(op.data.item_id)
                         };
 
-                        const stockUpdateResult = await supabase
+                        // First update stock levels
+                        const stockUpdate = await supabase
                             .from('stock_levels')
                             .upsert({
-                                item_id: movementData.item_id,
+                                id: formatToUUID(op.stockUpdate.id || genId()), // Ensure stock level has UUID
+                                item_id: formattedMovement.item_id,
                                 quantity: op.stockUpdate.quantity,
                                 updated_at: op.stockUpdate.updated_at
                             }, { onConflict: 'item_id' });
                         
-                        if (stockUpdateResult.error) throw stockUpdateResult.error;
+                        if (stockUpdate.error) throw stockUpdate.error;
                         
+                        // Then record the movement
                         const movementResult = await supabase
                             .from('stock_movements')
                             .insert({
-                                id: movementData.id,
-                                item_id: movementData.item_id,
-                                type: movementData.type,
-                                quantity: movementData.quantity,
-                                reason: movementData.reason || '',
-                                user_name: movementData.user || 'Unknown',
-                                staff_member: movementData.staff_member,
-                                confirmed_pin: movementData.confirmedPin,
-                                timestamp: movementData.timestamp,
+                                id: formattedMovement.id,
+                                item_id: formattedMovement.item_id,
+                                type: formattedMovement.type,
+                                quantity: formattedMovement.quantity,
+                                reason: formattedMovement.reason || '',
+                                user_name: formattedMovement.user || 'Unknown',
+                                staff_member: formattedMovement.staff_member,
+                                confirmed_pin: formattedMovement.confirmedPin,
+                                timestamp: formattedMovement.timestamp,
                                 updated_at: updateData.updated_at,
                                 version: 1,
-                                movement_value: movementData.movement_value || 0,
-                                currency: movementData.currency || 'MWK'
+                                movement_value: formattedMovement.movement_value || 0,
+                                currency: formattedMovement.currency || 'MWK'
                             });
                         
                         if (movementResult.error) throw movementResult.error;
@@ -1826,7 +1840,6 @@
                     console.error('Max retries reached, adding to failed operations');
                     failedOperations.push(op);
                 } else {
-                    // Exponential backoff with proper async/await
                     const delay = 1000 * Math.pow(2, retryCount);
                     await new Promise(resolve => setTimeout(resolve, delay));
                 }
@@ -1848,15 +1861,24 @@
     }
 }
 
-        // Helper function to format IDs as UUID if needed
         function formatToUUID(id) {
-            if (!id) return id;
-            // If already in UUID format, return as-is
-            if (id.includes('-') && id.length === 36) return id;
-            
-            // Convert simple ID to UUID-like format
-            return `${id.slice(0,8)}-${id.slice(8,12)}-${id.slice(12,16)}-${id.slice(16,20)}-${id.slice(20)}`;
-        }
+    if (!id) return null;
+    
+    // If already in valid UUID format (8-4-4-4-12)
+    if (id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
+        return id;
+    }
+    
+    // If it's a simple ID, convert to proper UUID format
+    // Remove any non-alphanumeric characters first
+    const cleanId = id.replace(/[^0-9a-f]/gi, '');
+    
+    // Pad with zeros if necessary to reach 32 characters
+    const paddedId = (cleanId + '00000000000000000000000000000000').slice(0, 32);
+    
+    // Format as proper UUID (version 4)
+    return `${paddedId.slice(0, 8)}-${paddedId.slice(8, 12)}-4${paddedId.slice(13, 16)}-${'89ab'[Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
+}
 
         async function saveQueue() {
             try {
