@@ -1929,7 +1929,9 @@
                             failedOperations.push(op);
                         } else {
                             await new Promise(resolve => 
-                                setTimeout(resolve, 1000 * Math.pow(2, retryCount));
+    setTimeout(resolve, 1000 * Math.pow(2, retryCount))
+);
+
                 }
             }
         }
