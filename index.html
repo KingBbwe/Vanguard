@@ -1689,8 +1689,10 @@ function genId() {
                         // First ensure stock_levels record exists
                         const stockUpdate = await supabase
                             .from('stock_levels')
+                            // FIX: Replace the old ID generation with a new, valid UUID
+                            // to resolve the UUID type mismatch error.
                             .upsert({
-                                id: ensureUUID(op.stockUpdate?.id || genId()),
+                                id: crypto.randomUUID(),
                                 item_id: formattedMovement.item_id,
                                 quantity: op.stockUpdate?.quantity || 0,
                                 updated_at: op.stockUpdate?.updated_at || new Date().toISOString()
@@ -1899,7 +1901,6 @@ function genId() {
         }
     }
 }
-
 // UUID validation and formatting helper
 function ensureUUID(id) {
     if (!id) return genId();
