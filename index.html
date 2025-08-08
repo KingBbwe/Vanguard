@@ -1048,7 +1048,7 @@
             );
         }
 
-        // Replace your current genId() function with this:
+   
 function genId() {
     // Modern browser support (preferred)
     if (typeof crypto.randomUUID === 'function') {
@@ -1242,71 +1242,71 @@ function genId() {
 
         /* ===== CORE OPS - STOCK LEVEL PERSISTENCE FIXES ===== */
         function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
-            // Ensure stock level exists
-            if (!state.stockLevels[itemId]) {
-                state.stockLevels[itemId] = { 
-                    item_id: itemId, 
-                    quantity: 0,
-                    updated_at: new Date().toISOString()
-                };
-            }
-            
-            // Update quantity (prevent negative values)
-            const newQuantity = state.stockLevels[itemId].quantity + quantity;
-            state.stockLevels[itemId].quantity = Math.max(0, newQuantity);
-            state.stockLevels[itemId].updated_at = new Date().toISOString();
-            
-            // Create movement record
-            const movementData = {
-                id: genId(),
-                item_id: itemId,
-                type: quantity > 0 ? 'in' : 'out',
-                quantity: Math.abs(quantity),
-                reason: reason,
-                user: currentUser?.displayName || 'System',
-                staff_member: staff,
-                confirmedPin: pin,
-                timestamp: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                version: 1,
-                movement_value: Math.abs(quantity) * (state.items[itemId]?.cost || 0),
-                currency: 'MWK'
-            };
-            
-            // Add verification info if admin
-            if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
-                movementData.verified_by = currentUser.username;
-                movementData.verification_timestamp = new Date().toISOString();
-                movementData.verification_note = verificationNote;
-            }
-            
-            // Add to movements and offline queue
-            state.stockMovements.unshift(movementData);
-            addOffline({
-                type: 'STOCK_MOVEMENT',
-                data: movementData,
-                stockUpdate: {
-                    item_id: itemId,
-                    quantity: state.stockLevels[itemId].quantity,
-                    updated_at: state.stockLevels[itemId].updated_at
-                }
-            });
-            
-            saveState();
-            updateDash();
-            renderAct();
-            
-            // Check for low stock
-            const item = state.items[itemId];
-            if (item && state.stockLevels[itemId].quantity <= item.minStockLevel) {
-                const currentValue = state.stockLevels[itemId].quantity * (item.cost || 0);
-                const msg = `🚨 Low stock alert: ${item.name}\n` +
-                           `Current: ${state.stockLevels[itemId].quantity} ${item.unit}\n` +
-                           `Value: ${formatCurrency(currentValue)}\n` +
-                           `Reorder needed!`;
-                sendTG(msg);
-            }
+    // Ensure stock level exists
+    if (!state.stockLevels[itemId]) {
+        state.stockLevels[itemId] = { 
+            item_id: itemId, 
+            quantity: 0,
+            updated_at: new Date().toISOString()
+        };
+    }
+    
+    // Update quantity (prevent negative values)
+    const newQuantity = state.stockLevels[itemId].quantity + quantity;
+    state.stockLevels[itemId].quantity = Math.max(0, newQuantity);
+    state.stockLevels[itemId].updated_at = new Date().toISOString();
+    
+    // Create movement record with proper UUID
+    const movementData = {
+        id: genId(), // Using the new UUID generator
+        item_id: itemId,
+        type: quantity > 0 ? 'in' : 'out',
+        quantity: Math.abs(quantity),
+        reason: reason,
+        user: currentUser?.displayName || 'System',
+        staff_member: staff,
+        confirmedPin: pin,
+        timestamp: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        version: 1,
+        movement_value: Math.abs(quantity) * (state.items[itemId]?.cost || 0),
+        currency: 'MWK'
+    };
+    
+    // Add verification info if admin
+    if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
+        movementData.verified_by = currentUser.username;
+        movementData.verification_timestamp = new Date().toISOString();
+        movementData.verification_note = verificationNote;
+    }
+    
+    // Add to movements and offline queue
+    state.stockMovements.unshift(movementData);
+    addOffline({
+        type: 'STOCK_MOVEMENT',
+        data: movementData,
+        stockUpdate: {
+            item_id: itemId,
+            quantity: state.stockLevels[itemId].quantity,
+            updated_at: state.stockLevels[itemId].updated_at
         }
+    });
+    
+    saveState();
+    updateDash();
+    renderAct();
+    
+    // Check for low stock
+    const item = state.items[itemId];
+    if (item && state.stockLevels[itemId].quantity <= item.minStockLevel) {
+        const currentValue = state.stockLevels[itemId].quantity * (item.cost || 0);
+        const msg = `🚨 Low stock alert: ${item.name}\n` +
+                   `Current: ${state.stockLevels[itemId].quantity} ${item.unit}\n` +
+                   `Value: ${formatCurrency(currentValue)}\n` +
+                   `Reorder needed!`;
+        sendTG(msg);
+    }
+}
 
         async function testSupabaseConnection() {
             try {
@@ -1683,47 +1683,47 @@ function genId() {
                         break;
 
                     case 'STOCK_MOVEMENT':
-                        const formattedMovement = {
-                            ...op.data,
-                            id: ensureUUID(op.data.id),
-                            item_id: ensureUUID(op.data.item_id)
-                        };
+    const formattedMovement = {
+        ...op.data,
+        id: ensureUUID(op.data.id),
+        item_id: ensureUUID(op.data.item_id)
+    };
 
-                        // First ensure stock_levels record exists
-                        const stockUpdate = await supabase
-                            .from('stock_levels')
-                            // FIX: Replace the old ID generation with a new, valid UUID
-                            // to resolve the UUID type mismatch error.
-                            .upsert({
-                                id: crypto.randomUUID(),
-                                item_id: formattedMovement.item_id,
-                                quantity: op.stockUpdate?.quantity || 0,
-                                updated_at: op.stockUpdate?.updated_at || new Date().toISOString()
-                            }, { onConflict: 'item_id' });
-                        
-                        if (stockUpdate.error) throw stockUpdate.error;
-                        
-                        // Then record the movement
-                        const movementResult = await supabase
-                            .from('stock_movements')
-                            .insert({
-                                id: formattedMovement.id,
-                                item_id: formattedMovement.item_id,
-                                type: formattedMovement.type,
-                                quantity: formattedMovement.quantity,
-                                reason: formattedMovement.reason || '',
-                                user_name: formattedMovement.user || 'Unknown',
-                                staff_member: formattedMovement.staff_member,
-                                confirmed_pin: formattedMovement.confirmedPin,
-                                timestamp: formattedMovement.timestamp,
-                                updated_at: updateData.updated_at,
-                                version: 1,
-                                movement_value: formattedMovement.movement_value || 0,
-                                currency: formattedMovement.currency || 'MWK'
-                            });
-                        
-                        if (movementResult.error) throw movementResult.error;
-                        break;
+    // First ensure stock_levels record exists
+    const stockUpdate = await supabase
+        .from('stock_levels')
+        // FIX: Replace the old ID generation with a new, valid UUID
+        // to resolve the UUID type mismatch error.
+        .upsert({
+            id: crypto.randomUUID(),
+            item_id: formattedMovement.item_id,
+            quantity: op.stockUpdate?.quantity || 0,
+            updated_at: op.stockUpdate?.updated_at || new Date().toISOString()
+        }, { onConflict: 'item_id' });
+    
+    if (stockUpdate.error) throw stockUpdate.error;
+    
+    // Then record the movement
+    const movementResult = await supabase
+        .from('stock_movements')
+        .insert({
+            id: formattedMovement.id,
+            item_id: formattedMovement.item_id,
+            type: formattedMovement.type,
+            quantity: formattedMovement.quantity,
+            reason: formattedMovement.reason || '',
+            user_name: formattedMovement.user || 'Unknown',
+            staff_member: formattedMovement.staff_member,
+            confirmed_pin: formattedMovement.confirmedPin,
+            timestamp: formattedMovement.timestamp,
+            updated_at: updateData.updated_at,
+            version: 1,
+            movement_value: formattedMovement.movement_value || 0,
+            currency: formattedMovement.currency || 'MWK'
+        });
+    
+    if (movementResult.error) throw movementResult.error;
+    break;
 
                     case 'ADD_CATEGORY':
                         // Generate a new, valid UUID for the new category
@@ -1907,6 +1907,7 @@ function genId() {
         }
     }
 }
+// UUID validation and formatting helper
 // UUID validation and formatting helper
 function ensureUUID(id) {
     if (!id) return genId();
