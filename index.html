@@ -988,58 +988,58 @@
 
         /* ===== Default Data ===== */
         function initDefault() {
-            console.log("Initializing with default data set.");
-            state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], notifications: [], users: {}, version: APP_VERSION };
-            
-            const DEPT_CFG = {
-                hotel: { name: 'Hotel Ops', cats: ['Linens', 'Toiletries', 'Cleaning', 'Amenities', 'Maintenance'] },
-                bar: { name: 'Bar', cats: ['Spirits', 'Wines', 'Beers', 'Mixers', 'Garnishes', 'Glassware'] },
-                restaurant: { name: 'Restaurant', cats: ['Beverages', 'Tableware', 'Linens', 'Service'] },
-                kitchen: { name: 'Kitchen', cats: ['Fresh Produce', 'Meat', 'Dairy', 'Dry Goods', 'Spices'] },
-                admin: { name: 'Admin', cats: ['Office', 'IT', 'Docs'] },
-                grounds: { name: 'Grounds', cats: ['Tools', 'Fertilizer', 'Pesticides'] },
-                cultivation: { name: 'Cultivation', cats: ['Seeds', 'Soil', 'Nutrients'] }
+    console.log("Initializing with default data set.");
+    state = { departments: {}, categories: {}, items: {}, stockLevels: {}, stockMovements: [], notifications: [], users: {}, version: APP_VERSION };
+    
+    const DEPT_CFG = {
+        hotel: { name: 'Hotel Ops', cats: ['Linens', 'Toiletries', 'Cleaning', 'Amenities', 'Maintenance'] },
+        bar: { name: 'Bar', cats: ['Spirits', 'Wines', 'Beers', 'Mixers', 'Garnishes', 'Glassware'] },
+        restaurant: { name: 'Restaurant', cats: ['Beverages', 'Tableware', 'Linens', 'Service'] },
+        kitchen: { name: 'Kitchen', cats: ['Fresh Produce', 'Meat', 'Dairy', 'Dry Goods', 'Spices'] },
+        admin: { name: 'Admin', cats: ['Office', 'IT', 'Docs'] },
+        grounds: { name: 'Grounds', cats: ['Tools', 'Fertilizer', 'Pesticides'] },
+        cultivation: { name: 'Cultivation', cats: ['Seeds', 'Soil', 'Nutrients'] }
+    };
+    
+    Object.keys(DEPT_CFG).forEach(k => {
+        const dId = genId(); // Using genId() to create a valid UUID
+        state.departments[dId] = { 
+            id: dId, 
+            name: DEPT_CFG[k].name,
+            updated_at: new Date().toISOString(),
+            version: 1
+        };
+        
+        DEPT_CFG[k].cats.forEach(c => {
+            const cId = genId(); // Using genId() to create a valid UUID
+            state.categories[cId] = { 
+                id: cId, 
+                departmentId: dId, 
+                name: c,
+                updated_at: new Date().toISOString(),
+                version: 1
             };
-            
-            Object.keys(DEPT_CFG).forEach(k => {
-                const dId = `dept_${k}`;
-                state.departments[dId] = { 
-                    id: dId, 
-                    name: DEPT_CFG[k].name,
-                    updated_at: new Date().toISOString(),
-                    version: 1
-                };
-                
-                DEPT_CFG[k].cats.forEach(c => {
-                    const cId = `cat_${k}_${c.toLowerCase().replace(/\s+/g, '')}`;
-                    state.categories[cId] = { 
-                        id: cId, 
-                        departmentId: dId, 
-                        name: c,
-                        updated_at: new Date().toISOString(),
-                        version: 1
-                    };
-                });
-            });
-            
-            state.users = {
-                Kelvin: { username: 'Kelvin', password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all', updated_at: new Date().toISOString(), version: 1 },
-                Franklin: { username: 'Franklin', password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all', updated_at: new Date().toISOString(), version: 1 },
-                Chisomo: { username: 'Chisomo', password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin', updated_at: new Date().toISOString(), version: 1 },
-                Victor: { username: 'Victor', password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin', updated_at: new Date().toISOString(), version: 1 },
-                Boston: { username: 'Boston', password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', updated_at: new Date().toISOString(), version: 1 },
-                Magah: { username: 'Magah', password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', updated_at: new Date().toISOString(), version: 1 },
-                Phillip: { username: 'Phillip', password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', isSupervisor: true, updated_at: new Date().toISOString(), version: 1 },
-                Gift: { username: 'Gift', password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
-                Rhodney: { username: 'Rhodney', password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true, updated_at: new Date().toISOString(), version: 1 },
-                Mike: { username: 'Mike', password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
-                Matias: { username: 'Matias', password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel', updated_at: new Date().toISOString(), version: 1 },
-                Kennedy: { username: 'Kennedy', password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel', updated_at: new Date().toISOString(), version: 1 },
-                Mphatso: { username: 'Mphatso', password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
-                Gaven: { username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', updated_at: new Date().toISOString(), version: 1 },
-                Maya: { username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', updated_at: new Date().toISOString(), version: 1 }
-            };
-        }
+        });
+    });
+    
+    state.users = {
+        Kelvin: { username: 'Kelvin', password: '0100*', role: USER_ROLES.ADMIN, displayName: 'Kelvin', department: 'all', updated_at: new Date().toISOString(), version: 1 },
+        Franklin: { username: 'Franklin', password: '1100%', role: USER_ROLES.ADMIN, displayName: 'Franklin', department: 'all', updated_at: new Date().toISOString(), version: 1 },
+        Chisomo: { username: 'Chisomo', password: '2100%', role: USER_ROLES.ADMIN, displayName: 'Chisomo', department: 'admin', updated_at: new Date().toISOString(), version: 1 },
+        Victor: { username: 'Victor', password: '02000', role: USER_ROLES.ADMIN, displayName: 'Victor', department: 'admin', updated_at: new Date().toISOString(), version: 1 },
+        Boston: { username: 'Boston', password: '61006', role: USER_ROLES.PROCESSOR, displayName: 'Boston', department: 'bar', updated_at: new Date().toISOString(), version: 1 },
+        Magah: { username: 'Magah', password: '41004', role: USER_ROLES.PROCESSOR, displayName: 'Magah', department: 'bar', updated_at: new Date().toISOString(), version: 1 },
+        Phillip: { username: 'Phillip', password: '51005', role: USER_ROLES.PROCESSOR, displayName: 'Phillip', department: 'bar', isSupervisor: true, updated_at: new Date().toISOString(), version: 1 },
+        Gift: { username: 'Gift', password: '71007', role: USER_ROLES.PROCESSOR, displayName: 'Gift', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
+        Rhodney: { username: 'Rhodney', password: '81008', role: USER_ROLES.PROCESSOR, displayName: 'Rhodney', department: 'restaurant', isSupervisor: true, updated_at: new Date().toISOString(), version: 1 },
+        Mike: { username: 'Mike', password: '91009', role: USER_ROLES.PROCESSOR, displayName: 'Mike', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
+        Matias: { username: 'Matias', password: '11100', role: USER_ROLES.PROCESSOR, displayName: 'Matias', department: 'hotel', updated_at: new Date().toISOString(), version: 1 },
+        Kennedy: { username: 'Kennedy', password: '22202', role: USER_ROLES.PROCESSOR, displayName: 'Kennedy', department: 'hotel', updated_at: new Date().toISOString(), version: 1 },
+        Mphatso: { username: 'Mphatso', password: '33303', role: USER_ROLES.PROCESSOR, displayName: 'Mphatso', department: 'restaurant', updated_at: new Date().toISOString(), version: 1 },
+        Gaven: { username: 'Gaven', password: '44404', role: USER_ROLES.PROCESSOR, displayName: 'Gaven', department: 'grounds', updated_at: new Date().toISOString(), version: 1 },
+        Maya: { username: 'Maya', password: '55505', role: USER_ROLES.PROCESSOR, displayName: 'Maya', department: 'grounds', updated_at: new Date().toISOString(), version: 1 }
+    };
+}
 
         /* ===== UTILS ===== */
         function generateUUID() {
