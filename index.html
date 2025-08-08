@@ -1655,42 +1655,42 @@
                                 break;
 
                             case 'STOCK_MOVEMENT':
-                                const movementData = {
-                                    ...op.data,
-                                    id: formatToUUID(op.data.id),
-                                    item_id: formatToUUID(op.data.item_id)
-                                };
+    const movementData = {
+        ...op.data,
+        id: formatToUUID(op.data.id),
+        item_id: formatToUUID(op.data.item_id)
+    };
 
-                                const stockUpdateResult = await supabase
-                                    .from('stock_levels')
-                                    .upsert({
-                                        item_id: movementData.item_id,
-                                        quantity: op.stockUpdate.quantity,
-                                        updated_at: op.stockUpdate.updated_at
-                                    }, { onConflict: 'item_id' });
-                                
-                                if (stockUpdateResult.error) throw stockUpdateResult.error;
-                                
-                                const movementResult = await supabase
-                                    .from('stock_movements')
-                                    .insert({
-                                        id: movementData.id,
-                                        item_id: movementData.item_id,
-                                        type: movementData.type,
-                                        quantity: movementData.quantity,
-                                        reason: movementData.reason || '',
-                                        user_name: movementData.user || 'Unknown',
-                                        staff_member: movementData.staff_member,
-                                        confirmed_pin: movementData.confirmedPin,
-                                        timestamp: movementData.timestamp,
-                                        updated_at: updateData.updated_at,
-                                        version: 1,
-                                        movement_value: movementData.movement_value || 0,
-                                        currency: movementData.currency || 'MWK'
-                                    });
-                                
-                                if (movementResult.error) throw movementResult.error;
-                                break;
+    const stockUpdateResult = await supabase
+        .from('stock_levels')
+        .upsert({
+            item_id: movementData.item_id,
+            quantity: op.stockUpdate.quantity,
+            updated_at: op.stockUpdate.updated_at
+        }, { onConflict: 'item_id' });
+    
+    if (stockUpdateResult.error) throw stockUpdateResult.error;
+    
+    const movementResult = await supabase
+        .from('stock_movements')
+        .insert({
+            id: movementData.id,
+            item_id: movementData.item_id,
+            type: movementData.type,
+            quantity: movementData.quantity,
+            reason: movementData.reason || '',
+            user_name: movementData.user || 'Unknown',
+            staff_member: movementData.staff_member,
+            confirmed_pin: movementData.confirmedPin,
+            timestamp: movementData.timestamp,
+            updated_at: updateData.updated_at,
+            version: 1,
+            movement_value: movementData.movement_value || 0,
+            currency: movementData.currency || 'MWK'
+        });
+    
+    if (movementResult.error) throw movementResult.error;
+    break;
 
                             // Add other cases as needed...
                             case 'ADD_CATEGORY':
