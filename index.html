@@ -876,7 +876,7 @@
         let pinDigits = [];
         let realtimeChannel = null;
 
-           /* ===== IndexedDB ===== */
+        /* ===== IndexedDB ===== */
         async function initIDB() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open('VanguardStockDB', 7);
@@ -1500,51 +1500,51 @@
 
         /* ===== SYNC ===== */
         async function syncData() {
-    const indicator = document.getElementById('syncIndicator');
-    const statusText = document.getElementById('syncStatus');
-    
-    if (!indicator || !statusText) return;
-    
-    indicator.className = 'sync-indicator syncing';
-    statusText.textContent = 'Syncing…';
-    showSyncNotification('Starting sync...');
-
-    try {
-        console.log('Starting sync process...');
-        
-        // Test connection first
-        const { error: testError } = await supabase
-            .from('departments')
-            .select('count')
-            .limit(1);
+            const indicator = document.getElementById('syncIndicator');
+            const statusText = document.getElementById('syncStatus');
             
-        if (testError) {
-            throw new Error(`Connection test failed: ${testError.message}`);
-        }
+            if (!indicator || !statusText) return;
+            
+            indicator.className = 'sync-indicator syncing';
+            statusText.textContent = 'Syncing…';
+            showSyncNotification('Starting sync...');
 
-        // Process offline queue first
-        await processOfflineQueue();
-        
-        // Then pull latest data from Supabase
-        await pullFromSupabase();
-        
-        // Save the updated state
-        await saveState();
-        
-        // Update UI
-        updateDash();
-        renderAct();
-        
-        console.log('Sync completed successfully');
-        showSyncNotification('Sync completed successfully', 'success');
-        
-    } catch (error) {
-        console.error('Sync error:', error);
-        showSyncNotification(`Sync failed: ${error.message}`, 'error');
-    } finally {
-        updateSyncStatus();
-    }
-}
+            try {
+                console.log('Starting sync process...');
+                
+                // Test connection first
+                const { error: testError } = await supabase
+                    .from('departments')
+                    .select('count')
+                    .limit(1);
+                    
+                if (testError) {
+                    throw new Error(`Connection test failed: ${testError.message}`);
+                }
+
+                // Process offline queue first
+                await processOfflineQueue();
+                
+                // Then pull latest data from Supabase
+                await pullFromSupabase();
+                
+                // Save the updated state
+                await saveState();
+                
+                // Update UI
+                updateDash();
+                renderAct();
+                
+                console.log('Sync completed successfully');
+                showSyncNotification('Sync completed successfully', 'success');
+                
+            } catch (error) {
+                console.error('Sync error:', error);
+                showSyncNotification(`Sync failed: ${error.message}`, 'error');
+            } finally {
+                updateSyncStatus();
+            }
+        }
 
         async function forceSync() {
             const indicator = document.getElementById('syncIndicator');
@@ -1575,192 +1575,178 @@
             }
         }
 
-    async function processOfflineQueue() {
-    if (!offlineQueue.length) return;
+        async function processOfflineQueue() {
+            if (!offlineQueue.length) return;
 
-    let failedOperations = [];
-    const MAX_RETRIES = 3;
-    
-    // Process each operation with retry logic
-    for (const op of offlineQueue) {
-        let retryCount = 0;
-        let success = false;
-        
-        while (retryCount < MAX_RETRIES && !success) {
-            try {
-                const updateData = { 
-                    ...op.data, 
-                    updated_at: new Date().toISOString(),
-                    version: (op.data.version || 1) + 1
-                };
-
-                switch (op.type) {
-                    case 'ADD_ITEM':
-                        const itemResult = await supabase
-                            .from('items')
-                            .insert({
-                                id: op.data.id,
-                                name: op.data.name,
-                                category_id: op.data.categoryId,
-                                unit: op.data.unit,
-                                cost: op.data.cost || 0,
-                                min_stock_level: op.data.minStockLevel || 0,
-                                created_at: op.data.createdAt || new Date().toISOString(),
-                                updated_at: updateData.updated_at,
-                                version: updateData.version
-                            });
-                        
-                        if (itemResult.error) throw itemResult.error;
-                        
-                        const stockResult = await supabase
-                            .from('stock_levels')
-                            .insert({
-                                item_id: op.data.id,
-                                quantity: op.initialQuantity || 0,
-                                updated_at: updateData.updated_at
-                            });
-                        
-                        if (stockResult.error) throw stockResult.error;
-                        break;
-
-                    case 'UPDATE_ITEM':
-                        const updateResult = await supabase
-                            .from('items')
-                            .update({
-                                name: op.data.name,
-                                category_id: op.data.categoryId,
-                                unit: op.data.unit,
-                                cost: op.data.cost || 0,
-                                min_stock_level: op.data.minStockLevel || 0,
-                                updated_at: updateData.updated_at,
-                                version: updateData.version
-                            })
-                            .eq('id', op.id);
-                        
-                        if (updateResult.error) throw updateResult.error;
-                        break;
-
-                    case 'DELETE_ITEM':
-                        await supabase
-                            .from('stock_levels')
-                            .delete()
-                            .eq('item_id', op.id);
-                        
-                        const deleteResult = await supabase
-                            .from('items')
-                            .delete()
-                            .eq('id', op.id);
-                        
-                        if (deleteResult.error) throw deleteResult.error;
-                        break;
-
-                    case 'STOCK_MOVEMENT':
-                        const movementData = {
-                            ...op.data,
-                            id: formatToUUID(op.data.id),
-                            item_id: formatToUUID(op.data.item_id)
+            let failedOperations = [];
+            const MAX_RETRIES = 3;
+            
+            // Process each operation with retry logic
+            for (const op of offlineQueue) {
+                let retryCount = 0;
+                let success = false;
+                
+                while (retryCount < MAX_RETRIES && !success) {
+                    try {
+                        const updateData = { 
+                            ...op.data, 
+                            updated_at: new Date().toISOString(),
+                            version: (op.data.version || 1) + 1
                         };
 
-                        const stockUpdateResult = await supabase
-                            .from('stock_levels')
-                            .upsert({
-                                item_id: movementData.item_id,
-                                quantity: op.stockUpdate.quantity,
-                                updated_at: op.stockUpdate.updated_at
-                            }, { onConflict: 'item_id' });
-                        
-                        if (stockUpdateResult.error) throw stockUpdateResult.error;
-                        
-                        const movementResult = await supabase
-                            .from('stock_movements')
-                            .insert({
-                                id: movementData.id,
-                                item_id: movementData.item_id,
-                                type: movementData.type,
-                                quantity: movementData.quantity,
-                                reason: movementData.reason || '',
-                                user_name: movementData.user || 'Unknown',
-                                staff_member: movementData.staff_member,
-                                confirmed_pin: movementData.confirmedPin,
-                                timestamp: movementData.timestamp,
-                                updated_at: updateData.updated_at,
-                                version: 1,
-                                movement_value: movementData.movement_value || 0,
-                                currency: movementData.currency || 'MWK'
-                            });
-                        
-                        if (movementResult.error) throw movementResult.error;
-                        break;
+                        switch (op.type) {
+                            case 'ADD_ITEM':
+                                const itemResult = await supabase
+                                    .from('items')
+                                    .insert({
+                                        id: op.data.id,
+                                        name: op.data.name,
+                                        category_id: op.data.categoryId,
+                                        unit: op.data.unit,
+                                        cost: op.data.cost || 0,
+                                        min_stock_level: op.data.minStockLevel || 0,
+                                        created_at: op.data.createdAt || new Date().toISOString(),
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    });
+                                
+                                if (itemResult.error) throw itemResult.error;
+                                
+                                const stockResult = await supabase
+                                    .from('stock_levels')
+                                    .insert({
+                                        item_id: op.data.id,
+                                        quantity: op.initialQuantity || 0,
+                                        updated_at: updateData.updated_at
+                                    });
+                                
+                                if (stockResult.error) throw stockResult.error;
+                                break;
 
-                    // Add other cases as needed...
-                    case 'ADD_CATEGORY':
-                    case 'UPDATE_CATEGORY':
-                    case 'DELETE_CATEGORY':
-                    case 'ADD_DEPARTMENT':
-                    case 'UPDATE_DEPARTMENT':
-                    case 'DELETE_DEPARTMENT':
-                    case 'ADD_USER':
-                    case 'UPDATE_USER':
-                    case 'DELETE_USER':
-                        // Implementation for other operation types
-                        break;
+                            case 'UPDATE_ITEM':
+                                const updateResult = await supabase
+                                    .from('items')
+                                    .update({
+                                        name: op.data.name,
+                                        category_id: op.data.categoryId,
+                                        unit: op.data.unit,
+                                        cost: op.data.cost || 0,
+                                        min_stock_level: op.data.minStockLevel || 0,
+                                        updated_at: updateData.updated_at,
+                                        version: updateData.version
+                                    })
+                                    .eq('id', op.id);
+                                
+                                if (updateResult.error) throw updateResult.error;
+                                break;
+
+                            case 'DELETE_ITEM':
+                                await supabase
+                                    .from('stock_levels')
+                                    .delete()
+                                    .eq('item_id', op.id);
+                                
+                                const deleteResult = await supabase
+                                    .from('items')
+                                    .delete()
+                                    .eq('id', op.id);
+                                
+                                if (deleteResult.error) throw deleteResult.error;
+                                break;
+
+                            case 'STOCK_MOVEMENT':
+                                const movementData = {
+                                    ...op.data,
+                                    id: formatToUUID(op.data.id),
+                                    item_id: formatToUUID(op.data.item_id)
+                                };
+
+                                const stockUpdateResult = await supabase
+                                    .from('stock_levels')
+                                    .upsert({
+                                        item_id: movementData.item_id,
+                                        quantity: op.stockUpdate.quantity,
+                                        updated_at: op.stockUpdate.updated_at
+                                    }, { onConflict: 'item_id' });
+                                
+                                if (stockUpdateResult.error) throw stockUpdateResult.error;
+                                
+                                const movementResult = await supabase
+                                    .from('stock_movements')
+                                    .insert({
+                                        id: movementData.id,
+                                        item_id: movementData.item_id,
+                                        type: movementData.type,
+                                        quantity: movementData.quantity,
+                                        reason: movementData.reason || '',
+                                        user_name: movementData.user || 'Unknown',
+                                        staff_member: movementData.staff_member,
+                                        confirmed_pin: movementData.confirmedPin,
+                                        timestamp: movementData.timestamp,
+                                        updated_at: updateData.updated_at,
+                                        version: 1,
+                                        movement_value: movementData.movement_value || 0,
+                                        currency: movementData.currency || 'MWK'
+                                    });
+                                
+                                if (movementResult.error) throw movementResult.error;
+                                break;
+
+                            // Add other cases as needed...
+                            case 'ADD_CATEGORY':
+                            case 'UPDATE_CATEGORY':
+                            case 'DELETE_CATEGORY':
+                            case 'ADD_DEPARTMENT':
+                            case 'UPDATE_DEPARTMENT':
+                            case 'DELETE_DEPARTMENT':
+                            case 'ADD_USER':
+                            case 'UPDATE_USER':
+                            case 'DELETE_USER':
+                                // Implementation for other operation types
+                                break;
+                        }
+                        
+                        success = true;
+                        
+                    } catch (err) {
+                        retryCount++;
+                        console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
+                        
+                        if (retryCount >= MAX_RETRIES) {
+                            console.error('Max retries reached, adding to failed operations');
+                            failedOperations.push(op);
+                        } else {
+                            // Exponential backoff with proper async/await
+                            const delay = 1000 * Math.pow(2, retryCount);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    }
                 }
+            }
+
+            // Clear successful operations
+            if (failedOperations.length < offlineQueue.length) {
+                await clearQueue();
                 
-                success = true;
-                
-            } catch (err) {
-                retryCount++;
-                console.error(`Operation ${op.type} attempt ${retryCount} failed:`, err);
-                
-                if (retryCount >= MAX_RETRIES) {
-                    console.error('Max retries reached, adding to failed operations');
-                    failedOperations.push(op);
+                if (failedOperations.length > 0) {
+                    offlineQueue = failedOperations;
+                    await saveQueue();
+                    showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
                 } else {
-                    // Exponential backoff with proper async/await
-                    const delay = 1000 * Math.pow(2, retryCount);
-                    await new Promise(resolve => setTimeout(resolve, delay));
+                    showSyncNotification('All operations synced successfully', 'success');
                 }
             }
         }
-    }
 
-    // Clear successful operations
-    if (failedOperations.length < offlineQueue.length) {
-        await clearQueue();
-        
-        if (failedOperations.length > 0) {
-            offlineQueue = failedOperations;
-            await saveQueue();
-            showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
-        } else {
-            showSyncNotification('All operations synced successfully', 'success');
+        // Helper function to format IDs as UUID if needed
+        function formatToUUID(id) {
+            if (!id) return id;
+            // If already in UUID format, return as-is
+            if (id.includes('-') && id.length === 36) return id;
+            
+            // Convert simple ID to UUID-like format
+            return `${id.slice(0,8)}-${id.slice(8,12)}-${id.slice(12,16)}-${id.slice(16,20)}-${id.slice(20)}`;
         }
-    }
-}
-    // Clear successful operations
-    if (failedOperations.length < offlineQueue.length) {
-        await clearQueue();
-        
-        // Re-queue failed operations
-        if (failedOperations.length > 0) {
-            offlineQueue = failedOperations;
-            await saveQueue();
-            showSyncNotification(`${failedOperations.length} operations failed and will retry`, 'warning');
-        } else {
-            showSyncNotification('All operations synced successfully', 'success');
-        }
-    }
-}
-
-// Helper function to format IDs as UUID if needed
-function formatToUUID(id) {
-    if (!id) return id;
-    // If already in UUID format, return as-is
-    if (id.includes('-') && id.length === 36) return id;
-    
-    // Convert simple ID to UUID-like format
-    return `${id.slice(0,8)}-${id.slice(8,12)}-${id.slice(12,16)}-${id.slice(16,20)}-${id.slice(20)}`;
-}
 
         async function saveQueue() {
             try {
@@ -1789,119 +1775,119 @@ function formatToUUID(id) {
         }
 
         async function pullFromSupabase() {
-    try {
-        console.log('Pulling data from Supabase...');
-        
-        // Clear existing stock levels to ensure clean rebuild
-        state.stockLevels = {};
-        
-        // Fetch all data in parallel
-        const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
-            supabase.from('departments').select('*'),
-            supabase.from('categories').select('*'),
-            supabase.from('items').select('*'),
-            supabase.from('stock_levels').select('*'),
-            supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
-            supabase.from('users').select('*')
-        ]);
-
-        // Error handling for each response
-        if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
-        if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
-        if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
-        if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
-        if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
-        if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
-
-        // Helper function to merge data with version checking
-        const mergeData = (localObj, remoteArray, keyField, transform = null) => {
-            if (!remoteArray) return;
-            
-            remoteArray.forEach(remote => {
-                const key = remote[keyField];
-                const local = localObj[key];
-                const transformedRemote = transform ? transform(remote) : remote;
+            try {
+                console.log('Pulling data from Supabase...');
                 
-                if (local && remote.version && local.version) {
-                    if (remote.version > local.version) {
-                        localObj[key] = transformedRemote;
-                    } else if (remote.version === local.version && 
-                              new Date(remote.updated_at) > new Date(local.updated_at)) {
-                        localObj[key] = transformedRemote;
-                    }
-                } 
-                else if (!local || !remote.version) {
-                    localObj[key] = transformedRemote;
-                }
-            });
-        };
+                // Clear existing stock levels to ensure clean rebuild
+                state.stockLevels = {};
+                
+                // Fetch all data in parallel
+                const [deptRes, catRes, itemRes, levelRes, moveRes, userRes] = await Promise.all([
+                    supabase.from('departments').select('*'),
+                    supabase.from('categories').select('*'),
+                    supabase.from('items').select('*'),
+                    supabase.from('stock_levels').select('*'),
+                    supabase.from('stock_movements').select('*').order('timestamp', { ascending: false }).limit(1000),
+                    supabase.from('users').select('*')
+                ]);
 
-        // Transform functions for Supabase column name differences
-        const transformItem = (item) => ({
-            ...item,
-            categoryId: item.category_id,
-            minStockLevel: item.min_stock_level,
-            createdAt: item.created_at
-        });
+                // Error handling for each response
+                if (deptRes.error) throw new Error(`Departments fetch error: ${deptRes.error.message}`);
+                if (catRes.error) throw new Error(`Categories fetch error: ${catRes.error.message}`);
+                if (itemRes.error) throw new Error(`Items fetch error: ${itemRes.error.message}`);
+                if (levelRes.error) throw new Error(`Stock levels fetch error: ${levelRes.error.message}`);
+                if (moveRes.error) throw new Error(`Stock movements fetch error: ${moveRes.error.message}`);
+                if (userRes.error) throw new Error(`Users fetch error: ${userRes.error.message}`);
 
-        const transformCategory = (cat) => ({
-            ...cat,
-            departmentId: cat.department_id
-        });
-
-        const transformUser = (user) => ({
-            ...user,
-            displayName: user.display_name,
-            isSupervisor: user.is_supervisor
-        });
-
-        const transformMovement = (move) => ({
-            ...move,
-            item_id: move.item_id,
-            user: move.user_name,
-            staff_member: move.staff_member,
-            confirmedPin: move.confirmed_pin,
-            movement_value: move.movement_value || 0,
-            currency: move.currency || 'MWK'
-        });
-
-        // Rebuild stock levels from fresh data
-        if (levelRes.data) {
-            levelRes.data.forEach(level => {
-                state.stockLevels[level.item_id] = {
-                    item_id: level.item_id,
-                    quantity: level.quantity,
-                    updated_at: level.updated_at
+                // Helper function to merge data with version checking
+                const mergeData = (localObj, remoteArray, keyField, transform = null) => {
+                    if (!remoteArray) return;
+                    
+                    remoteArray.forEach(remote => {
+                        const key = remote[keyField];
+                        const local = localObj[key];
+                        const transformedRemote = transform ? transform(remote) : remote;
+                        
+                        if (local && remote.version && local.version) {
+                            if (remote.version > local.version) {
+                                localObj[key] = transformedRemote;
+                            } else if (remote.version === local.version && 
+                                      new Date(remote.updated_at) > new Date(local.updated_at)) {
+                                localObj[key] = transformedRemote;
+                            }
+                        } 
+                        else if (!local || !remote.version) {
+                            localObj[key] = transformedRemote;
+                        }
+                    });
                 };
-            });
+
+                // Transform functions for Supabase column name differences
+                const transformItem = (item) => ({
+                    ...item,
+                    categoryId: item.category_id,
+                    minStockLevel: item.min_stock_level,
+                    createdAt: item.created_at
+                });
+
+                const transformCategory = (cat) => ({
+                    ...cat,
+                    departmentId: cat.department_id
+                });
+
+                const transformUser = (user) => ({
+                    ...user,
+                    displayName: user.display_name,
+                    isSupervisor: user.is_supervisor
+                });
+
+                const transformMovement = (move) => ({
+                    ...move,
+                    item_id: move.item_id,
+                    user: move.user_name,
+                    staff_member: move.staff_member,
+                    confirmedPin: move.confirmed_pin,
+                    movement_value: move.movement_value || 0,
+                    currency: move.currency || 'MWK'
+                });
+
+                // Rebuild stock levels from fresh data
+                if (levelRes.data) {
+                    levelRes.data.forEach(level => {
+                        state.stockLevels[level.item_id] = {
+                            item_id: level.item_id,
+                            quantity: level.quantity,
+                            updated_at: level.updated_at
+                        };
+                    });
+                }
+
+                // Merge other data with version checking
+                mergeData(state.departments, deptRes.data, 'id');
+                mergeData(state.categories, catRes.data, 'id', transformCategory);
+                mergeData(state.items, itemRes.data, 'id', transformItem);
+                mergeData(state.users, userRes.data, 'username', transformUser);
+
+                // Process movements - replace existing with fresh data
+                if (moveRes.data) {
+                    state.stockMovements = moveRes.data.map(transformMovement);
+                }
+
+                console.log('Data pulled successfully from Supabase');
+                
+                // Update UI immediately
+                updateDash();
+                renderAct();
+                
+                // Save the merged state
+                await saveState();
+
+            } catch (error) {
+                console.error('Error pulling from Supabase:', error);
+                showSyncNotification(`Sync failed: ${error.message}`, 'error');
+                throw error;
+            }
         }
-
-        // Merge other data with version checking
-        mergeData(state.departments, deptRes.data, 'id');
-        mergeData(state.categories, catRes.data, 'id', transformCategory);
-        mergeData(state.items, itemRes.data, 'id', transformItem);
-        mergeData(state.users, userRes.data, 'username', transformUser);
-
-        // Process movements - replace existing with fresh data
-        if (moveRes.data) {
-            state.stockMovements = moveRes.data.map(transformMovement);
-        }
-
-        console.log('Data pulled successfully from Supabase');
-        
-        // Update UI immediately
-        updateDash();
-        renderAct();
-        
-        // Save the merged state
-        await saveState();
-
-    } catch (error) {
-        console.error('Error pulling from Supabase:', error);
-        showSyncNotification(`Sync failed: ${error.message}`, 'error');
-        throw error;
-    }
-}
 
         /* ===== REALTIME UPDATES - STOCK LEVEL HANDLING ===== */
         function handleStockLevelUpdate(eventType, newData, oldData) {
@@ -2078,29 +2064,30 @@ function formatToUUID(id) {
         }
 
         function getInventoryValue(deptId = null) {
-    let total = 0;
-    Object.values(state.items).forEach(i => {
-        if (deptId) {
-            const cat = state.categories[i.categoryId];
-            if (!cat || cat.departmentId !== deptId) return;
+            let total = 0;
+            Object.values(state.items).forEach(i => {
+                if (deptId) {
+                    const cat = state.categories[i.categoryId];
+                    if (!cat || cat.departmentId !== deptId) return;
+                }
+                const stock = state.stockLevels[i.id] || { quantity: 0 };
+                total += stock.quantity * (i.cost || 0);
+            });
+            return total;
         }
-        const stock = state.stockLevels[i.id] || { quantity: 0 };
-        total += stock.quantity * (i.cost || 0);
-    });
-    return total;
-}
 
-function getMovementStats(days = 7) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    
-    return state.stockMovements
-        .filter(m => new Date(m.timestamp) > cutoff)
-        .reduce((acc, m) => {
-            acc[m.type] = (acc[m.type] || 0) + m.quantity;
-            return acc;
-        }, {});
-}
+        function getMovementStats(days = 7) {
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - days);
+            
+            return state.stockMovements
+                .filter(m => new Date(m.timestamp) > cutoff)
+                .reduce((acc, m) => {
+                    acc[m.type] = (acc[m.type] || 0) + m.quantity;
+                    return acc;
+                }, {});
+        }
+        
         /* ===== VIEWS ===== */
         function showDashboard() {
             switchView('dashboardContent');
@@ -2610,291 +2597,289 @@ function getMovementStats(days = 7) {
             generatePDFReport(itemsToReport, dept);
         }
 
-async function generatePDFReport() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // ===== COVER PAGE =====
-        doc.setFontSize(24);
-        doc.setTextColor(52, 152, 219); // Blue color
-        doc.text('Vanguard Stock Management Report', 105, 30, { align: 'center' });
-        
-        doc.setFontSize(16);
-        doc.setTextColor(100, 100, 100);
-        doc.text('Comprehensive Inventory Analysis', 105, 40, { align: 'center' });
-        
-        // Add logo placeholder
-        doc.setFillColor(230, 230, 230);
-        doc.roundedRect(80, 50, 50, 40, 3, 3, 'F');
-        doc.setFontSize(10);
-        doc.text('Company Logo', 105, 70, { align: 'center' });
-        
-        // Report metadata
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 100, { align: 'center' });
-        doc.text(`Generated by: ${currentUser?.displayName || 'System'}`, 105, 110, { align: 'center' });
-        
-        doc.addPage();
-        
-        // ===== EXECUTIVE SUMMARY =====
-        doc.setFontSize(18);
-        doc.setTextColor(52, 152, 219);
-        doc.text('Executive Summary', 14, 20);
-        
-        // Calculate summary metrics
-        const totalItems = Object.keys(state.items).length;
-        const inStock = Object.values(state.items).filter(i => 
-            (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel
-        ).length;
-        const lowStock = Object.values(state.items).filter(i => {
-            const stock = state.stockLevels[i.id] || { quantity: 0 };
-            return stock.quantity > 0 && stock.quantity <= i.minStockLevel;
-        }).length;
-        const outOfStock = totalItems - inStock - lowStock;
-        
-        // Calculate inventory value
-        let totalValue = 0;
-        Object.values(state.items).forEach(i => {
-            const stock = state.stockLevels[i.id] || { quantity: 0 };
-            totalValue += stock.quantity * (i.cost || 0);
-        });
-        
-        // Summary table
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.autoTable({
-            startY: 30,
-            head: [['Metric', 'Value']],
-            body: [
-                ['Total Items', totalItems],
-                ['In Stock Items', inStock],
-                ['Low Stock Items', lowStock],
-                ['Out of Stock Items', outOfStock],
-                ['Total Inventory Value', `K${totalValue.toFixed(2)}`]
-            ],
-            theme: 'grid',
-            headStyles: { fillColor: [52, 152, 219] },
-            columnStyles: { 1: { fontStyle: 'bold' } }
-        });
-        
-        // Create temporary canvas for chart
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 300;
-        const ctx = canvas.getContext('2d');
-        
-        // Wait for chart to render before adding to PDF
-        await new Promise((resolve) => {
-            // Stock status chart
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['In Stock', 'Low Stock', 'Out of Stock'],
-                    datasets: [{
-                        data: [inStock, lowStock, outOfStock],
-                        backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    animation: {
-                        onComplete: () => {
-                            try {
-                                const imgData = canvas.toDataURL('image/png');
-                                if (imgData && imgData.startsWith('data:image/png')) {
-                                    doc.addImage(imgData, 'PNG', 50, doc.lastAutoTable.finalY + 30, 110, 80);
-                                    doc.addPage();
-                                    generateDetailedContent(doc).then(() => {
-                                        doc.save(`vanguard-stock-report-${new Date().toISOString().slice(0,10)}.pdf`);
+        async function generatePDFReport() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // ===== COVER PAGE =====
+                doc.setFontSize(24);
+                doc.setTextColor(52, 152, 219); // Blue color
+                doc.text('Vanguard Stock Management Report', 105, 30, { align: 'center' });
+                
+                doc.setFontSize(16);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Comprehensive Inventory Analysis', 105, 40, { align: 'center' });
+                
+                // Add logo placeholder
+                doc.setFillColor(230, 230, 230);
+                doc.roundedRect(80, 50, 50, 40, 3, 3, 'F');
+                doc.setFontSize(10);
+                doc.text('Company Logo', 105, 70, { align: 'center' });
+                
+                // Report metadata
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text(`Generated: ${new Date().toLocaleString()}`, 105, 100, { align: 'center' });
+                doc.text(`Generated by: ${currentUser?.displayName || 'System'}`, 105, 110, { align: 'center' });
+                
+                doc.addPage();
+                
+                // ===== EXECUTIVE SUMMARY =====
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Executive Summary', 14, 20);
+                
+                // Calculate summary metrics
+                const totalItems = Object.keys(state.items).length;
+                const inStock = Object.values(state.items).filter(i => 
+                    (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel
+                ).length;
+                const lowStock = Object.values(state.items).filter(i => {
+                    const stock = state.stockLevels[i.id] || { quantity: 0 };
+                    return stock.quantity > 0 && stock.quantity <= i.minStockLevel;
+                }).length;
+                const outOfStock = totalItems - inStock - lowStock;
+                
+                // Calculate inventory value
+                let totalValue = 0;
+                Object.values(state.items).forEach(i => {
+                    const stock = state.stockLevels[i.id] || { quantity: 0 };
+                    totalValue += stock.quantity * (i.cost || 0);
+                });
+                
+                // Summary table
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.autoTable({
+                    startY: 30,
+                    head: [['Metric', 'Value']],
+                    body: [
+                        ['Total Items', totalItems],
+                        ['In Stock Items', inStock],
+                        ['Low Stock Items', lowStock],
+                        ['Out of Stock Items', outOfStock],
+                        ['Total Inventory Value', `K${totalValue.toFixed(2)}`]
+                    ],
+                    theme: 'grid',
+                    headStyles: { fillColor: [52, 152, 219] },
+                    columnStyles: { 1: { fontStyle: 'bold' } }
+                });
+                
+                // Create temporary canvas for chart
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 300;
+                const ctx = canvas.getContext('2d');
+                
+                // Wait for chart to render before adding to PDF
+                await new Promise((resolve) => {
+                    // Stock status chart
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['In Stock', 'Low Stock', 'Out of Stock'],
+                            datasets: [{
+                                data: [inStock, lowStock, outOfStock],
+                                backgroundColor: ['#2ecc71', '#f39c12', '#e74c3c']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            animation: {
+                                onComplete: () => {
+                                    try {
+                                        const imgData = canvas.toDataURL('image/png');
+                                        if (imgData && imgData.startsWith('data:image/png')) {
+                                            doc.addImage(imgData, 'PNG', 50, doc.lastAutoTable.finalY + 30, 110, 80);
+                                            doc.addPage();
+                                            generateDetailedContent(doc).then(() => {
+                                                doc.save(`vanguard-stock-report-${new Date().toISOString().slice(0,10)}.pdf`);
+                                                resolve();
+                                            });
+                                        } else {
+                                            throw new Error('Invalid chart image data');
+                                        }
+                                    } catch (e) {
+                                        console.error('Error adding chart:', e);
+                                        showMsg('Error generating report charts', 'error');
                                         resolve();
-                                    });
-                                } else {
-                                    throw new Error('Invalid chart image data');
+                                    }
                                 }
-                            } catch (e) {
-                                console.error('Error adding chart:', e);
-                                showMsg('Error generating report charts', 'error');
-                                resolve();
                             }
                         }
-                    }
-                }
-            });
-        });
-    } catch (error) {
-        console.error('PDF generation error:', error);
-        showMsg('Failed to generate PDF report', 'error');
-    }
-}
+                    });
+                });
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                showMsg('Failed to generate PDF report', 'error');
+            }
+        }
 
-async function generateDetailedContent(doc) {
-    try {
-        // ===== DETAILED INVENTORY STATUS =====
-        doc.setFontSize(18);
-        doc.setTextColor(52, 152, 219);
-        doc.text('Detailed Inventory Status', 14, 20);
-        
-        // Group items by department and category
-        const inventoryByDept = {};
-        Object.values(state.items).forEach(i => {
-            const cat = state.categories[i.categoryId];
-            const dept = cat ? state.departments[cat.departmentId] : null;
-            if (!dept) return;
-            
-            const stock = state.stockLevels[i.id] || { quantity: 0 };
-            const value = stock.quantity * (i.cost || 0);
-            
-            if (!inventoryByDept[dept.name]) {
-                inventoryByDept[dept.name] = {
-                    items: 0,
-                    value: 0,
-                    categories: {}
-                };
-            }
-            
-            inventoryByDept[dept.name].items++;
-            inventoryByDept[dept.name].value += value;
-            
-            if (!inventoryByDept[dept.name].categories[cat.name]) {
-                inventoryByDept[dept.name].categories[cat.name] = {
-                    items: 0,
-                    value: 0
-                };
-            }
-            
-            inventoryByDept[dept.name].categories[cat.name].items++;
-            inventoryByDept[dept.name].categories[cat.name].value += value;
-        });
-        
-        // Department summary table
-        doc.setFontSize(12);
-        doc.autoTable({
-            startY: 30,
-            head: [['Department', 'Items', 'Total Value (K)']],
-            body: Object.entries(inventoryByDept).map(([dept, data]) => [
-                dept,
-                data.items,
-                data.value.toFixed(2)
-            ]),
-            theme: 'grid',
-            headStyles: { fillColor: [52, 152, 219] },
-            columnStyles: { 
-                1: { halign: 'right' },
-                2: { halign: 'right', fontStyle: 'bold' }
-            }
-        });
-        
-        // ===== LOW STOCK ALERTS =====
-        doc.addPage();
-        doc.setFontSize(18);
-        doc.setTextColor(52, 152, 219);
-        doc.text('Low Stock Alerts', 14, 20);
-        
-        const lowStockItems = Object.values(state.items)
-            .filter(i => {
-                const stock = state.stockLevels[i.id] || { quantity: 0 };
-                return stock.quantity <= i.minStockLevel;
-            })
-            .sort((a, b) => {
-                const stockA = state.stockLevels[a.id]?.quantity || 0;
-                const stockB = state.stockLevels[b.id]?.quantity || 0;
-                return (stockA / a.minStockLevel) - (stockB / b.minStockLevel);
-            });
-        
-        if (lowStockItems.length > 0) {
-            doc.autoTable({
-                startY: 30,
-                head: [['Item', 'Department', 'Current', 'Min', 'Deficit', 'Value (K)']],
-                body: lowStockItems.map(i => {
+        async function generateDetailedContent(doc) {
+            try {
+                // ===== DETAILED INVENTORY STATUS =====
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Detailed Inventory Status', 14, 20);
+                
+                // Group items by department and category
+                const inventoryByDept = {};
+                Object.values(state.items).forEach(i => {
                     const cat = state.categories[i.categoryId];
                     const dept = cat ? state.departments[cat.departmentId] : null;
+                    if (!dept) return;
+                    
                     const stock = state.stockLevels[i.id] || { quantity: 0 };
-                    const deficit = i.minStockLevel - stock.quantity;
                     const value = stock.quantity * (i.cost || 0);
                     
-                    return [
-                        i.name,
-                        dept?.name || '-',
-                        `${stock.quantity} ${i.unit}`,
-                        `${i.minStockLevel} ${i.unit}`,
-                        `${deficit} ${i.unit}`,
-                        value.toFixed(2)
-                    ];
-                }),
-                theme: 'grid',
-                headStyles: { fillColor: [231, 76, 60] },
-                columnStyles: {
-                    2: { fontStyle: stock => stock.raw[2].includes('0 ') ? 'bold' : 'normal' },
-                    4: { fontStyle: 'bold', textColor: [231, 76, 60] },
-                    5: { halign: 'right' }
-                }
-            });
-        } else {
-            doc.setFontSize(12);
-            doc.text('No low stock items found', 14, 30);
-        }
-        
-        // ===== MOVEMENT ANALYSIS =====
-        doc.addPage();
-        doc.setFontSize(18);
-        doc.setTextColor(52, 152, 219);
-        doc.text('Recent Stock Movements', 14, 20);
-        
-        // Filter movements for last 30 days
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        const recentMovements = state.stockMovements
-            .filter(m => new Date(m.timestamp) > thirtyDaysAgo)
-            .slice(0, 100); // Limit to 100 most recent
-        
-        if (recentMovements.length > 0) {
-            doc.autoTable({
-                startY: 30,
-                head: [['Date', 'Item', 'Type', 'Qty', 'User', 'Department', 'Reason']],
-                body: recentMovements.map(m => {
-                    const item = state.items[m.item_id];
-                    const cat = item ? state.categories[item.categoryId] : null;
-                    const dept = cat ? state.departments[cat.departmentId] : null;
+                    if (!inventoryByDept[dept.name]) {
+                        inventoryByDept[dept.name] = {
+                            items: 0,
+                            value: 0,
+                            categories: {}
+                        };
+                    }
                     
-                    return [
-                        new Date(m.timestamp).toLocaleDateString(),
-                        item?.name || 'Unknown',
-                        m.type === 'in' ? 'IN' : 'OUT',
-                        m.quantity,
-                        m.user,
-                        dept?.name || '-',
-                        m.reason || '-'
-                    ];
-                }),
-                theme: 'grid',
-                headStyles: { fillColor: [46, 204, 113] },
-                columnStyles: {
-                    3: { halign: 'right' },
-                    6: { fontStyle: 'italic', fontSize: 10 }
-                },
-                styles: {
-                    fontSize: 9,
-                    cellPadding: 3
+                    inventoryByDept[dept.name].items++;
+                    inventoryByDept[dept.name].value += value;
+                    
+                    if (!inventoryByDept[dept.name].categories[cat.name]) {
+                        inventoryByDept[dept.name].categories[cat.name] = {
+                            items: 0,
+                            value: 0
+                        };
+                    }
+                    
+                    inventoryByDept[dept.name].categories[cat.name].items++;
+                    inventoryByDept[dept.name].categories[cat.name].value += value;
+                });
+                
+                // Department summary table
+                doc.setFontSize(12);
+                doc.autoTable({
+                    startY: 30,
+                    head: [['Department', 'Items', 'Total Value (K)']],
+                    body: Object.entries(inventoryByDept).map(([dept, data]) => [
+                        dept,
+                        data.items,
+                        data.value.toFixed(2)
+                    ]),
+                    theme: 'grid',
+                    headStyles: { fillColor: [52, 152, 219] },
+                    columnStyles: { 
+                        1: { halign: 'right' },
+                        2: { halign: 'right', fontStyle: 'bold' }
+                    }
+                });
+                
+                // ===== LOW STOCK ALERTS =====
+                doc.addPage();
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Low Stock Alerts', 14, 20);
+                
+                const lowStockItems = Object.values(state.items)
+                    .filter(i => {
+                        const stock = state.stockLevels[i.id] || { quantity: 0 };
+                        return stock.quantity <= i.minStockLevel;
+                    })
+                    .sort((a, b) => {
+                        const stockA = state.stockLevels[a.id]?.quantity || 0;
+                        const stockB = state.stockLevels[b.id]?.quantity || 0;
+                        return (stockA / a.minStockLevel) - (stockB / b.minStockLevel);
+                    });
+                
+                if (lowStockItems.length > 0) {
+                    doc.autoTable({
+                        startY: 30,
+                        head: [['Item', 'Department', 'Current', 'Min', 'Deficit', 'Value (K)']],
+                        body: lowStockItems.map(i => {
+                            const cat = state.categories[i.categoryId];
+                            const dept = cat ? state.departments[cat.departmentId] : null;
+                            const stock = state.stockLevels[i.id] || { quantity: 0 };
+                            const deficit = i.minStockLevel - stock.quantity;
+                            const value = stock.quantity * (i.cost || 0);
+                            
+                            return [
+                                i.name,
+                                dept?.name || '-',
+                                `${stock.quantity} ${i.unit}`,
+                                `${i.minStockLevel} ${i.unit}`,
+                                `${deficit} ${i.unit}`,
+                                value.toFixed(2)
+                            ];
+                        }),
+                        theme: 'grid',
+                        headStyles: { fillColor: [231, 76, 60] },
+                        columnStyles: {
+                            2: { fontStyle: stock => stock.raw[2].includes('0 ') ? 'bold' : 'normal' },
+                            4: { fontStyle: 'bold', textColor: [231, 76, 60] },
+                            5: { halign: 'right' }
+                        }
+                    });
+                } else {
+                    doc.setFontSize(12);
+                    doc.text('No low stock items found', 14, 30);
                 }
-            });
-        } else {
-            doc.setFontSize(12);
-            doc.text('No recent movements found', 14, 30);
+                
+                // ===== MOVEMENT ANALYSIS =====
+                doc.addPage();
+                doc.setFontSize(18);
+                doc.setTextColor(52, 152, 219);
+                doc.text('Recent Stock Movements', 14, 20);
+                
+                // Filter movements for last 30 days
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                
+                const recentMovements = state.stockMovements
+                    .filter(m => new Date(m.timestamp) > thirtyDaysAgo)
+                    .slice(0, 100); // Limit to 100 most recent
+                
+                if (recentMovements.length > 0) {
+                    doc.autoTable({
+                        startY: 30,
+                        head: [['Date', 'Item', 'Type', 'Qty', 'User', 'Department', 'Reason']],
+                        body: recentMovements.map(m => {
+                            const item = state.items[m.item_id];
+                            const cat = item ? state.categories[item.categoryId] : null;
+                            const dept = cat ? state.departments[cat.departmentId] : null;
+                            
+                            return [
+                                new Date(m.timestamp).toLocaleDateString(),
+                                item?.name || 'Unknown',
+                                m.type === 'in' ? 'IN' : 'OUT',
+                                m.quantity,
+                                m.user,
+                                dept?.name || '-',
+                                m.reason || '-'
+                            ];
+                        }),
+                        theme: 'grid',
+                        headStyles: { fillColor: [46, 204, 113] },
+                        columnStyles: {
+                            3: { halign: 'right' },
+                            6: { fontStyle: 'italic', fontSize: 10 }
+                        },
+                        styles: {
+                            fontSize: 9,
+                            cellPadding: 3
+                        }
+                    });
+                } else {
+                    doc.setFontSize(12);
+                    doc.text('No recent movements found', 14, 30);
+                }
+                
+                // ===== SAVE THE REPORT =====
+                doc.save(`vanguard-stock-report-${new Date().toISOString().slice(0,10)}.pdf`);
+            } catch (error) {
+                console.error('Error generating detailed PDF content:', error);
+                throw error;
+            }
         }
-        
-    } catch (error) {
-        console.error('Error generating detailed PDF content:', error);
-        throw error;
-    }
-}
     
-    // ===== SAVE THE REPORT =====
-    doc.save(`vanguard-stock-report-${new Date().toISOString().slice(0,10)}.pdf`);
-}
-
         function showReports() {
             const inStock = Object.values(state.items).filter(i => 
                 (state.stockLevels[i.id]?.quantity || 0) > i.minStockLevel
@@ -3013,7 +2998,6 @@ async function generateDetailedContent(doc) {
             }, 100);
         }
 
-        
         function showSettings() {
             switchView('actionContent', `
                 <div class="card">
