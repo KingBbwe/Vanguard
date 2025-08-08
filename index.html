@@ -1606,16 +1606,18 @@ function genId() {
 
                 switch (op.type) {
                     case 'ADD_ITEM':
+                        // Generate a new, valid UUID for the new item to ensure type compatibility
+                        const newItemId = crypto.randomUUID();
                         const formattedItem = {
                             ...op.data,
-                            id: ensureUUID(op.data.id),
+                            // Ensure the foreign key is a UUID
                             categoryId: ensureUUID(op.data.categoryId)
                         };
 
                         const itemResult = await supabase
                             .from('items')
                             .insert({
-                                id: formattedItem.id,
+                                id: newItemId,
                                 name: formattedItem.name,
                                 category_id: formattedItem.categoryId,
                                 unit: formattedItem.unit,
@@ -1628,11 +1630,12 @@ function genId() {
                         
                         if (itemResult.error) throw itemResult.error;
                         
+                        // Use the same new item ID for the stock level record
                         const stockResult = await supabase
                             .from('stock_levels')
                             .insert({
-                                id: ensureUUID(genId()),
-                                item_id: formattedItem.id,
+                                id: crypto.randomUUID(), // A new ID for the stock_levels record
+                                item_id: newItemId,
                                 quantity: op.initialQuantity || 0,
                                 updated_at: updateData.updated_at
                             });
@@ -1723,16 +1726,18 @@ function genId() {
                         break;
 
                     case 'ADD_CATEGORY':
+                        // Generate a new, valid UUID for the new category
+                        const newCategoryId = crypto.randomUUID();
                         const formattedCategory = {
                             ...op.data,
-                            id: ensureUUID(op.data.id),
+                            // Ensure the foreign key is a UUID
                             departmentId: ensureUUID(op.data.departmentId)
                         };
 
                         const addCategoryResult = await supabase
                             .from('categories')
                             .insert({
-                                id: formattedCategory.id,
+                                id: newCategoryId,
                                 department_id: formattedCategory.departmentId,
                                 name: formattedCategory.name,
                                 updated_at: updateData.updated_at,
@@ -1774,15 +1779,16 @@ function genId() {
                         break;
 
                     case 'ADD_DEPARTMENT':
+                        // Generate a new, valid UUID for the new department
+                        const newDeptId = crypto.randomUUID();
                         const formattedDept = {
-                            ...op.data,
-                            id: ensureUUID(op.data.id)
+                            ...op.data
                         };
 
                         const addDeptResult = await supabase
                             .from('departments')
                             .insert({
-                                id: formattedDept.id,
+                                id: newDeptId,
                                 name: formattedDept.name,
                                 updated_at: updateData.updated_at,
                                 version: updateData.version
