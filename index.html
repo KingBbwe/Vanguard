@@ -3946,6 +3946,26 @@ function genId() {
             showInventory();
         }
 
+        // Add this helper function
+function logSupabaseError(error, table, operation, data) {
+    console.error(`Supabase ${operation} error on ${table}:`, {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        data: data
+    });
+}
+
+// Then modify your error handling like this:
+const { error: movementError } = await supabase
+    .from('stock_movements')
+    .insert(movementData);
+
+if (movementError) {
+    logSupabaseError(movementError, 'stock_movements', 'insert', movementData);
+    throw movementError;
+}
         /* ===== INITIALIZATION ===== */
         async function initializeApp() {
             try {
