@@ -3452,156 +3452,183 @@ function ensureUUID(id) {
         }
 
         /* ===== DEPARTMENT MANAGEMENT ===== */
-        function addDepartment(name) {
-            const id = `dept_${name.toLowerCase().replace(/\s+/g, '')}`;
-            if (state.departments[id]) {
-                showMsg('Department already exists', 'error');
-                return;
-            }
-            
-            state.departments[id] = { 
-                id, 
-                name, 
-                updated_at: new Date().toISOString(),
-                version: 1
-            };
-            addOffline({ type: 'ADD_DEPARTMENT', data: state.departments[id] });
-            saveState();
-            showMsg('Department added', 'success');
-            forceSync().catch(console.error);
+        /* ===== DEPARTMENT MANAGEMENT ===== */
+
+async function createDepartmentAndSync(deptName) {
+    // Generate a unique ID for the new department
+    const deptId = generateUUID();
+
+    // Add the new department to the local state
+    state.departments[deptId] = { 
+        id: deptId, 
+        name: deptName, 
+        updated_at: new Date().toISOString(),
+        version: 1 
+    };
+
+    // Add the new department to the offline queue
+    addOffline({ type: 'ADD_DEPARTMENT', data: state.departments[deptId] });
+
+    // Sync the new department to the database
+    try {
+        const { error: deptError } = await supabase
+            .from('departments')
+            .insert({ id: deptId, name: deptName, updated_at: new Date().toISOString(), version: 1 });
+
+        if (deptError) {
+            throw new Error(`Failed to add department: ${deptError.message}`);
         }
 
-        function updateDepartment(id, newName) {
-            state.departments[id].name = newName;
-            state.departments[id].updated_at = new Date().toISOString();
-            state.departments[id].version = (state.departments[id].version || 1) + 1;
-            addOffline({ type: 'UPDATE_DEPARTMENT', id, data: state.departments[id] });
-            saveState();
-            showMsg('Department updated', 'success');
-            forceSync().catch(console.error);
-        }
+        // Department synced successfully
+        showMsg('Department added', 'success');
+    } catch (error) {
+        console.error('Sync failed:', error);
+        showMsg('Failed to add department', 'error');
+    }
+}
 
-        function deleteDepartment(id) {
-            const inCat = Object.values(state.categories).some(c => c.departmentId === id);
-            if (inCat) {
-                showMsg('Department has categories – cannot delete', 'error');
-                return;
-            }
-            
-            delete state.departments[id];
-            addOffline({ type: 'DELETE_DEPARTMENT', id });
-            saveState();
-            showMsg('Department deleted', 'success');
-            forceSync().catch(console.error);
-        }
+function addDepartment(name) {
+    const id = `dept_${name.toLowerCase().replace(/\s+/g, '')}`;
+    if (state.departments[id]) {
+        showMsg('Department already exists', 'error');
+        return;
+    }
 
-        function showDepartmentManagement() {
-            if (currentUser?.role !== USER_ROLES.ADMIN) {
-                showMsg('Access denied', 'error');
-                return;
-            }
-            
-            const depts = Object.values(state.departments).map(d => `
-                <tr>
-                    <td>${d.name}</td>
-                    <td>
-                        <button class="btn-icon" onclick="editDepartmentForm('${d.id}')" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon" onclick="deleteDepartment('${d.id}')" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>`
-            ).join('');
-            
-            switchView('actionContent', `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Department Management</div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-primary" onclick="addDepartmentForm()">
-                                <i class="fas fa-plus"></i> Add Department
-                            </button>
-                        </div>
-                    </div>
-                    <div class="data-table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>${depts || '<tr><td colspan="2" style="text-align:center;padding:1.5rem">No departments found</td></tr>'}</tbody>
-                        </table>
+    // Call the function to create and sync the department
+    createDepartmentAndSync(name).catch(console.error);
+}
+
+function updateDepartment(id, newName) {
+    state.departments[id].name = newName;
+    state.departments[id].updated_at = new Date().toISOString();
+    state.departments[id].version = (state.departments[id].version || 1) + 1;
+    addOffline({ type: 'UPDATE_DEPARTMENT', id, data: state.departments[id] });
+    saveState();
+    showMsg('Department updated', 'success');
+    forceSync().catch(console.error);
+}
+
+function deleteDepartment(id) {
+    const inCat = Object.values(state.categories).some(c => c.departmentId === id);
+    if (inCat) {
+        showMsg('Department has categories – cannot delete', 'error');
+        return;
+    }
+
+    delete state.departments[id];
+    addOffline({ type: 'DELETE_DEPARTMENT', id });
+    saveState();
+    showMsg('Department deleted', 'success');
+    forceSync().catch(console.error);
+}
+
+function showDepartmentManagement() {
+    if (currentUser?.role !== USER_ROLES.ADMIN) {
+        showMsg('Access denied', 'error');
+        return;
+    }
+
+    const depts = Object.values(state.departments).map(d => `
+        <tr>
+            <td>${d.name}</td>
+            <td>
+                <button class="btn-icon" onclick="editDepartmentForm('${d.id}')" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon" onclick="deleteDepartment('${d.id}')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>`
+    ).join('');
+
+    switchView('actionContent', `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Department Management</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" onclick="addDepartmentForm()">
+                        <i class="fas fa-plus"></i> Add Department
+                    </button>
+                </div>
+            </div>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>${depts || '<tr><td colspan="2" style="text-align:center;padding:1.5rem">No departments found</td></tr>'}</tbody>
+                </table>
+            </div>
+        </div>
+    `);
+}
+
+function addDepartmentForm() {
+    switchView('actionContent', `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Add New Department</div>
+                <button class="logout-btn" onclick="showDepartmentManagement()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+            <form id="addDeptForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Department Name</label>
+                        <input id="adName" required placeholder="Enter department name">
                     </div>
                 </div>
-            `);
-        }
-
-        function addDepartmentForm() {
-            switchView('actionContent', `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Add New Department</div>
-                        <button class="logout-btn" onclick="showDepartmentManagement()">
-                            <i class="fas fa-arrow-left"></i> Back
-                        </button>
-                    </div>
-                    <form id="addDeptForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Department Name</label>
-                                <input id="adName" required placeholder="Enter department name">
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Add Department</button>
-                        </div>
-                    </form>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Department</button>
                 </div>
-            `);
-            
-            document.getElementById('addDeptForm').addEventListener('submit', e => {
-                e.preventDefault();
-                addDepartment(document.getElementById('adName').value);
-                showDepartmentManagement();
-            });
-        }
+            </form>
+        </div>
+    `);
 
-        function editDepartmentForm(id) {
-            const d = state.departments[id];
-            switchView('actionContent', `
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Edit Department</div>
-                        <button class="logout-btn" onclick="showDepartmentManagement()">
-                            <i class="fas fa-arrow-left"></i> Back
-                        </button>
+    document.getElementById('addDeptForm').addEventListener('submit', e => {
+        e.preventDefault();
+        addDepartment(document.getElementById('adName').value);
+        showDepartmentManagement();
+    });
+}
+
+function editDepartmentForm(id) {
+    const d = state.departments[id];
+    switchView('actionContent', `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Edit Department</div>
+                <button class="logout-btn" onclick="showDepartmentManagement()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+            <form id="editDeptForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input id="edName" value="${d.name}" required>
                     </div>
-                    <form id="editDeptForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label>Name</label>
-                                <input id="edName" value="${d.name}" required>
-                            </div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Save Changes</button>
-                        </div>
-                    </form>
                 </div>
-            `);
-            
-            document.getElementById('editDeptForm').addEventListener('submit', e => {
-                e.preventDefault();
-                updateDepartment(id, document.getElementById('edName').value);
-                showDepartmentManagement();
-            });
-        }
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="showDepartmentManagement()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    `);
+
+    document.getElementById('editDeptForm').addEventListener('submit', e => {
+        e.preventDefault();
+        updateDepartment(id, document.getElementById('edName').value);
+        showDepartmentManagement();
+    });
+}
 
         /* ===== USER MANAGEMENT ===== */
         function showUserManagement() {
