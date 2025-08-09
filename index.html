@@ -1729,17 +1729,17 @@
 
                             // In processOfflineQueue(), under ADD_STOCK_LEVEL:
 case 'ADD_STOCK_LEVEL':
-    const { error: stockError } = await supabase
-        .from('stock_levels')
-        .upsert({
-            id: ensureUUID(op.data.id),
-            item_id: ensureUUID(op.data.item_id),
-            quantity: op.data.quantity || 0,
-            updated_at: op.data.updated_at,
-            version: op.data.version || 1
-        }, { onConflict: 'item_id' }); // Prevents duplicates
-    if (stockError) throw stockError;
-    break;
+  const { error: stockError } = await supabase
+    .from('stock_levels')
+    .upsert({
+      id: ensureUUID(op.data.id),
+      item_id: ensureUUID(op.data.item_id),
+      quantity: Number(op.data.quantity) || 0,
+      updated_at: op.data.updated_at,
+      version: Number(op.data.version) || 1
+    }, { onConflict: 'item_id' });
+  if (stockError) throw stockError;
+  break;
 
                             case 'UPDATE_STOCK_LEVEL':
     const { error: updateStockError } = await supabase
