@@ -1062,18 +1062,16 @@
         return v.toString(16);
     });
 }
- function ensureUUID(id) {
-    if (!id) return generateUUID();
-
-    // Already a valid UUID?
+ function ensureUUID(id, generateId) {
+    if (!id) return generateId();
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (uuidPattern.test(id)) return id;
-
-    // Convert legacy IDs to UUIDv4
+    if (typeof id === 'string' && uuidPattern.test(id)) {
+        return id;
+    }
     const cleanId = String(id).replace(/[^0-9a-f]/gi, '');
     const paddedId = (cleanId + '00000000000000000000000000000000').slice(0, 32);
     return `${paddedId.slice(0, 8)}-${paddedId.slice(8, 12)}-4${paddedId.slice(13, 16)}-${
-        ['8','9','a','b'][Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
+        '89ab'[Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
 }
 
         // Enhanced Telegram notification with currency conversion
