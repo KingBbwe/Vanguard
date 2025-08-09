@@ -1194,50 +1194,50 @@
 
         /* ===== CORE OPS ===== */
     
-        function addItem(data) {
-            const id = generateUUID();
-            const newItem = {
-                id: id,
-                name: data.name,
-                categoryId: ensureUUID(data.categoryId),
-                unit: data.unit,
-                cost: +data.cost || 0,
-                minStockLevel: +data.minStockLevel || 0,
-                createdAt: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                version: 1
-            };
-            
-            // Create associated stock level
-            state.stockLevels[id] = {
-                id: generateUUID(),
-                item_id: id,
-                quantity: +data.initialQuantity || 0,
-                updated_at: new Date().toISOString(),
-                version: 1
-            };
-            
-            state.items[id] = newItem;
-            
-            if (+data.initialQuantity > 0) {
-                logMove(id, 'in', +data.initialQuantity, 'Initial stock');
-            }
-            
-            addOffline({ 
-                type: 'ADD_ITEM', 
-                data: newItem 
-            });
-            
-            addOffline({
-                type: 'ADD_STOCK_LEVEL',
-                data: state.stockLevels[id]
-            });
-            
-            saveState();
-            updateDash();
-            renderAct();
-            return id;
-        }
+        async function addItem(data) {
+    const id = generateUUID();
+    const newItem = {
+        id: id,
+        name: data.name,
+        categoryId: ensureUUID(data.categoryId),
+        unit: data.unit,
+        cost: +data.cost || 0,
+        minStockLevel: +data.minStockLevel || 0,
+        createdAt: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        version: 1
+    };
+
+    // Create associated stock level
+    state.stockLevels[id] = {
+        id: generateUUID(),
+        item_id: id,
+        quantity: +data.initialQuantity || 0,
+        updated_at: new Date().toISOString(),
+        version: 1
+    };
+
+    state.items[id] = newItem;
+
+    if (+data.initialQuantity > 0) {
+        logMove(id, 'in', +data.initialQuantity, 'Initial stock');
+    }
+
+    addOffline({ 
+        type: 'ADD_ITEM', 
+        data: newItem 
+    });
+
+    addOffline({
+        type: 'ADD_STOCK_LEVEL',
+        data: state.stockLevels[id]
+    });
+
+    saveState();
+    updateDash();
+    renderAct();
+    return id;
+}
 
         async function updateItem(id, data) {
             const item = state.items[id];
@@ -3454,22 +3454,18 @@ function ensureUUID(id) {
         /* ===== DEPARTMENT MANAGEMENT ===== */
         /* ===== DEPARTMENT MANAGEMENT ===== */
 
-async function createDepartmentAndSync(deptName) {
-    // Generate a unique ID for the new department
-    const deptId = generateUUID();
+/* ===== DEPARTMENT MANAGEMENT ===== */
 
-    // Add the new department to the local state
+async function createDepartmentAndSync(deptName) {
+    const deptId = generateUUID();
     state.departments[deptId] = { 
         id: deptId, 
         name: deptName, 
         updated_at: new Date().toISOString(),
         version: 1 
     };
-
-    // Add the new department to the offline queue
     addOffline({ type: 'ADD_DEPARTMENT', data: state.departments[deptId] });
 
-    // Sync the new department to the database
     try {
         const { error: deptError } = await supabase
             .from('departments')
@@ -3479,7 +3475,6 @@ async function createDepartmentAndSync(deptName) {
             throw new Error(`Failed to add department: ${deptError.message}`);
         }
 
-        // Department synced successfully
         showMsg('Department added', 'success');
     } catch (error) {
         console.error('Sync failed:', error);
@@ -3493,8 +3488,6 @@ function addDepartment(name) {
         showMsg('Department already exists', 'error');
         return;
     }
-
-    // Call the function to create and sync the department
     createDepartmentAndSync(name).catch(console.error);
 }
 
@@ -3514,7 +3507,6 @@ function deleteDepartment(id) {
         showMsg('Department has categories – cannot delete', 'error');
         return;
     }
-
     delete state.departments[id];
     addOffline({ type: 'DELETE_DEPARTMENT', id });
     saveState();
