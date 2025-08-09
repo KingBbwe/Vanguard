@@ -1194,12 +1194,24 @@
 
         /* ===== CORE OPS ===== */
     
-        async function addItem(data) {
+   async function addItem(data) {
+    const categoryId = ensureUUID(data.categoryId);
+    const { data: category, error: catError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('id', categoryId)
+        .single();
+
+    if (catError || !category) {
+        showMsg('Category does not exist', 'error');
+        return;
+    }
+
     const id = generateUUID();
     const newItem = {
         id: id,
         name: data.name,
-        categoryId: ensureUUID(data.categoryId),
+        categoryId: categoryId,
         unit: data.unit,
         cost: +data.cost || 0,
         minStockLevel: +data.minStockLevel || 0,
@@ -1207,6 +1219,8 @@
         updated_at: new Date().toISOString(),
         version: 1
     };
+
+    state.items[id] = newItem;
 
     // Create associated stock level
     state.stockLevels[id] = {
@@ -1216,8 +1230,6 @@
         updated_at: new Date().toISOString(),
         version: 1
     };
-
-    state.items[id] = newItem;
 
     if (+data.initialQuantity > 0) {
         logMove(id, 'in', +data.initialQuantity, 'Initial stock');
@@ -1238,7 +1250,6 @@
     renderAct();
     return id;
 }
-
         async function updateItem(id, data) {
             const item = state.items[id];
             if (!item) return;
@@ -1267,42 +1278,38 @@
 
         /* ===== ENHANCED STOCK MOVEMENT HANDLING ===== */
         function logMove(itemId, moveType, quantity, reason, staff = null, pin = null, userOverride = "System") {
-            const id = generateUUID();
-            const user = userOverride || (currentUser ? currentUser.displayName : "System");
-            const item = state.items[itemId];
-            const movementValue = quantity * (item?.cost || 0);
-            
-            const movement = {
-                id: id,
-                item_id: ensureUUID(itemId),
-                type: moveType,
-                quantity: quantity,
-                reason: reason,
-                user: user,
-                staff_member: staff,
-                confirmedPin: pin,
-                timestamp: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                version: 1,
-                movement_value: movementValue,
-                currency: 'MWK'
-            };
-            
-            // Add verification info if admin
-            if (['Franklin', 'Kelvin', 'Chisomo'].includes(currentUser?.username)) {
-                movement.verified_by = currentUser.username;
-                movement.verification_timestamp = new Date().toISOString();
-            }
-            
-            state.stockMovements.unshift(movement);
-            addOffline({
-                type: 'STOCK_MOVEMENT',
-                data: movement
-            });
-            
-            saveState();
-            return movement;
-        }
+    const id = generateUUID();
+    const user = userOverride || (currentUser ? currentUser.displayName : "System");
+    const item = state.items[itemId];
+    const movementValue = quantity * (item?.cost || 0);
+
+    const movement = {
+        id: id,
+        item_id: ensureUUID(itemId),
+        type: moveType,
+        quantity: quantity,
+        reason: reason,
+        user: user,
+        staff_member: staff,
+        confirmedPin: pin,
+        timestamp: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        version: 1,
+        movement_value: movementValue,
+        currency: 'MWK',
+        verified_by: null, // Add this line
+        verification_timestamp: null // Add this line
+    };
+
+    state.stockMovements.unshift(movement);
+    addOffline({
+        type: 'STOCK_MOVEMENT',
+        data: movement
+    });
+
+    saveState();
+    return movement;
+}
 
         function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
             // Ensure stock level exists with proper UUID
@@ -1611,33 +1618,43 @@
         }
 
         async function forceSync() {
-            const indicator = document.getElementById('syncIndicator');
-            const statusText = document.getElementById('syncStatus');
-            
-            if (!navigator.onLine) {
-                showSyncNotification('Cannot sync - offline', 'error');
-                return;
-            }
-            
-            indicator.className = 'sync-indicator syncing';
-            statusText.textContent = 'Syncing…';
-            showSyncNotification('Forcing immediate sync...');
-            
-            try {
-                await processOfflineQueue();
-                await pullFromSupabase();
-                await saveState();
-                
-                updateDash();
-                renderAct();
-                showSyncNotification('Sync completed successfully', 'success');
-            } catch (error) {
-                console.error('Force sync error:', error);
-                showSyncNotification(`Sync failed: ${error.message}`, 'error');
-            } finally {
-                updateSyncStatus();
-            }
-        }
+    const indicator = document.getElementById('syncIndicator');
+    const statusText = document.getElementById('syncStatus');
+    
+    if (!navigator.onLine) {
+        showSyncNotification('Cannot sync - offline', 'error');
+        return;
+    }
+    
+    indicator.className = 'sync-indicator syncing';
+    statusText.textContent = 'Syncing…';
+    showSyncNotification('Forcing immediate sync...');
+    
+    try {
+        // Process the offline queue first to ensure all pending operations are synced
+        await processOfflineQueue();
+        
+        // Pull the latest data from Supabase to ensure the local state is up-to-date
+        await pullFromSupabase();
+        
+        // Save the updated state to ensure local consistency
+        await saveState();
+        
+        // Update the dashboard and recent activity sections of the UI
+        updateDash();
+        renderAct();
+        
+        // Show a success notification
+        showSyncNotification('Sync completed successfully', 'success');
+    } catch (error) {
+        // Log the error and show an error notification
+        console.error('Force sync error:', error);
+        showSyncNotification(`Sync failed: ${error.message}`, 'error');
+    } finally {
+        // Update the sync status indicator and text
+        updateSyncStatus();
+    }
+}
 
     async function processOfflineQueue() {
             if (!offlineQueue.length) return;
