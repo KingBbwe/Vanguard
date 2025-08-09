@@ -1194,7 +1194,7 @@
 
         /* ===== CORE OPS ===== */
     
-        async function addItem(data) {
+        function addItem(data) {
             const id = generateUUID();
             const newItem = {
                 id: id,
@@ -1208,10 +1208,9 @@
                 version: 1
             };
             
-            // Create stock level record with same UUID
-            const stockLevelId = generateUUID();
-            state.stockLevels[id] = { 
-                id: stockLevelId,
+            // Create associated stock level
+            state.stockLevels[id] = {
+                id: generateUUID(),
                 item_id: id,
                 quantity: +data.initialQuantity || 0,
                 updated_at: new Date().toISOString(),
@@ -1221,13 +1220,12 @@
             state.items[id] = newItem;
             
             if (+data.initialQuantity > 0) {
-                logMove(id, 'in', +data.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
+                logMove(id, 'in', +data.initialQuantity, 'Initial stock');
             }
             
-            // Add both operations to offline queue
             addOffline({ 
                 type: 'ADD_ITEM', 
-                data: newItem
+                data: newItem 
             });
             
             addOffline({
@@ -1235,7 +1233,7 @@
                 data: state.stockLevels[id]
             });
             
-            await saveState();
+            saveState();
             updateDash();
             renderAct();
             return id;
