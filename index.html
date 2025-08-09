@@ -1010,98 +1010,179 @@
         };
 
         /* ===== CORE OPS ===== */
-        function logMove(i, t, q, r, s = null, p = null, userOverride = "System") {
-            const user = userOverride || (currentUser ? currentUser.displayName : "System");
-            
-            state.stockMovements.unshift({
-                id: genId(),
-                item_id: i,
-                type: t,
-                quantity: q,
-                reason: r,
-                user: user,
-                staff_member: s,
-                confirmedPin: p,
-                timestamp: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            });
-            saveState();
-        }
+        function logMove(itemId, moveType, quantity, reason, staff = null, pin = null, userOverride = "System") {
+    const id = generateUUID();
+    const user = userOverride || (currentUser ? currentUser.displayName : "System");
+    const item = state.items[itemId];
+    const movementValue = quantity * (item?.cost || 0);
 
-        function addItem(d) {
-            const id = genId();
-            state.items[id] = {
-                id,
-                name: d.name,
-                categoryId: d.categoryId,
-                unit: d.unit,
-                cost: +d.cost || 0,
-                minStockLevel: +d.minStockLevel || 0,
-                createdAt: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+    const movement = {
+        id: id,
+        item_id: ensureUUID(itemId),
+        type: moveType,
+        quantity: quantity,
+        reason: reason,
+        user: user,
+        staff_member: staff,
+        confirmedPin: pin,
+        timestamp: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        version: 1,
+        movement_value: movementValue,
+        currency: 'MWK',
+        verified_by: null, // Add this line
+        verification_timestamp: null // Add this line
+    };
+
+    state.stockMovements.unshift(movement);
+    addOffline({
+        type: 'STOCK_MOVEMENT',
+        data: movement
+    });
+
+    saveState();
+    return movement;
+}
+
+         async function addItem(data) {
+    const categoryId = ensureUUID(data.categoryId);
+    const { data: category, error: catError } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('id', categoryId)
+        .single();
+
+    if (catError || !category) {
+        showMsg('Category does not exist', 'error');
+        return;
+    }
+
+    const id = generateUUID();
+    const newItem = {
+        id: id,
+        name: data.name,
+        categoryId: categoryId,
+        unit: data.unit,
+        cost: +data.cost || 0,
+        minStockLevel: +data.minStockLevel || 0,
+        createdAt: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        version: 1
+    };
+
+    state.items[id] = newItem;
+
+    // Create associated stock level
+    state.stockLevels[id] = {
+        id: generateUUID(),
+        item_id: id,
+        quantity: +data.initialQuantity || 0,
+        updated_at: new Date().toISOString(),
+        version: 1
+    };
+
+    if (+data.initialQuantity > 0) {
+        logMove(id, 'in', +data.initialQuantity, 'Initial stock');
+    }
+
+    addOffline({ 
+        type: 'ADD_ITEM', 
+        data: newItem 
+    });
+
+    addOffline({
+        type: 'ADD_STOCK_LEVEL',
+        data: state.stockLevels[id]
+    });
+
+    saveState();
+    updateDash();
+    renderAct();
+    return id;
+}
+        async function updateItem(id, data) {
+            const item = state.items[id];
+            if (!item) return;
+            
+            const updatedItem = {
+                ...item,
+                name: data.name,
+                categoryId: ensureUUID(data.categoryId),
+                unit: data.unit,
+                cost: +data.cost || 0,
+                minStockLevel: +data.minStockLevel || 0,
+                updated_at: new Date().toISOString(),
+                version: (item.version || 1) + 1
             };
-            state.stockLevels[id] = { item_id: id, quantity: +d.initialQuantity || 0 };
-            logMove(id, 'in', +d.initialQuantity, 'Initial stock', null, null, currentUser?.displayName);
-            addOffline({ type: 'ADD_ITEM', data: state.items[id], initialQuantity: +d.initialQuantity || 0 });
-            saveState();
-            updateDash();
-            renderAct();
+            
+            state.items[id] = updatedItem;
+            addOffline({ 
+                type: 'UPDATE_ITEM', 
+                id: ensureUUID(id),
+                data: updatedItem 
+            });
+            
+            await saveState();
             return id;
         }
 
-        function adjustStock(itemId, qty, reason, staff = null, pin = null) {
-            const item = state.items[itemId];
-            const stock = state.stockLevels[itemId];
-            
-            if (!item || !stock) {
-                showMsg('Item not found', 'error');
-                return false;
+        function adjustStock(itemId, quantity, reason, staff = null, pin = null, verificationNote = '') {
+            // Ensure stock level exists with proper UUID
+            if (!state.stockLevels[itemId]) {
+                const stockLevelId = generateUUID();
+                state.stockLevels[itemId] = { 
+                    id: stockLevelId,
+                    item_id: ensureUUID(itemId),
+                    quantity: 0,
+                    updated_at: new Date().toISOString(),
+                    version: 1
+                };
+                addOffline({
+                    type: 'ADD_STOCK_LEVEL',
+                    data: state.stockLevels[itemId]
+                });
             }
             
-            if (stock.quantity + qty < 0) {
-                showMsg('Negative stock', 'error');
-                return false;
+            // Update quantity (prevent negative values)
+            const newQuantity = state.stockLevels[itemId].quantity + quantity;
+            state.stockLevels[itemId].quantity = Math.max(0, newQuantity);
+            state.stockLevels[itemId].updated_at = new Date().toISOString();
+            state.stockLevels[itemId].version = (state.stockLevels[itemId].version || 1) + 1;
+            
+            // Record the movement
+            const movement = logMove(
+                itemId,
+                quantity > 0 ? 'in' : 'out',
+                Math.abs(quantity),
+                reason,
+                staff,
+                pin,
+                currentUser?.displayName
+            );
+            
+            // Add verification note if provided
+            if (verificationNote) {
+                movement.verification_note = verificationNote;
             }
             
-            const old = stock.quantity;
-            stock.quantity += qty;
-            item.updated_at = new Date().toISOString();
-            const type = qty > 0 ? 'in' : 'out';
-            logMove(itemId, type, Math.abs(qty), reason, staff, pin, currentUser?.displayName);
-            
+            // Update offline queue with stock level change
             addOffline({
-                type: 'STOCK_MOVEMENT',
-                data: {
-                    item_id: itemId,
-                    type,
-                    quantity: Math.abs(qty),
-                    reason,
-                    user: currentUser ? currentUser.displayName : "System",
-                    staff_member: staff,
-                    confirmedPin: pin,
-                    timestamp: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                }
+                type: 'UPDATE_STOCK_LEVEL',
+                id: state.stockLevels[itemId].id,
+                data: state.stockLevels[itemId]
             });
             
             saveState();
             updateDash();
             renderAct();
             
-            if (type === 'out') {
-                const staffName = staff ? state.users[staff]?.displayName || staff : 'Unknown';
-                sendTG(`✅ **STOCK ISSUED**\n\nItem: **${item.name}**\nQty: **${Math.abs(qty)} ${item.unit}**\nTo: **${staffName}**\nPIN: **${pin || 'Admin'}**`);
-                
-                if (old > item.minStockLevel && stock.quantity <= item.minStockLevel) {
-                    const msg = `🚨 **LOW STOCK**\n\nItem: **${item.name}**\nQty: **${stock.quantity}/${item.minStockLevel} ${item.unit}**`;
-                    sendTG(msg);
-                    state.notifications.unshift({ id: genId(), message: msg, timestamp: new Date().toISOString(), read: false });
-                    saveState();
-                }
+            // Check for low stock
+            const item = state.items[itemId];
+            if (item && state.stockLevels[itemId].quantity <= item.minStockLevel) {
+                showLowStockAlert(item);
             }
-            
-            return true;
         }
+
 
         function updateDash() {
             document.getElementById('totalItems').textContent = Object.keys(state.items).length;
@@ -1594,22 +1675,6 @@ case 'ADD_STOCK_LEVEL':
         }
     }
 }  // <<== THIS IS YOUR FUNCTION'S CLOSING BRACE
-// UUID validation and formatting helper
-function ensureUUID(id) {
-    if (!id) return genId();
-    
-    // If already in valid UUID format
-    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (typeof id === 'string' && uuidPattern.test(id)) {
-        return id;
-    }
-    
-    // If it's a number or simple string, convert to proper UUIDv4 format
-    const cleanId = String(id).replace(/[^0-9a-f]/gi, '');
-    const paddedId = (cleanId + '00000000000000000000000000000000').slice(0, 32);
-    return `${paddedId.slice(0, 8)}-${paddedId.slice(8, 12)}-4${paddedId.slice(13, 16)}-${
-        '89ab'[Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
-}
 
 
   /* ── 3.  Flush the offline queue ── */
