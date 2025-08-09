@@ -1052,11 +1052,9 @@
 
      /* ===== ENHANCED UUID HANDLING ===== */
         function generateUUID() {
-            // Modern browser support (preferred)
             if (typeof crypto.randomUUID === 'function') {
                 return crypto.randomUUID();
             }
-            // Fallback for older browsers
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 const r = Math.random() * 16 | 0;
                 const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -1064,19 +1062,17 @@
             });
         }
 
-        function validateUUID(id) {
-            return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
-        }
-
         function ensureUUID(id) {
             if (!id) return generateUUID();
-            if (validateUUID(id)) return id;
-            
-            // If it's a number or simple string, convert to proper UUIDv4 format
+            // If already in UUID format
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+                return id;
+            }
+            // Convert legacy IDs to UUID format
             const cleanId = String(id).replace(/[^0-9a-f]/gi, '');
             const paddedId = (cleanId + '00000000000000000000000000000000').slice(0, 32);
             return `${paddedId.slice(0, 8)}-${paddedId.slice(8, 12)}-4${paddedId.slice(13, 16)}-${
-                '89ab'[Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
+                ['8','9','a','b'][Math.floor(Math.random() * 4)]}${paddedId.slice(17, 20)}-${paddedId.slice(20)}`;
         }
 
         // Enhanced Telegram notification with currency conversion
